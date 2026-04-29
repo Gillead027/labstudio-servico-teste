@@ -139,7 +139,6 @@
       "sb_publishable_12C1Wu47s3SuxqHZvQybdg_WubBGiQl"
     );
 
-    // --- CONFIGURAÇÕES DE REGRAS TRIMESTRAIS ---
     const horariosTerQui = ["18:00", "18:30"];
     const horariosSexta = ["14:00", "15:00", "16:00"]; 
     
@@ -225,22 +224,20 @@
       btnAgendar.innerText = "Agendando...";
 
       try {
-        // 1. Salva no Supabase (Obrigatório)
         const { error } = await client
           .from("agendamentos")
           .insert([{ nome, data: dataStr, horario }]);
 
         if (error) throw error;
 
-        // 2. Notifica o Bot no Render (Sem esperar resposta para não travar)
-        fetch("https://labstudio-bot-oficial-production.up.railway.app/notificar", {
+        // 🔥 O SEGREDINHO ESTÁ AQUI: O 'await' faz o navegador esperar a mensagem sair
+        await fetch("https://labstudio-bot-oficial-production.up.railway.app/notificar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ nome, data: dataStr, horario }),
           mode: 'cors'
-        }).catch(err => console.log("Bot avisado, aguardando processamento."));
+        });
 
-        // 3. Sucesso!
         alert(`Confirmado, ${nome}! 🔥\nTe esperamos dia ${dataStr} às ${horario}.`);
         
         location.reload();
