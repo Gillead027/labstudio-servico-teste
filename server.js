@@ -12,8 +12,8 @@ app.use(express.json());
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        // Atualizei o caminho com a versão exata que apareceu no seu LOG (127.0.6533.88)
-        executablePath: '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome',
+        // Vamos deixar o Puppeteer buscar o Chrome que o Buildpack vai instalar
+        executablePath: '/usr/bin/google-chrome-stable', 
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
