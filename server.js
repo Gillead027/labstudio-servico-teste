@@ -12,8 +12,14 @@ app.use(express.json());
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
+        // No Docker do Render, o Chrome geralmente fica neste caminho padrão
         executablePath: '/usr/bin/google-chrome-stable', 
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--single-process'
+        ],
         headless: true
     }
 });
