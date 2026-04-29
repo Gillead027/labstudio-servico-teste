@@ -233,7 +233,7 @@
         if (error) throw error;
 
         // 2. Notifica o Bot no Render (Sem esperar resposta para não travar)
-        fetch("https://labstudio-sistema-v2.onrender.com/notificar", {
+        fetch("https://seu-projeto-production.up.railway.app/notificar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ nome, data: dataStr, horario }),
