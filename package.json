@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "Sistema de Agendamento LabStudio CRJ",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "build": "npm install && npx puppeteer browsers install chrome"
-  },
+ "scripts": {
+  "start": "node server.js",
+  "build": "npm install"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
