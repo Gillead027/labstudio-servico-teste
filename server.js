@@ -12,15 +12,8 @@ app.use(express.json());
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        // Vamos deixar o Puppeteer buscar o Chrome que o Buildpack vai instalar
         executablePath: '/usr/bin/google-chrome-stable', 
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--single-process',
-            '--no-zygote'
-        ],
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
         headless: true
     }
 });
