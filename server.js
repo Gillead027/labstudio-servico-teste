@@ -8,19 +8,18 @@ app.use(cors());
 app.use(express.json());
 
 // 🔥 Inicia o novo bot do WhatsApp
+const puppeteer = require('puppeteer');
+
 const client = new Client({
     authStrategy: new LocalAuth(),
     puppeteer: {
-        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/google-chrome-stable', 
+        executablePath: puppeteer.executablePath(), // 🔥 Ele vai achar o caminho sozinho!
         args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
-            '--single-process', // Isso ajuda muito em servidores com pouca RAM
-            '--disable-gpu'
+            '--single-process',
+            '--no-zygote'
         ],
         headless: true
     }
