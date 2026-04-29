@@ -9,9 +9,10 @@ app.use(express.json());
 
 // 🔥 Inicia o novo bot do WhatsApp
 const client = new Client({
-    authStrategy: new LocalAuth(), // Salva o login para não pedir QR toda hora
+    authStrategy: new LocalAuth(),
     puppeteer: {
-        headless: false // Abre o Chrome para o WhatsApp não bloquear
+        args: ['--no-sandbox', '--disable-setuid-sandbox'], // 🔥 ADICIONE ISSO AQUI PARA O RENDER NÃO DAR ERRO
+        headless: true // Na nuvem precisa ser true (invisível)
     }
 });
 
