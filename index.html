@@ -237,7 +237,7 @@
 
         if (error) throw error;
 
-        await fetch("https://labstudio-bot-oficial-production.up.railway.app/notificar", {
+       await fetch("https://labstudio-bot-oficial-production.up.railway.app/notificar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ nome, data: dataStr, horario }),
