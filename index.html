@@ -188,8 +188,9 @@
 
       const { data: agendados, error } = await client
         .from("agendamentos")
-        .select("horario")
-        .eq("data", dataSelecionada);
+        .select("horario, status")
+        .eq("data", dataSelecionada)
+        .neq("status", "cancelado");
 
       if (error) {
         alert("Erro ao buscar horários: " + error.message);
