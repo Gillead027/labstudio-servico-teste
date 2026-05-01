@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin - LabStudio CRJ</title>
+
+  <style>
+    :root {
+      --primary: #6366f1;
+      --success: #22c55e;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #475569;
+      --input: #334155;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 30px;
+    }
+
+    .filtros {
+      background: var(--card);
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: end;
+    }
+
+    .grupo {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    input, select {
+      background: var(--input);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font-weight: bold;
+      color: white;
+      background: var(--primary);
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .btn-presenca {
+      background: var(--success);
+    }
+
+    .btn-falta {
+      background: var(--warning);
+    }
+
+    .btn-cancelar {
+      background: var(--danger);
+    }
+
+    .btn-secundario {
+      background: var(--border);
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .linha-topo {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .nome {
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .status {
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .status-agendado {
+      background: #334155;
+      color: #cbd5e1;
+    }
+
+    .status-compareceu {
+      background: #14532d;
+      color: #bbf7d0;
+    }
+
+    .status-faltou {
+      background: #713f12;
+      color: #fde68a;
+    }
+
+    .status-cancelado {
+      background: #7f1d1d;
+      color: #fecaca;
+    }
+
+    .info {
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .acoes {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .vazio {
+      color: var(--muted);
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>Painel Admin - LabStudio CRJ</h1>
+    <div class="subtitle">Gerencie agendamentos, presenças, faltas e cancelamentos.</div>
+
+    <div class="filtros">
+      <div class="grupo">
+        <label for="filtroData">Filtrar por data</label>
+        <input type="date" id="filtroData">
+      </div>
+
+      <div class="grupo">
+        <label for="filtroStatus">Status</label>
+        <select id="filtroStatus">
+          <option value="">Todos</option>
+          <option value="agendado">Agendado</option>
+          <option value="compareceu">Compareceu</option>
+          <option value="faltou">Faltou</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+
+      <button id="btnFiltrar">Filtrar</button>
+      <button id="btnLimpar" class="btn-secundario">Limpar</button>
+    </div>
+
+    <div id="listaAgendamentos"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // ===============================
+    // CONEXÃO COM SUPABASE
+    // ===============================
+    const client = window.supabase.createClient(
+      "https://hblxvxgocemzctjbutgi.supabase.co",
+      "sb_publishable_12C1Wu47s3SuxqHZvQybdg_WubBGiQl"
+    );
+
+    // ===============================
+    // ELEMENTOS DA TELA
+    // ===============================
+    const lista = document.getElementById("listaAgendamentos");
+    const filtroData = document.getElementById("filtroData");
+    const filtroStatus = document.getElementById("filtroStatus");
+    const btnFiltrar = document.getElementById("btnFiltrar");
+    const btnLimpar = document.getElementById("btnLimpar");
+
+    // ===============================
+    // FORMATAR DATA PARA PT-BR
+    // ===============================
+    function formatarData(data) {
+      if (!data) return "";
+      const [ano, mes, dia] = data.split("-");
+      return `${dia}/${mes}/${ano}`;
+    }
+
+    // ===============================
+    // GERAR CLASSE VISUAL DO STATUS
+    // ===============================
+    function classeStatus(status) {
+      if (status === "compareceu") return "status status-compareceu";
+      if (status === "faltou") return "status status-faltou";
+      if (status === "cancelado") return "status status-cancelado";
+      return "status status-agendado";
+    }
+
+    // ===============================
+    // BUSCAR AGENDAMENTOS NO SUPABASE
+    // ===============================
+    async function carregarAgendamentos() {
+      lista.innerHTML = '<div class="vazio">Carregando agendamentos...</div>';
+
+      let query = client
+        .from("agendamentos")
+        .select("*")
+        .order("data", { ascending: true })
+        .order("horario", { ascending: true });
+
+      if (filtroData.value) {
+        query = query.eq("data", filtroData.value);
+      }
+
+      if (filtroStatus.value) {
+        query = query.eq("status", filtroStatus.value);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        lista.innerHTML = `<div class="vazio">Erro ao carregar: ${error.message}</div>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        lista.innerHTML = '<div class="vazio">Nenhum agendamento encontrado.</div>';
+        return;
+      }
+
+      lista.innerHTML = "";
+
+      data.forEach(agendamento => {
+        const status = agendamento.status || "agendado";
+
+        const card = document.createElement("div");
+        card.className = "card";
+
+        card.innerHTML = `
+          <div class="linha-topo">
+            <div class="nome">${agendamento.nome || "Sem nome"}</div>
+            <div class="${classeStatus(status)}">${status}</div>
+          </div>
+
+          <div class="info">
+            📱 Telefone: ${agendamento.telefone || "Não informado"}<br>
+            📅 Data: ${formatarData(agendamento.data)}<br>
+            ⏰ Horário: ${agendamento.horario || "-"}
+          </div>
+
+          <div class="acoes">
+            <button class="btn-presenca" onclick="confirmarPresenca(${agendamento.id}, '${agendamento.telefone}')">
+              Confirmar presença
+            </button>
+
+            <button class="btn-falta" onclick="marcarFalta(${agendamento.id}, '${agendamento.telefone}')">
+              Marcar falta
+            </button>
+
+            <button class="btn-cancelar" onclick="cancelarAgendamento(${agendamento.id})">
+              Cancelar
+            </button>
+          </div>
+        `;
+
+        lista.appendChild(card);
+      });
+    }
+
+    // ===============================
+    // CONFIRMAR PRESENÇA
+    // Atualiza o agendamento para "compareceu"
+    // e soma +1 presença no usuário
+    // ===============================
+    async function confirmarPresenca(agendamentoId, telefone) {
+      const confirmar = confirm("Confirmar presença deste jovem?");
+      if (!confirmar) return;
+
+      const { error: erroAgenda } = await client
+        .from("agendamentos")
+        .update({
+          status: "compareceu",
+          presenca_confirmada_em: new Date().toISOString()
+        })
+        .eq("id", agendamentoId);
+
+      if (erroAgenda) {
+        alert("Erro ao confirmar presença: " + erroAgenda.message);
+        return;
+      }
+
+      await somarPresencaUsuario(telefone);
+
+      alert("Presença confirmada!");
+      carregarAgendamentos();
+    }
+
+    // ===============================
+    // MARCAR FALTA
+    // Atualiza o agendamento para "faltou"
+    // Soma +1 falta no usuário
+    // Se chegar em 2 faltas, bloqueia usuário
+    // ===============================
+    async function marcarFalta(agendamentoId, telefone) {
+      const confirmar = confirm("Marcar falta para este jovem?");
+      if (!confirmar) return;
+
+      const { error: erroAgenda } = await client
+        .from("agendamentos")
+        .update({
+          status: "faltou"
+        })
+        .eq("id", agendamentoId);
+
+      if (erroAgenda) {
+        alert("Erro ao marcar falta: " + erroAgenda.message);
+        return;
+      }
+
+      await somarFaltaUsuario(telefone);
+
+      alert("Falta registrada!");
+      carregarAgendamentos();
+    }
+
+    // ===============================
+    // CANCELAR AGENDAMENTO
+    // Atualiza o status para cancelado
+    // Isso libera o horário no index.html
+    // ===============================
+    async function cancelarAgendamento(agendamentoId) {
+      const confirmar = confirm("Cancelar este agendamento?");
+      if (!confirmar) return;
+
+      const { error } = await client
+        .from("agendamentos")
+        .update({
+          status: "cancelado"
+        })
+        .eq("id", agendamentoId);
+
+      if (error) {
+        alert("Erro ao cancelar: " + error.message);
+        return;
+      }
+
+      alert("Agendamento cancelado!");
+      carregarAgendamentos();
+    }
+
+    // ===============================
+    // SOMAR PRESENÇA NO USUÁRIO
+    // ===============================
+    async function somarPresencaUsuario(telefone) {
+      if (!telefone) return;
+
+      const { data: usuario, error } = await client
+        .from("usuarios")
+        .select("*")
+        .eq("telefone", telefone)
+        .maybeSingle();
+
+      if (error || !usuario) {
+        console.warn("Usuário não encontrado para somar presença:", telefone);
+        return;
+      }
+
+      const presencasAtuais = Number(usuario.presencas || 0);
+
+      await client
+        .from("usuarios")
+        .update({
+          presencas: presencasAtuais + 1
+        })
+        .eq("id", usuario.id);
+    }
+
+    // ===============================
+    // SOMAR FALTA NO USUÁRIO
+    // ===============================
+    async function somarFaltaUsuario(telefone) {
+      if (!telefone) return;
+
+      const { data: usuario, error } = await client
+        .from("usuarios")
+        .select("*")
+        .eq("telefone", telefone)
+        .maybeSingle();
+
+      if (error || !usuario) {
+        console.warn("Usuário não encontrado para somar falta:", telefone);
+        return;
+      }
+
+      const faltasAtuais = Number(usuario.faltas || 0);
+      const novasFaltas = faltasAtuais + 1;
+
+      const novoStatus = novasFaltas >= 2 ? "bloqueado" : usuario.status;
+
+      await client
+        .from("usuarios")
+        .update({
+          faltas: novasFaltas,
+          status: novoStatus
+        })
+        .eq("id", usuario.id);
+    }
+
+    // ===============================
+    // BOTÕES DE FILTRO
+    // ===============================
+    btnFiltrar.addEventListener("click", carregarAgendamentos);
+
+    btnLimpar.addEventListener("click", () => {
+      filtroData.value = "";
+      filtroStatus.value = "";
+      carregarAgendamentos();
+    });
+
+    // ===============================
+    // CARREGA LISTA AO ABRIR A PÁGINA
+    // ===============================
+    carregarAgendamentos();
+  </script>
+</body>
+</html>
