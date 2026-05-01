@@ -6,6 +6,9 @@
   <title>Painel Admin - LabStudio CRJ</title>
 
   <style>
+    /* ===============================
+       CORES DO PAINEL ADMIN
+    =============================== */
     :root {
       --primary: #6366f1;
       --success: #22c55e;
@@ -19,6 +22,9 @@
       --input: #334155;
     }
 
+    /* ===============================
+       ESTILO GERAL
+    =============================== */
     body {
       font-family: 'Segoe UI', Roboto, sans-serif;
       background: var(--bg);
@@ -42,6 +48,9 @@
       margin-bottom: 30px;
     }
 
+    /* ===============================
+       ÁREA DE FILTROS
+    =============================== */
     .filtros {
       background: var(--card);
       padding: 20px;
@@ -88,6 +97,11 @@
       opacity: 0.9;
     }
 
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
     .btn-presenca {
       background: var(--success);
     }
@@ -104,6 +118,9 @@
       background: var(--border);
     }
 
+    /* ===============================
+       CARDS DE AGENDAMENTO
+    =============================== */
     .card {
       background: var(--card);
       border: 1px solid rgba(255,255,255,0.05);
@@ -181,6 +198,9 @@
     <h1>Painel Admin - LabStudio CRJ</h1>
     <div class="subtitle">Gerencie agendamentos, presenças, faltas e cancelamentos.</div>
 
+    <!-- ===============================
+         FILTROS DO PAINEL
+    =============================== -->
     <div class="filtros">
       <div class="grupo">
         <label for="filtroData">Filtrar por data</label>
@@ -205,6 +225,9 @@
     <div id="listaAgendamentos"></div>
   </div>
 
+  <!-- ===============================
+       BIBLIOTECA SUPABASE
+  =============================== -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
@@ -226,16 +249,32 @@
     const btnLimpar = document.getElementById("btnLimpar");
 
     // ===============================
-    // FORMATAR DATA
+    // FUNÇÃO: ESCAPAR TEXTO
+    // Evita que texto digitado por usuário quebre o HTML
+    // ===============================
+    function escaparHtml(valor) {
+      return String(valor || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // ===============================
+    // FUNÇÃO: FORMATAR DATA
+    // Recebe 2025-05-30 e mostra 30/05/2025
     // ===============================
     function formatarData(data) {
       if (!data) return "";
-      const [ano, mes, dia] = data.split("-");
+      const dataLimpa = String(data).split("T")[0];
+      const [ano, mes, dia] = dataLimpa.split("-");
       return `${dia}/${mes}/${ano}`;
     }
 
     // ===============================
-    // CLASSE VISUAL DO STATUS
+    // FUNÇÃO: CLASSE VISUAL DO STATUS
+    // Define a cor do status no card
     // ===============================
     function classeStatus(status) {
       if (status === "compareceu") return "status status-compareceu";
@@ -245,7 +284,186 @@
     }
 
     // ===============================
-    // CARREGAR AGENDAMENTOS
+    // FUNÇÃO: LIMPAR TELEFONE
+    // Remove tudo que não for número
+    //
+    // Exemplo:
+    // "+55 27 99713-6155"
+    // vira:
+    // "5527997136155"
+    // ===============================
+    function limparTelefone(valor) {
+      return String(valor || "").replace(/\D/g, "");
+    }
+
+    // ===============================
+    // FUNÇÃO: GERAR VARIAÇÕES DO TELEFONE
+    //
+    // Ajuda o painel a encontrar o usuário certo
+    // mesmo que o telefone esteja salvo de formas diferentes:
+    // - com +55
+    // - sem +55
+    // - com traço
+    // - sem traço
+    // - com ou sem o 9º dígito
+    // ===============================
+    function gerarVariantesTelefone(valor) {
+      const numero = limparTelefone(valor);
+
+      if (!numero) return [];
+
+      const variantes = new Set();
+
+      function adicionar(n) {
+        if (!n) return;
+
+        variantes.add(n);
+
+        if (n.startsWith("55")) {
+          variantes.add(n.slice(2));
+        } else {
+          variantes.add("55" + n);
+        }
+      }
+
+      adicionar(numero);
+
+      const sem55 = numero.startsWith("55") ? numero.slice(2) : numero;
+
+      adicionar(sem55);
+
+      // Exemplo: 27997136155 também testa 2797136155
+      if (sem55.length === 11 && sem55[2] === "9") {
+        const semNonoDigito = sem55.slice(0, 2) + sem55.slice(3);
+        adicionar(semNonoDigito);
+      }
+
+      // Exemplo: 2797136155 também testa 27997136155
+      if (sem55.length === 10) {
+        const comNonoDigito = sem55.slice(0, 2) + "9" + sem55.slice(2);
+        adicionar(comNonoDigito);
+      }
+
+      return [...variantes];
+    }
+
+    // ===============================
+    // FUNÇÃO: BUSCAR USUÁRIO PELO TELEFONE
+    //
+    // Essa função compara o telefone do agendamento
+    // com os telefones cadastrados na tabela usuarios.
+    // Ela usa variações para evitar erro de formato.
+    // ===============================
+    async function buscarUsuarioPorTelefone(telefone) {
+      const variantesDigitadas = gerarVariantesTelefone(telefone);
+
+      console.log("🔎 Variantes do telefone do agendamento:", variantesDigitadas);
+
+      const { data: usuarios, error } = await client
+        .from("usuarios")
+        .select("*");
+
+      if (error) {
+        console.warn("Erro ao buscar usuários:", error.message);
+        return null;
+      }
+
+      const usuarioEncontrado = (usuarios || []).find(usuario => {
+        const variantesBanco = gerarVariantesTelefone(usuario.telefone);
+
+        return variantesBanco.some(numeroBanco =>
+          variantesDigitadas.includes(numeroBanco)
+        );
+      });
+
+      if (usuarioEncontrado) {
+        console.log("✅ Usuário encontrado:", usuarioEncontrado.nome, usuarioEncontrado.telefone);
+      } else {
+        console.warn("❌ Usuário não encontrado para o telefone:", telefone);
+      }
+
+      return usuarioEncontrado || null;
+    }
+
+    // ===============================
+    // FUNÇÃO: BUSCAR AGENDAMENTO POR ID
+    // Usada para evitar somar falta/presença repetidamente
+    // ===============================
+    async function buscarAgendamentoPorId(id) {
+      const { data, error } = await client
+        .from("agendamentos")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    }
+
+    // ===============================
+    // FUNÇÃO: ATUALIZAR CONTADORES DO USUÁRIO
+    //
+    // Usada para:
+    // - somar presença
+    // - somar falta
+    // - corrigir contagem se você mudar de "faltou" para "compareceu"
+    // ===============================
+    async function atualizarContadoresUsuario(telefone, presencasDelta, faltasDelta) {
+      const usuario = await buscarUsuarioPorTelefone(telefone);
+
+      if (!usuario) {
+        alert("Não encontrei o usuário na tabela usuarios para atualizar presença/falta.");
+        return false;
+      }
+
+      const presencasAtuais = Number(usuario.presencas || 0);
+      const faltasAtuais = Number(usuario.faltas || 0);
+
+      const novasPresencas = Math.max(0, presencasAtuais + presencasDelta);
+      const novasFaltas = Math.max(0, faltasAtuais + faltasDelta);
+
+      let novoStatus = usuario.status || "ativo";
+
+      // Se chegou a 2 faltas, bloqueia automaticamente
+      if (novasFaltas >= 2) {
+        novoStatus = "bloqueado";
+      }
+
+      // Se foi uma correção e caiu para menos de 2 faltas, desbloqueia
+      if (String(novoStatus).toLowerCase() === "bloqueado" && novasFaltas < 2) {
+        novoStatus = "ativo";
+      }
+
+      const { error } = await client
+        .from("usuarios")
+        .update({
+          presencas: novasPresencas,
+          faltas: novasFaltas,
+          status: novoStatus
+        })
+        .eq("id", usuario.id);
+
+      if (error) {
+        alert("Erro ao atualizar usuário: " + error.message);
+        return false;
+      }
+
+      console.log("✅ Usuário atualizado:", {
+        nome: usuario.nome,
+        presencas: novasPresencas,
+        faltas: novasFaltas,
+        status: novoStatus
+      });
+
+      return true;
+    }
+
+    // ===============================
+    // FUNÇÃO: CARREGAR AGENDAMENTOS
+    // Busca os agendamentos no Supabase e monta os cards
     // ===============================
     async function carregarAgendamentos() {
       lista.innerHTML = '<div class="vazio">Carregando agendamentos...</div>';
@@ -284,40 +502,52 @@
         const card = document.createElement("div");
         card.className = "card";
 
+        const desabilitarPresenca = status === "compareceu" || status === "cancelado";
+        const desabilitarFalta = status === "faltou" || status === "cancelado";
+        const desabilitarCancelar = status !== "agendado";
+
         card.innerHTML = `
           <div class="linha-topo">
-            <div class="nome">${agendamento.nome || "Sem nome"}</div>
-            <div class="${classeStatus(status)}">${status}</div>
+            <div class="nome">${escaparHtml(agendamento.nome || "Sem nome")}</div>
+            <div class="${classeStatus(status)}">${escaparHtml(status)}</div>
           </div>
 
           <div class="info">
-            📱 Telefone: ${agendamento.telefone || "Não informado"}<br>
+            📱 Telefone: ${escaparHtml(agendamento.telefone || "Não informado")}<br>
             📅 Data: ${formatarData(agendamento.data)}<br>
-            ⏰ Horário: ${agendamento.horario || "-"}
+            ⏰ Horário: ${escaparHtml(agendamento.horario || "-")}
           </div>
 
           <div class="acoes">
-            <button class="btn-presenca">Confirmar presença</button>
-            <button class="btn-falta">Marcar falta</button>
-            <button class="btn-cancelar">Cancelar</button>
+            <button class="btn-presenca" ${desabilitarPresenca ? "disabled" : ""}>
+              Confirmar presença
+            </button>
+
+            <button class="btn-falta" ${desabilitarFalta ? "disabled" : ""}>
+              Marcar falta
+            </button>
+
+            <button class="btn-cancelar" ${desabilitarCancelar ? "disabled" : ""}>
+              Cancelar
+            </button>
           </div>
         `;
 
         // ===============================
         // EVENTOS DOS BOTÕES
-        // Aqui é melhor do que onclick direto
-        // porque funciona com id UUID e evita erro silencioso
+        // Usamos addEventListener em vez de onclick
+        // para evitar erro com IDs UUID ou textos especiais
         // ===============================
         const btnPresenca = card.querySelector(".btn-presenca");
         const btnFalta = card.querySelector(".btn-falta");
         const btnCancelar = card.querySelector(".btn-cancelar");
 
         btnPresenca.addEventListener("click", () => {
-          confirmarPresenca(agendamento.id, agendamento.telefone);
+          confirmarPresenca(agendamento.id);
         });
 
         btnFalta.addEventListener("click", () => {
-          marcarFalta(agendamento.id, agendamento.telefone);
+          marcarFalta(agendamento.id);
         });
 
         btnCancelar.addEventListener("click", () => {
@@ -329,162 +559,200 @@
     }
 
     // ===============================
-    // CONFIRMAR PRESENÇA
+    // FUNÇÃO: CONFIRMAR PRESENÇA
+    //
+    // Regras:
+    // - Se estava "agendado": soma +1 presença
+    // - Se estava "faltou": corrige, tira 1 falta e soma 1 presença
+    // - Se já estava "compareceu": não soma de novo
+    // - Se estava "cancelado": não permite
     // ===============================
-    async function confirmarPresenca(agendamentoId, telefone) {
+    async function confirmarPresenca(agendamentoId) {
       const confirmar = confirm("Confirmar presença deste jovem?");
       if (!confirmar) return;
 
-      console.log("Confirmando presença:", agendamentoId, telefone);
+      try {
+        const agendamento = await buscarAgendamentoPorId(agendamentoId);
 
-      const { error: erroAgenda } = await client
-        .from("agendamentos")
-        .update({
-          status: "compareceu",
-          presenca_confirmada_em: new Date().toISOString()
-        })
-        .eq("id", agendamentoId);
+        if (!agendamento) {
+          alert("Agendamento não encontrado.");
+          return;
+        }
 
-      if (erroAgenda) {
-        alert("Erro ao confirmar presença: " + erroAgenda.message);
-        return;
+        const statusAtual = agendamento.status || "agendado";
+
+        if (statusAtual === "compareceu") {
+          alert("Este agendamento já está marcado como compareceu.");
+          return;
+        }
+
+        if (statusAtual === "cancelado") {
+          alert("Este agendamento está cancelado e não pode receber presença.");
+          return;
+        }
+
+        let presencasDelta = 1;
+        let faltasDelta = 0;
+
+        // Se estava como falta e você corrigiu para presença,
+        // remove uma falta também.
+        if (statusAtual === "faltou") {
+          faltasDelta = -1;
+        }
+
+        const usuarioAtualizado = await atualizarContadoresUsuario(
+          agendamento.telefone,
+          presencasDelta,
+          faltasDelta
+        );
+
+        if (!usuarioAtualizado) return;
+
+        const { error: erroAgenda } = await client
+          .from("agendamentos")
+          .update({
+            status: "compareceu",
+            presenca_confirmada_em: new Date().toISOString()
+          })
+          .eq("id", agendamentoId);
+
+        if (erroAgenda) {
+          alert("Erro ao confirmar presença: " + erroAgenda.message);
+          return;
+        }
+
+        alert("Presença confirmada!");
+        carregarAgendamentos();
+
+      } catch (err) {
+        alert("Erro ao confirmar presença: " + err.message);
       }
-
-      await somarPresencaUsuario(telefone);
-
-      alert("Presença confirmada!");
-      carregarAgendamentos();
     }
 
     // ===============================
-    // MARCAR FALTA
+    // FUNÇÃO: MARCAR FALTA
+    //
+    // Regras:
+    // - Se estava "agendado": soma +1 falta
+    // - Se estava "compareceu": corrige, tira 1 presença e soma 1 falta
+    // - Se já estava "faltou": não soma de novo
+    // - Se chegar a 2 faltas, bloqueia o usuário
     // ===============================
-    async function marcarFalta(agendamentoId, telefone) {
+    async function marcarFalta(agendamentoId) {
       const confirmar = confirm("Marcar falta para este jovem?");
       if (!confirmar) return;
 
-      console.log("Marcando falta:", agendamentoId, telefone);
+      try {
+        const agendamento = await buscarAgendamentoPorId(agendamentoId);
 
-      const { error: erroAgenda } = await client
-        .from("agendamentos")
-        .update({
-          status: "faltou"
-        })
-        .eq("id", agendamentoId);
+        if (!agendamento) {
+          alert("Agendamento não encontrado.");
+          return;
+        }
 
-      if (erroAgenda) {
-        alert("Erro ao marcar falta: " + erroAgenda.message);
-        return;
+        const statusAtual = agendamento.status || "agendado";
+
+        if (statusAtual === "faltou") {
+          alert("Este agendamento já está marcado como falta.");
+          return;
+        }
+
+        if (statusAtual === "cancelado") {
+          alert("Este agendamento está cancelado e não pode receber falta.");
+          return;
+        }
+
+        let presencasDelta = 0;
+        let faltasDelta = 1;
+
+        // Se estava como compareceu e você corrigiu para falta,
+        // remove uma presença também.
+        if (statusAtual === "compareceu") {
+          presencasDelta = -1;
+        }
+
+        const usuarioAtualizado = await atualizarContadoresUsuario(
+          agendamento.telefone,
+          presencasDelta,
+          faltasDelta
+        );
+
+        if (!usuarioAtualizado) return;
+
+        const { error: erroAgenda } = await client
+          .from("agendamentos")
+          .update({
+            status: "faltou"
+          })
+          .eq("id", agendamentoId);
+
+        if (erroAgenda) {
+          alert("Erro ao marcar falta: " + erroAgenda.message);
+          return;
+        }
+
+        alert("Falta registrada!");
+        carregarAgendamentos();
+
+      } catch (err) {
+        alert("Erro ao marcar falta: " + err.message);
       }
-
-      await somarFaltaUsuario(telefone);
-
-      alert("Falta registrada!");
-      carregarAgendamentos();
     }
 
     // ===============================
-    // CANCELAR AGENDAMENTO
+    // FUNÇÃO: CANCELAR AGENDAMENTO
+    //
+    // Regra:
+    // - Só cancela agendamento ainda "agendado"
+    // - Não cancela se já foi marcado como falta ou presença
     // ===============================
     async function cancelarAgendamento(agendamentoId) {
       const confirmar = confirm("Cancelar este agendamento?");
       if (!confirmar) return;
 
-      console.log("Cancelando agendamento:", agendamentoId);
+      try {
+        const agendamento = await buscarAgendamentoPorId(agendamentoId);
 
-      const { error } = await client
-        .from("agendamentos")
-        .update({
-          status: "cancelado"
-        })
-        .eq("id", agendamentoId);
+        if (!agendamento) {
+          alert("Agendamento não encontrado.");
+          return;
+        }
 
-      if (error) {
-        alert("Erro ao cancelar: " + error.message);
-        return;
-      }
+        const statusAtual = agendamento.status || "agendado";
 
-      alert("Agendamento cancelado!");
-      carregarAgendamentos();
-    }
+        if (statusAtual !== "agendado") {
+          alert("Só é possível cancelar agendamentos que ainda estão como agendados.");
+          return;
+        }
 
-    // ===============================
-    // SOMAR PRESENÇA NO USUÁRIO
-    // ===============================
-    async function somarPresencaUsuario(telefone) {
-      if (!telefone) {
-        console.warn("Sem telefone para somar presença.");
-        return;
-      }
+        const { error } = await client
+          .from("agendamentos")
+          .update({
+            status: "cancelado"
+          })
+          .eq("id", agendamentoId);
 
-      const { data: usuario, error } = await client
-        .from("usuarios")
-        .select("*")
-        .eq("telefone", telefone)
-        .maybeSingle();
+        if (error) {
+          alert("Erro ao cancelar: " + error.message);
+          return;
+        }
 
-      if (error || !usuario) {
-        console.warn("Usuário não encontrado para somar presença:", telefone);
-        return;
-      }
+        alert("Agendamento cancelado!");
+        carregarAgendamentos();
 
-      const presencasAtuais = Number(usuario.presencas || 0);
-
-      const { error: erroUpdate } = await client
-        .from("usuarios")
-        .update({
-          presencas: presencasAtuais + 1
-        })
-        .eq("id", usuario.id);
-
-      if (erroUpdate) {
-        console.warn("Erro ao somar presença:", erroUpdate.message);
+      } catch (err) {
+        alert("Erro ao cancelar: " + err.message);
       }
     }
 
     // ===============================
-    // SOMAR FALTA NO USUÁRIO
-    // ===============================
-    async function somarFaltaUsuario(telefone) {
-      if (!telefone) {
-        console.warn("Sem telefone para somar falta.");
-        return;
-      }
-
-      const { data: usuario, error } = await client
-        .from("usuarios")
-        .select("*")
-        .eq("telefone", telefone)
-        .maybeSingle();
-
-      if (error || !usuario) {
-        console.warn("Usuário não encontrado para somar falta:", telefone);
-        return;
-      }
-
-      const faltasAtuais = Number(usuario.faltas || 0);
-      const novasFaltas = faltasAtuais + 1;
-
-      const novoStatus = novasFaltas >= 2 ? "bloqueado" : usuario.status;
-
-      const { error: erroUpdate } = await client
-        .from("usuarios")
-        .update({
-          faltas: novasFaltas,
-          status: novoStatus
-        })
-        .eq("id", usuario.id);
-
-      if (erroUpdate) {
-        console.warn("Erro ao somar falta:", erroUpdate.message);
-      }
-    }
-
-    // ===============================
-    // FILTROS
+    // BOTÃO: FILTRAR
     // ===============================
     btnFiltrar.addEventListener("click", carregarAgendamentos);
 
+    // ===============================
+    // BOTÃO: LIMPAR FILTROS
+    // ===============================
     btnLimpar.addEventListener("click", () => {
       filtroData.value = "";
       filtroStatus.value = "";
@@ -492,7 +760,7 @@
     });
 
     // ===============================
-    // CARREGA AO ABRIR
+    // CARREGAR AGENDAMENTOS AO ABRIR O PAINEL
     // ===============================
     carregarAgendamentos();
   </script>
