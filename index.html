@@ -6,14 +6,14 @@
 </head>
 <body>
 
-<h1>Agendar Estúdio</h1>
+<h1>LabStudio CRJ</h1>
 
 <input type="text" id="nome" placeholder="Nome"><br><br>
 <input type="text" id="telefone" placeholder="WhatsApp (27999999999)"><br><br>
 <input type="date" id="data"><br><br>
 
 <select id="horario">
-  <option value="">Selecione uma data primeiro</option>
+  <option value="">Selecione a data</option>
 </select><br><br>
 
 <button id="btn">Agendar</button>
@@ -34,31 +34,45 @@ const inputData = document.getElementById("data");
 const selectHorario = document.getElementById("horario");
 const btn = document.getElementById("btn");
 
+// 🔥 CARREGAR HORÁRIOS
 inputData.addEventListener("change", async () => {
   const data = inputData.value;
   if (!data) return;
 
   selectHorario.innerHTML = "<option>Carregando...</option>";
 
-  const { data: agendados } = await client
-    .from("agendamentos")
-    .select("horario")
-    .eq("data", data);
+  try {
+    const { data: agendados, error } = await client
+      .from("agendamentos")
+      .select("horario")
+      .eq("data", data);
 
-  const ocupados = (agendados || []).map(i => i.horario);
+    if (error) throw error;
 
-  selectHorario.innerHTML = '<option value="">Escolha</option>';
+    const ocupados = (agendados || []).map(i => i.horario);
 
-  horarios.forEach(h => {
-    if (!ocupados.includes(h)) {
-      const opt = document.createElement("option");
-      opt.value = h;
-      opt.textContent = h;
-      selectHorario.appendChild(opt);
+    selectHorario.innerHTML = '<option value="">Escolha</option>';
+
+    horarios.forEach(h => {
+      if (!ocupados.includes(h)) {
+        const opt = document.createElement("option");
+        opt.value = h;
+        opt.textContent = h;
+        selectHorario.appendChild(opt);
+      }
+    });
+
+    if (selectHorario.options.length === 1) {
+      selectHorario.innerHTML = '<option>Lotado</option>';
     }
-  });
+
+  } catch (err) {
+    alert("Erro ao buscar horários");
+    console.log(err);
+  }
 });
 
+// 🔥 AGENDAR
 btn.addEventListener("click", async () => {
   const nome = inputNome.value.trim();
   const telefone = inputTel.value.trim();
@@ -75,21 +89,23 @@ btn.addEventListener("click", async () => {
 
   try {
     // 🔍 VERIFICAR USUÁRIO
-    const { data: user } = await client
+    const { data: user, error } = await client
       .from("usuarios")
       .select("*")
       .eq("telefone", telefone)
       .maybeSingle();
 
+    if (error) throw error;
+
     if (!user) {
-      alert("Você precisa se cadastrar no CRJ primeiro.");
+      alert("⚠️ Você precisa se cadastrar no CRJ.");
       btn.disabled = false;
       btn.innerText = "Agendar";
       return;
     }
 
     if (user.faltas >= 2) {
-      alert("Você está bloqueado por faltas.");
+      alert("🚫 Você está bloqueado.");
       btn.disabled = false;
       btn.innerText = "Agendar";
       return;
@@ -98,24 +114,29 @@ btn.addEventListener("click", async () => {
     btn.innerText = "Agendando...";
 
     // 💾 SALVAR
-    const { error } = await client
+    const { error: insertError } = await client
       .from("agendamentos")
       .insert([{ nome, telefone, data, horario }]);
 
-    if (error) throw error;
+    if (insertError) throw insertError;
 
     // 📲 WHATSAPP
-    await fetch("https://tightly-rubber-dyslexic.ngrok-free.dev/notificar", {
+    const resposta = await fetch("https://tightly-rubber-dyslexic.ngrok-free.dev/notificar", {
       method: "POST",
       headers: {"Content-Type": "application/json"},
-      body: JSON.stringify({ nome, data, horario })
+      body: JSON.stringify({ nome, telefone, data, horario })
     });
 
-    alert("Agendado com sucesso!");
+    if (!resposta.ok) {
+      console.warn("WhatsApp não respondeu");
+    }
+
+    alert(`🔥 Confirmado, ${nome}!`);
     location.reload();
 
   } catch (err) {
     alert("Erro: " + err.message);
+    console.log(err);
     btn.disabled = false;
     btn.innerText = "Agendar";
   }
