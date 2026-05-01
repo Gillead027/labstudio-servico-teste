@@ -6,6 +6,9 @@
   <title>LabStudio CRJ Flexal - Agendamento</title>
   
   <style>
+    /* ===============================
+       CORES E VARIÁVEIS DO SISTEMA
+    =============================== */
     :root {
       --primary: #6366f1;
       --primary-hover: #4f46e5;
@@ -16,6 +19,9 @@
       --border: #475569;
     }
 
+    /* ===============================
+       ESTILO GERAL DA PÁGINA
+    =============================== */
     body {
       font-family: 'Segoe UI', Roboto, sans-serif;
       background-color: var(--bg);
@@ -28,6 +34,9 @@
       padding: 20px;
     }
 
+    /* ===============================
+       CARD PRINCIPAL DO FORMULÁRIO
+    =============================== */
     .container {
       background-color: var(--card-bg);
       padding: 2rem;
@@ -109,6 +118,9 @@
 
 <body>
 
+  <!-- ===============================
+       FORMULÁRIO DE AGENDAMENTO
+  =============================== -->
   <div class="container">
     <h1>LabStudio CRJ</h1>
 
@@ -137,31 +149,169 @@
     <button id="btn">Confirmar Agendamento</button>
   </div>
 
+  <!-- ===============================
+       BIBLIOTECA DO SUPABASE
+  =============================== -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
+    // ===============================
+    // CONEXÃO COM SUPABASE
+    // Aqui o site acessa o banco de dados
+    // ===============================
     const client = window.supabase.createClient(
       "https://hblxvxgocemzctjbutgi.supabase.co",
       "sb_publishable_12C1Wu47s3SuxqHZvQybdg_WubBGiQl"
     );
 
+    // ===============================
+    // LINK DO BOT
+    // IMPORTANTE:
+    // Se reiniciar o ngrok e o link mudar,
+    // atualize este endereço.
+    // ===============================
     const BOT_URL = "https://tightly-rubber-dyslexic.ngrok-free.dev";
 
-    // Funcionamento: somente terça e quinta
+    // ===============================
+    // CONFIGURAÇÃO DE FUNCIONAMENTO
+    // O LabStudio funciona somente terça e quinta
+    // Horários disponíveis nesses dias:
+    // ===============================
     const horariosTerQui = ["18:00", "18:30"];
 
+    // ===============================
+    // DATAS BLOQUEADAS MANUALMENTE
+    // Use para feriados, eventos internos ou impossibilidades
+    // Formato: ANO-MÊS-DIA
+    // ===============================
     const datasBloqueadas = [
       "2024-07-19",
       "2024-05-01",
       "2024-05-30"
     ];
 
+    // ===============================
+    // ELEMENTOS DO HTML
+    // Pegamos os campos para usar no JavaScript
+    // ===============================
     const inputNome = document.getElementById("nome");
     const inputTelefone = document.getElementById("telefone");
     const inputData = document.getElementById("data");
     const selectHorario = document.getElementById("horario");
     const btnAgendar = document.getElementById("btn");
 
+    // ===============================
+    // FUNÇÃO: LIMPAR TELEFONE
+    // Remove tudo que não for número.
+    //
+    // Exemplo:
+    // "+55 27 99713-6155"
+    // vira:
+    // "5527997136155"
+    // ===============================
+    function limparTelefone(valor) {
+      return String(valor || "").replace(/\D/g, "");
+    }
+
+    // ===============================
+    // FUNÇÃO: GERAR VARIAÇÕES DO TELEFONE
+    //
+    // Isso ajuda o sistema a encontrar usuários mesmo que:
+    // - no cadastro esteja com +55;
+    // - no site esteja sem +55;
+    // - tenha traço, espaço ou parênteses;
+    // - tenha diferença com ou sem o 9º dígito.
+    // ===============================
+    function gerarVariantesTelefone(valor) {
+      const numero = limparTelefone(valor);
+
+      if (!numero) return [];
+
+      const variantes = new Set();
+
+      function adicionar(n) {
+        if (!n) return;
+
+        variantes.add(n);
+
+        // Se tem 55, também testa sem 55
+        if (n.startsWith("55")) {
+          variantes.add(n.slice(2));
+        } else {
+          // Se não tem 55, também testa com 55
+          variantes.add("55" + n);
+        }
+      }
+
+      adicionar(numero);
+
+      const sem55 = numero.startsWith("55") ? numero.slice(2) : numero;
+
+      adicionar(sem55);
+
+      // Caso: 27997136155
+      // Também testa: 2797136155
+      if (sem55.length === 11 && sem55[2] === "9") {
+        const semNonoDigito = sem55.slice(0, 2) + sem55.slice(3);
+        adicionar(semNonoDigito);
+      }
+
+      // Caso: 2797136155
+      // Também testa: 27997136155
+      if (sem55.length === 10) {
+        const comNonoDigito = sem55.slice(0, 2) + "9" + sem55.slice(2);
+        adicionar(comNonoDigito);
+      }
+
+      return [...variantes];
+    }
+
+    // ===============================
+    // FUNÇÃO: BUSCAR USUÁRIO PELO TELEFONE
+    //
+    // Essa função consulta a tabela "usuarios"
+    // e tenta encontrar o telefone informado,
+    // considerando as variações possíveis.
+    // ===============================
+    async function buscarUsuarioPorTelefone(telefoneDigitado) {
+      const variantesDigitadas = gerarVariantesTelefone(telefoneDigitado);
+
+      console.log("🔎 Variantes digitadas:", variantesDigitadas);
+
+      const { data: usuarios, error } = await client
+        .from("usuarios")
+        .select("*");
+
+      if (error) {
+        throw error;
+      }
+
+      const usuarioEncontrado = (usuarios || []).find(usuario => {
+        const variantesBanco = gerarVariantesTelefone(usuario.telefone);
+
+        return variantesBanco.some(numeroBanco =>
+          variantesDigitadas.includes(numeroBanco)
+        );
+      });
+
+      if (usuarioEncontrado) {
+        console.log("✅ Usuário encontrado:", usuarioEncontrado.nome, usuarioEncontrado.telefone);
+      } else {
+        console.log("❌ Usuário não encontrado pelo telefone.");
+      }
+
+      return usuarioEncontrado || null;
+    }
+
+    // ===============================
+    // EVENTO: QUANDO O USUÁRIO ESCOLHE UMA DATA
+    //
+    // Aqui validamos:
+    // - se é terça ou quinta;
+    // - se não é uma data bloqueada;
+    // - quais horários já estão ocupados;
+    // - quais horários devem aparecer.
+    // ===============================
     inputData.addEventListener("change", async () => {
       const dataSelecionada = inputData.value;
       if (!dataSelecionada) return;
@@ -169,7 +319,16 @@
       const dataObjeto = new Date(dataSelecionada + "T12:00:00");
       const diaSemana = dataObjeto.getDay();
 
-      // 0 domingo, 1 segunda, 2 terça, 3 quarta, 4 quinta, 5 sexta, 6 sábado
+      // ===============================
+      // DIAS DA SEMANA:
+      // 0 = domingo
+      // 1 = segunda
+      // 2 = terça
+      // 3 = quarta
+      // 4 = quinta
+      // 5 = sexta
+      // 6 = sábado
+      // ===============================
       if (![2, 4].includes(diaSemana)) {
         alert("O LabStudio funciona apenas às terças e quintas-feiras.");
         inputData.value = "";
@@ -177,6 +336,9 @@
         return;
       }
 
+      // ===============================
+      // BLOQUEIO DE DATAS ESPECÍFICAS
+      // ===============================
       if (datasBloqueadas.includes(dataSelecionada)) {
         alert("Esta data está reservada para evento interno ou feriado.");
         inputData.value = "";
@@ -186,61 +348,138 @@
 
       selectHorario.innerHTML = "<option>Consultando agenda...</option>";
 
-      const { data: agendados, error } = await client
-        .from("agendamentos")
-        .select("horario, status")
-        .eq("data", dataSelecionada)
-        .neq("status", "cancelado");
+      try {
+        // ===============================
+        // BUSCAR AGENDAMENTOS DO DIA
+        //
+        // Importante:
+        // .neq("status", "cancelado")
+        // faz com que agendamentos cancelados
+        // não ocupem mais horário.
+        // ===============================
+        const { data: agendados, error } = await client
+          .from("agendamentos")
+          .select("horario, status")
+          .eq("data", dataSelecionada)
+          .neq("status", "cancelado");
 
-      if (error) {
-        alert("Erro ao buscar horários: " + error.message);
-        return;
-      }
+        if (error) throw error;
 
-      const ocupados = (agendados || []).map(item => String(item.horario).trim());
+        const ocupados = (agendados || []).map(item => String(item.horario).trim());
 
-      selectHorario.innerHTML = '<option value="">Escolha o horário</option>';
+        selectHorario.innerHTML = '<option value="">Escolha o horário</option>';
 
-      horariosTerQui.forEach(hora => {
-        if (!ocupados.includes(hora)) {
-          const option = document.createElement("option");
-          option.value = hora;
-          option.textContent = hora;
-          selectHorario.appendChild(option);
+        // ===============================
+        // MOSTRAR APENAS HORÁRIOS LIVRES
+        // ===============================
+        horariosTerQui.forEach(hora => {
+          if (!ocupados.includes(hora)) {
+            const option = document.createElement("option");
+            option.value = hora;
+            option.textContent = hora;
+            selectHorario.appendChild(option);
+          }
+        });
+
+        if (selectHorario.options.length === 1) {
+          selectHorario.innerHTML = '<option value="">Lotado para este dia</option>';
         }
-      });
 
-      if (selectHorario.options.length === 1) {
-        selectHorario.innerHTML = '<option value="">Lotado para este dia</option>';
+      } catch (err) {
+        alert("Erro ao buscar horários: " + err.message);
+        selectHorario.innerHTML = '<option value="">Erro ao consultar agenda</option>';
       }
     });
 
+    // ===============================
+    // EVENTO: BOTÃO CONFIRMAR AGENDAMENTO
+    //
+    // Fluxo:
+    // 1. valida campos;
+    // 2. busca cadastro pelo telefone;
+    // 3. bloqueia não cadastrados;
+    // 4. bloqueia quem tem 2 faltas ou status bloqueado;
+    // 5. salva agendamento;
+    // 6. envia notificação para o bot.
+    // ===============================
     btnAgendar.addEventListener("click", async () => {
       const nome = inputNome.value.trim();
       const telefone = inputTelefone.value.trim();
       const dataStr = inputData.value;
       const horario = selectHorario.value;
 
+      // ===============================
+      // VALIDAÇÃO SIMPLES DOS CAMPOS
+      // ===============================
       if (!nome || !telefone || !dataStr || !horario) {
         alert("Preencha todos os campos corretamente.");
         return;
       }
 
       btnAgendar.disabled = true;
-      btnAgendar.innerText = "Agendando...";
+      btnAgendar.innerText = "Verificando cadastro...";
 
       try {
+        // ===============================
+        // VERIFICAR CADASTRO DO USUÁRIO
+        // Essa é a trava do site.
+        // Mesmo que a pessoa tenha o link,
+        // ela não agenda se não estiver apta.
+        // ===============================
+        const usuario = await buscarUsuarioPorTelefone(telefone);
+
+        // ===============================
+        // CASO NÃO ESTEJA CADASTRADO
+        // ===============================
+        if (!usuario || usuario.cadastrado === false) {
+          alert("⚠️ Você precisa estar cadastrado no CRJ antes de agendar. Procure a equipe presencialmente.");
+          btnAgendar.disabled = false;
+          btnAgendar.innerText = "Confirmar Agendamento";
+          return;
+        }
+
+        // ===============================
+        // VERIFICAR FALTAS E STATUS
+        // ===============================
+        const statusUsuario = String(usuario.status || "").toLowerCase();
+        const faltasUsuario = Number(usuario.faltas || 0);
+
+        if (statusUsuario === "bloqueado" || faltasUsuario >= 2) {
+          alert("🚫 Você está bloqueado por faltas. Procure a equipe do CRJ para regularizar sua situação.");
+          btnAgendar.disabled = false;
+          btnAgendar.innerText = "Confirmar Agendamento";
+          return;
+        }
+
+        btnAgendar.innerText = "Agendando...";
+
+        // ===============================
+        // SALVAR AGENDAMENTO NO SUPABASE
+        //
+        // status: "agendado"
+        // já deixa pronto para o painel admin
+        // alterar depois para:
+        // compareceu, faltou ou cancelado.
+        // ===============================
         const { error } = await client
           .from("agendamentos")
           .insert([{ 
             nome, 
             telefone, 
             data: dataStr, 
-            horario 
+            horario,
+            status: "agendado"
           }]);
 
         if (error) throw error;
 
+        // ===============================
+        // NOTIFICAR O BOT NO WHATSAPP
+        //
+        // Se o bot/ngrok estiver offline,
+        // o agendamento continua salvo,
+        // mas aparece aviso no console.
+        // ===============================
         try {
           await fetch(`${BOT_URL}/notificar`, {
             method: "POST",
