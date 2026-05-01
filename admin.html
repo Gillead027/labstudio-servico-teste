@@ -119,6 +119,42 @@
     }
 
     /* ===============================
+       PAINEL DE RESUMO E RANKING
+    =============================== */
+    .painel-resumo {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .bloco-resumo {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .bloco-resumo h3 {
+      margin-top: 0;
+      color: var(--primary);
+      font-size: 1rem;
+    }
+
+    .numero-grande {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .item-ranking {
+      color: var(--muted);
+      margin-bottom: 8px;
+      line-height: 1.4;
+      font-size: 0.95rem;
+    }
+
+    /* ===============================
        CARDS DE AGENDAMENTO
     =============================== */
     .card {
@@ -196,7 +232,7 @@
 
   <div class="container">
     <h1>Painel Admin - LabStudio CRJ</h1>
-    <div class="subtitle">Gerencie agendamentos, presenças, faltas e cancelamentos.</div>
+    <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos e ranking.</div>
 
     <!-- ===============================
          FILTROS DO PAINEL
@@ -222,6 +258,21 @@
       <button id="btnLimpar" class="btn-secundario">Limpar</button>
     </div>
 
+    <!-- ===============================
+         PAINEL DE RESUMO E RANKING
+         Aqui aparecem:
+         - resumo geral
+         - ranking de presença
+         - ranking de faltas
+         - usuários bloqueados
+    =============================== -->
+    <div id="painelResumo" class="painel-resumo">
+      <div class="vazio">Carregando resumo...</div>
+    </div>
+
+    <!-- ===============================
+         LISTA DE AGENDAMENTOS
+    =============================== -->
     <div id="listaAgendamentos"></div>
   </div>
 
@@ -243,6 +294,7 @@
     // ELEMENTOS DA TELA
     // ===============================
     const lista = document.getElementById("listaAgendamentos");
+    const painelResumo = document.getElementById("painelResumo");
     const filtroData = document.getElementById("filtroData");
     const filtroStatus = document.getElementById("filtroStatus");
     const btnFiltrar = document.getElementById("btnFiltrar");
@@ -410,6 +462,7 @@
     // - somar presença
     // - somar falta
     // - corrigir contagem se você mudar de "faltou" para "compareceu"
+    // - corrigir contagem se você mudar de "compareceu" para "faltou"
     // ===============================
     async function atualizarContadoresUsuario(telefone, presencasDelta, faltasDelta) {
       const usuario = await buscarUsuarioPorTelefone(telefone);
@@ -432,7 +485,7 @@
         novoStatus = "bloqueado";
       }
 
-      // Se foi uma correção e caiu para menos de 2 faltas, desbloqueia
+      // Se foi uma correção e caiu para menos de 2 faltas, desbloqueia automaticamente
       if (String(novoStatus).toLowerCase() === "bloqueado" && novasFaltas < 2) {
         novoStatus = "ativo";
       }
@@ -459,6 +512,148 @@
       });
 
       return true;
+    }
+
+    // ===============================
+    // FUNÇÃO: CARREGAR RESUMO E RANKING
+    //
+    // Essa função lê:
+    // - tabela agendamentos
+    // - tabela usuarios
+    //
+    // E monta:
+    // - resumo geral
+    // - ranking de presença
+    // - ranking de faltas
+    // - lista de bloqueados
+    // ===============================
+    async function carregarResumoRanking() {
+      painelResumo.innerHTML = '<div class="vazio">Carregando resumo...</div>';
+
+      const { data: agendamentos, error: erroAgendamentos } = await client
+        .from("agendamentos")
+        .select("*");
+
+      if (erroAgendamentos) {
+        painelResumo.innerHTML = `<div class="vazio">Erro ao carregar resumo: ${erroAgendamentos.message}</div>`;
+        return;
+      }
+
+      const { data: usuarios, error: erroUsuarios } = await client
+        .from("usuarios")
+        .select("*");
+
+      if (erroUsuarios) {
+        painelResumo.innerHTML = `<div class="vazio">Erro ao carregar usuários: ${erroUsuarios.message}</div>`;
+        return;
+      }
+
+      const listaAgendamentos = agendamentos || [];
+      const listaUsuarios = usuarios || [];
+
+      // ===============================
+      // CONTADORES GERAIS
+      // ===============================
+      const totalAgendamentos = listaAgendamentos.length;
+
+      const totalAgendados = listaAgendamentos.filter(item =>
+        (item.status || "agendado") === "agendado"
+      ).length;
+
+      const totalCompareceram = listaAgendamentos.filter(item =>
+        item.status === "compareceu"
+      ).length;
+
+      const totalFaltaram = listaAgendamentos.filter(item =>
+        item.status === "faltou"
+      ).length;
+
+      const totalCancelados = listaAgendamentos.filter(item =>
+        item.status === "cancelado"
+      ).length;
+
+      const totalBloqueados = listaUsuarios.filter(user =>
+        String(user.status || "").toLowerCase() === "bloqueado"
+      ).length;
+
+      // ===============================
+      // RANKING DE PRESENÇAS
+      // Só mostra quem tem pelo menos 1 presença
+      // ===============================
+      const rankingPresencas = [...listaUsuarios]
+        .filter(user => Number(user.presencas || 0) > 0)
+        .sort((a, b) => Number(b.presencas || 0) - Number(a.presencas || 0))
+        .slice(0, 5);
+
+      // ===============================
+      // RANKING DE FALTAS
+      // Só mostra quem tem pelo menos 1 falta
+      // ===============================
+      const rankingFaltas = [...listaUsuarios]
+        .filter(user => Number(user.faltas || 0) > 0)
+        .sort((a, b) => Number(b.faltas || 0) - Number(a.faltas || 0))
+        .slice(0, 5);
+
+      // ===============================
+      // USUÁRIOS BLOQUEADOS
+      // ===============================
+      const bloqueados = listaUsuarios.filter(user =>
+        String(user.status || "").toLowerCase() === "bloqueado"
+      );
+
+      // ===============================
+      // MONTAR HTML DO RESUMO
+      // ===============================
+      painelResumo.innerHTML = `
+        <div class="bloco-resumo">
+          <h3>📊 Resumo geral</h3>
+          <div class="numero-grande">${totalAgendamentos}</div>
+          <div class="item-ranking">Agendados: ${totalAgendados}</div>
+          <div class="item-ranking">Compareceram: ${totalCompareceram}</div>
+          <div class="item-ranking">Faltaram: ${totalFaltaram}</div>
+          <div class="item-ranking">Cancelados: ${totalCancelados}</div>
+        </div>
+
+        <div class="bloco-resumo">
+          <h3>🏆 Ranking de presença</h3>
+          ${
+            rankingPresencas.length === 0
+              ? '<div class="item-ranking">Nenhuma presença registrada ainda.</div>'
+              : rankingPresencas.map((user, index) => `
+                  <div class="item-ranking">
+                    ${index + 1}. ${escaparHtml(user.nome || "Sem nome")} — ${Number(user.presencas || 0)} presença(s)
+                  </div>
+                `).join("")
+          }
+        </div>
+
+        <div class="bloco-resumo">
+          <h3>⚠️ Ranking de faltas</h3>
+          ${
+            rankingFaltas.length === 0
+              ? '<div class="item-ranking">Nenhuma falta registrada ainda.</div>'
+              : rankingFaltas.map((user, index) => `
+                  <div class="item-ranking">
+                    ${index + 1}. ${escaparHtml(user.nome || "Sem nome")} — ${Number(user.faltas || 0)} falta(s)
+                  </div>
+                `).join("")
+          }
+        </div>
+
+        <div class="bloco-resumo">
+          <h3>🚫 Bloqueados</h3>
+          <div class="numero-grande">${totalBloqueados}</div>
+          ${
+            bloqueados.length === 0
+              ? '<div class="item-ranking">Nenhum usuário bloqueado.</div>'
+              : bloqueados.map(user => `
+                  <div class="item-ranking">
+                    ${escaparHtml(user.nome || "Sem nome")} — ${escaparHtml(user.telefone || "")}
+                  </div>
+                `).join("")
+          }
+        </div>
+      `;
     }
 
     // ===============================
@@ -622,6 +817,8 @@
         }
 
         alert("Presença confirmada!");
+
+        carregarResumoRanking();
         carregarAgendamentos();
 
       } catch (err) {
@@ -692,6 +889,8 @@
         }
 
         alert("Falta registrada!");
+
+        carregarResumoRanking();
         carregarAgendamentos();
 
       } catch (err) {
@@ -738,6 +937,8 @@
         }
 
         alert("Agendamento cancelado!");
+
+        carregarResumoRanking();
         carregarAgendamentos();
 
       } catch (err) {
@@ -748,7 +949,10 @@
     // ===============================
     // BOTÃO: FILTRAR
     // ===============================
-    btnFiltrar.addEventListener("click", carregarAgendamentos);
+    btnFiltrar.addEventListener("click", () => {
+      carregarResumoRanking();
+      carregarAgendamentos();
+    });
 
     // ===============================
     // BOTÃO: LIMPAR FILTROS
@@ -756,12 +960,15 @@
     btnLimpar.addEventListener("click", () => {
       filtroData.value = "";
       filtroStatus.value = "";
+
+      carregarResumoRanking();
       carregarAgendamentos();
     });
 
     // ===============================
-    // CARREGAR AGENDAMENTOS AO ABRIR O PAINEL
+    // CARREGAR PAINEL AO ABRIR
     // ===============================
+    carregarResumoRanking();
     carregarAgendamentos();
   </script>
 </body>
