@@ -288,6 +288,11 @@
     =============================== -->
     <div class="filtros">
       <div class="grupo">
+        <label for="filtroBusca">Buscar por nome ou telefone</label>
+        <input type="text" id="filtroBusca" placeholder="Ex: MC Jovem ou 27999999999">
+      </div>
+
+      <div class="grupo">
         <label for="filtroData">Filtrar por data</label>
         <input type="date" id="filtroData">
       </div>
@@ -316,7 +321,6 @@
 
     <!-- ===============================
          PAINEL DE PENDÊNCIAS
-         Agora tem botão para processar faltas pendentes com segurança.
     =============================== -->
     <div class="painel-pendencias">
       <div class="pendencias-topo">
@@ -358,6 +362,7 @@
     const lista = document.getElementById("listaAgendamentos");
     const painelResumo = document.getElementById("painelResumo");
     const conteudoPendencias = document.getElementById("conteudoPendencias");
+    const filtroBusca = document.getElementById("filtroBusca");
     const filtroData = document.getElementById("filtroData");
     const filtroStatus = document.getElementById("filtroStatus");
     const btnFiltrar = document.getElementById("btnFiltrar");
@@ -375,6 +380,19 @@
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    // ===============================
+    // FUNÇÃO: NORMALIZAR TEXTO
+    // Ajuda a busca por nome ignorando maiúsculas/minúsculas e acentos
+    // Exemplo: "João" pode ser encontrado buscando "joao"
+    // ===============================
+    function normalizarTexto(valor) {
+      return String(valor || "")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim();
     }
 
     // ===============================
@@ -452,6 +470,50 @@
     }
 
     // ===============================
+    // FUNÇÃO: VERIFICAR SE UM AGENDAMENTO BATE COM A BUSCA
+    // A busca funciona por:
+    // - nome
+    // - telefone completo
+    // - pedaço do telefone
+    // - telefone com/sem +55
+    // - telefone com/sem nono dígito
+    // ===============================
+    function agendamentoCombinaComBusca(agendamento) {
+      const busca = filtroBusca.value.trim();
+
+      if (!busca) return true;
+
+      const buscaTexto = normalizarTexto(busca);
+      const nomeAgendamento = normalizarTexto(agendamento.nome);
+
+      // Busca por nome
+      if (nomeAgendamento.includes(buscaTexto)) {
+        return true;
+      }
+
+      const telefoneAgendamento = limparTelefone(agendamento.telefone);
+      const buscaNumerica = limparTelefone(busca);
+
+      // Se a busca não tiver número, e não bateu com nome, retorna falso
+      if (!buscaNumerica) return false;
+
+      // Busca por pedaço do telefone
+      if (telefoneAgendamento.includes(buscaNumerica)) {
+        return true;
+      }
+
+      const variantesTelefone = gerarVariantesTelefone(agendamento.telefone);
+      const variantesBusca = gerarVariantesTelefone(busca);
+
+      // Busca por variações de telefone
+      return variantesTelefone.some(numero =>
+        variantesBusca.includes(numero) ||
+        numero.includes(buscaNumerica) ||
+        buscaNumerica.includes(numero)
+      );
+    }
+
+    // ===============================
     // FUNÇÃO: BUSCAR USUÁRIO PELO TELEFONE
     // Compara telefone do agendamento com telefones na tabela usuarios
     // ===============================
@@ -522,12 +584,7 @@
 
     // ===============================
     // FUNÇÃO: VERIFICAR SE UM AGENDAMENTO PASSOU HÁ MAIS DE 24H
-    //
-    // Essa é a regra segura para o botão:
-    // "Processar faltas pendentes".
-    //
-    // Só processa automaticamente se:
-    // horário do agendamento + 24h < agora
+    // Regra segura para processar faltas pendentes
     // ===============================
     function agendamentoPassouMaisDe24h(data, horario) {
       if (!data || !horario) return false;
@@ -546,12 +603,7 @@
 
     // ===============================
     // FUNÇÃO: ATUALIZAR CONTADORES DO USUÁRIO
-    //
-    // Usada para:
-    // - somar presença
-    // - somar falta
-    // - corrigir contagem se mudar de "faltou" para "compareceu"
-    // - corrigir contagem se mudar de "compareceu" para "faltou"
+    // Usada para somar presença/falta e bloquear/desbloquear automaticamente
     // ===============================
     async function atualizarContadoresUsuario(telefone, presencasDelta, faltasDelta) {
       const usuario = await buscarUsuarioPorTelefone(telefone);
@@ -605,11 +657,7 @@
 
     // ===============================
     // FUNÇÃO: CARREGAR RESUMO E RANKING
-    // Monta:
-    // - resumo geral
-    // - ranking de presença
-    // - ranking de faltas
-    // - lista de bloqueados
+    // Monta resumo geral, ranking de presença, ranking de faltas e bloqueados
     // ===============================
     async function carregarResumoRanking() {
       painelResumo.innerHTML = '<div class="vazio">Carregando resumo...</div>';
@@ -737,9 +785,8 @@
 
     // ===============================
     // FUNÇÃO: CARREGAR PENDÊNCIAS
-    //
-    // Mostra agendamentos antigos que ainda estão como "agendado".
-    // Assim você decide manualmente se compareceu, faltou ou cancelou.
+    // Mostra agendamentos antigos que ainda estão como "agendado"
+    // Agora respeita o filtro por nome/telefone
     // ===============================
     async function carregarPendencias() {
       conteudoPendencias.innerHTML = '<div class="vazio">Carregando pendências...</div>';
@@ -756,12 +803,12 @@
         return;
       }
 
-      const pendencias = (data || []).filter(item =>
-        agendamentoJaPassou(item.data, item.horario)
-      );
+      const pendencias = (data || [])
+        .filter(item => agendamentoJaPassou(item.data, item.horario))
+        .filter(item => agendamentoCombinaComBusca(item));
 
       if (pendencias.length === 0) {
-        conteudoPendencias.innerHTML = '<div class="vazio">Nenhuma pendência no momento.</div>';
+        conteudoPendencias.innerHTML = '<div class="vazio">Nenhuma pendência encontrada.</div>';
         return;
       }
 
@@ -815,6 +862,10 @@
     // ===============================
     // FUNÇÃO: CARREGAR AGENDAMENTOS
     // Busca os agendamentos no Supabase e monta os cards
+    // Agora respeita filtros por:
+    // - nome/telefone
+    // - data
+    // - status
     // ===============================
     async function carregarAgendamentos() {
       lista.innerHTML = '<div class="vazio">Carregando agendamentos...</div>';
@@ -840,14 +891,18 @@
         return;
       }
 
-      if (!data || data.length === 0) {
+      const agendamentosFiltrados = (data || []).filter(item =>
+        agendamentoCombinaComBusca(item)
+      );
+
+      if (!agendamentosFiltrados || agendamentosFiltrados.length === 0) {
         lista.innerHTML = '<div class="vazio">Nenhum agendamento encontrado.</div>';
         return;
       }
 
       lista.innerHTML = "";
 
-      data.forEach((agendamento) => {
+      agendamentosFiltrados.forEach((agendamento) => {
         const status = agendamento.status || "agendado";
 
         const card = document.createElement("div");
@@ -1047,12 +1102,7 @@
 
     // ===============================
     // FUNÇÃO: PROCESSAR FALTAS PENDENTES
-    //
-    // Esse botão pega agendamentos:
-    // - status = agendado
-    // - horário passou há mais de 24h
-    //
-    // E marca como falta automaticamente.
+    // Processa automaticamente faltas com mais de 24h
     // ===============================
     async function processarFaltasPendentes() {
       const confirmar = confirm(
@@ -1138,9 +1188,7 @@
 
     // ===============================
     // FUNÇÃO: CANCELAR AGENDAMENTO
-    //
-    // Agora o cancelamento exige motivo.
-    // O motivo é salvo na coluna "observacao".
+    // Exige motivo e salva na coluna observacao
     // ===============================
     async function cancelarAgendamento(agendamentoId) {
       const confirmar = confirm("Cancelar este agendamento?");
@@ -1203,9 +1251,21 @@
     });
 
     // ===============================
+    // BUSCA COM ENTER
+    // Se estiver digitando no campo de busca e apertar Enter,
+    // o painel filtra automaticamente
+    // ===============================
+    filtroBusca.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        recarregarPainel();
+      }
+    });
+
+    // ===============================
     // BOTÃO: LIMPAR FILTROS
     // ===============================
     btnLimpar.addEventListener("click", () => {
+      filtroBusca.value = "";
       filtroData.value = "";
       filtroStatus.value = "";
       recarregarPainel();
