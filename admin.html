@@ -155,6 +155,35 @@
     }
 
     /* ===============================
+       PAINEL DE PENDÊNCIAS
+    =============================== */
+    .painel-pendencias {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .painel-pendencias h2 {
+      margin-top: 0;
+      color: var(--warning);
+      font-size: 1.2rem;
+    }
+
+    .pendencia-item {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+
+    .pendencia-info {
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    /* ===============================
        CARDS DE AGENDAMENTO
     =============================== */
     .card {
@@ -212,6 +241,16 @@
       margin-bottom: 14px;
     }
 
+    .observacao {
+      background: rgba(255,255,255,0.04);
+      color: #cbd5e1;
+      border-left: 3px solid var(--primary);
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
     .acoes {
       display: flex;
       gap: 8px;
@@ -232,7 +271,7 @@
 
   <div class="container">
     <h1>Painel Admin - LabStudio CRJ</h1>
-    <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos e ranking.</div>
+    <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos, pendências e ranking.</div>
 
     <!-- ===============================
          FILTROS DO PAINEL
@@ -260,14 +299,18 @@
 
     <!-- ===============================
          PAINEL DE RESUMO E RANKING
-         Aqui aparecem:
-         - resumo geral
-         - ranking de presença
-         - ranking de faltas
-         - usuários bloqueados
     =============================== -->
     <div id="painelResumo" class="painel-resumo">
       <div class="vazio">Carregando resumo...</div>
+    </div>
+
+    <!-- ===============================
+         PAINEL DE PENDÊNCIAS
+         Mostra agendamentos antigos que ainda estão como "agendado"
+    =============================== -->
+    <div id="painelPendencias" class="painel-pendencias">
+      <h2>⚠️ Pendências de verificação</h2>
+      <div class="vazio">Carregando pendências...</div>
     </div>
 
     <!-- ===============================
@@ -295,6 +338,7 @@
     // ===============================
     const lista = document.getElementById("listaAgendamentos");
     const painelResumo = document.getElementById("painelResumo");
+    const painelPendencias = document.getElementById("painelPendencias");
     const filtroData = document.getElementById("filtroData");
     const filtroStatus = document.getElementById("filtroStatus");
     const btnFiltrar = document.getElementById("btnFiltrar");
@@ -338,11 +382,6 @@
     // ===============================
     // FUNÇÃO: LIMPAR TELEFONE
     // Remove tudo que não for número
-    //
-    // Exemplo:
-    // "+55 27 99713-6155"
-    // vira:
-    // "5527997136155"
     // ===============================
     function limparTelefone(valor) {
       return String(valor || "").replace(/\D/g, "");
@@ -350,14 +389,7 @@
 
     // ===============================
     // FUNÇÃO: GERAR VARIAÇÕES DO TELEFONE
-    //
-    // Ajuda o painel a encontrar o usuário certo
-    // mesmo que o telefone esteja salvo de formas diferentes:
-    // - com +55
-    // - sem +55
-    // - com traço
-    // - sem traço
-    // - com ou sem o 9º dígito
+    // Ajuda a encontrar usuário mesmo com telefone em formatos diferentes
     // ===============================
     function gerarVariantesTelefone(valor) {
       const numero = limparTelefone(valor);
@@ -401,10 +433,7 @@
 
     // ===============================
     // FUNÇÃO: BUSCAR USUÁRIO PELO TELEFONE
-    //
-    // Essa função compara o telefone do agendamento
-    // com os telefones cadastrados na tabela usuarios.
-    // Ela usa variações para evitar erro de formato.
+    // Compara telefone do agendamento com telefones na tabela usuarios
     // ===============================
     async function buscarUsuarioPorTelefone(telefone) {
       const variantesDigitadas = gerarVariantesTelefone(telefone);
@@ -456,13 +485,29 @@
     }
 
     // ===============================
+    // FUNÇÃO: VERIFICAR SE UM AGENDAMENTO JÁ PASSOU
+    // Usada para listar pendências
+    // ===============================
+    function agendamentoJaPassou(data, horario) {
+      if (!data || !horario) return false;
+
+      const dataLimpa = String(data).split("T")[0];
+      const horarioLimpo = String(horario).slice(0, 5);
+
+      const dataHoraAgendada = new Date(`${dataLimpa}T${horarioLimpo}:00`);
+      const agora = new Date();
+
+      return dataHoraAgendada < agora;
+    }
+
+    // ===============================
     // FUNÇÃO: ATUALIZAR CONTADORES DO USUÁRIO
     //
     // Usada para:
     // - somar presença
     // - somar falta
-    // - corrigir contagem se você mudar de "faltou" para "compareceu"
-    // - corrigir contagem se você mudar de "compareceu" para "faltou"
+    // - corrigir contagem se mudar de "faltou" para "compareceu"
+    // - corrigir contagem se mudar de "compareceu" para "faltou"
     // ===============================
     async function atualizarContadoresUsuario(telefone, presencasDelta, faltasDelta) {
       const usuario = await buscarUsuarioPorTelefone(telefone);
@@ -516,12 +561,7 @@
 
     // ===============================
     // FUNÇÃO: CARREGAR RESUMO E RANKING
-    //
-    // Essa função lê:
-    // - tabela agendamentos
-    // - tabela usuarios
-    //
-    // E monta:
+    // Monta:
     // - resumo geral
     // - ranking de presença
     // - ranking de faltas
@@ -551,9 +591,6 @@
       const listaAgendamentos = agendamentos || [];
       const listaUsuarios = usuarios || [];
 
-      // ===============================
-      // CONTADORES GERAIS
-      // ===============================
       const totalAgendamentos = listaAgendamentos.length;
 
       const totalAgendados = listaAgendamentos.filter(item =>
@@ -572,38 +609,29 @@
         item.status === "cancelado"
       ).length;
 
+      const totalPendentes = listaAgendamentos.filter(item =>
+        (item.status || "agendado") === "agendado" &&
+        agendamentoJaPassou(item.data, item.horario)
+      ).length;
+
       const totalBloqueados = listaUsuarios.filter(user =>
         String(user.status || "").toLowerCase() === "bloqueado"
       ).length;
 
-      // ===============================
-      // RANKING DE PRESENÇAS
-      // Só mostra quem tem pelo menos 1 presença
-      // ===============================
       const rankingPresencas = [...listaUsuarios]
         .filter(user => Number(user.presencas || 0) > 0)
         .sort((a, b) => Number(b.presencas || 0) - Number(a.presencas || 0))
         .slice(0, 5);
 
-      // ===============================
-      // RANKING DE FALTAS
-      // Só mostra quem tem pelo menos 1 falta
-      // ===============================
       const rankingFaltas = [...listaUsuarios]
         .filter(user => Number(user.faltas || 0) > 0)
         .sort((a, b) => Number(b.faltas || 0) - Number(a.faltas || 0))
         .slice(0, 5);
 
-      // ===============================
-      // USUÁRIOS BLOQUEADOS
-      // ===============================
       const bloqueados = listaUsuarios.filter(user =>
         String(user.status || "").toLowerCase() === "bloqueado"
       );
 
-      // ===============================
-      // MONTAR HTML DO RESUMO
-      // ===============================
       painelResumo.innerHTML = `
         <div class="bloco-resumo">
           <h3>📊 Resumo geral</h3>
@@ -612,6 +640,7 @@
           <div class="item-ranking">Compareceram: ${totalCompareceram}</div>
           <div class="item-ranking">Faltaram: ${totalFaltaram}</div>
           <div class="item-ranking">Cancelados: ${totalCancelados}</div>
+          <div class="item-ranking">Pendentes: ${totalPendentes}</div>
         </div>
 
         <div class="bloco-resumo">
@@ -654,6 +683,90 @@
           }
         </div>
       `;
+    }
+
+    // ===============================
+    // FUNÇÃO: CARREGAR PENDÊNCIAS
+    //
+    // Mostra agendamentos antigos que ainda estão como "agendado".
+    // Assim você decide manualmente se compareceu, faltou ou cancelou.
+    // ===============================
+    async function carregarPendencias() {
+      painelPendencias.innerHTML = `
+        <h2>⚠️ Pendências de verificação</h2>
+        <div class="vazio">Carregando pendências...</div>
+      `;
+
+      const { data, error } = await client
+        .from("agendamentos")
+        .select("*")
+        .eq("status", "agendado")
+        .order("data", { ascending: true })
+        .order("horario", { ascending: true });
+
+      if (error) {
+        painelPendencias.innerHTML = `
+          <h2>⚠️ Pendências de verificação</h2>
+          <div class="vazio">Erro ao carregar pendências: ${error.message}</div>
+        `;
+        return;
+      }
+
+      const pendencias = (data || []).filter(item =>
+        agendamentoJaPassou(item.data, item.horario)
+      );
+
+      if (pendencias.length === 0) {
+        painelPendencias.innerHTML = `
+          <h2>⚠️ Pendências de verificação</h2>
+          <div class="vazio">Nenhuma pendência no momento.</div>
+        `;
+        return;
+      }
+
+      painelPendencias.innerHTML = `
+        <h2>⚠️ Pendências de verificação</h2>
+        <div class="item-ranking">
+          Existem ${pendencias.length} agendamento(s) antigo(s) ainda sem confirmação.
+        </div>
+      `;
+
+      pendencias.forEach(agendamento => {
+        const item = document.createElement("div");
+        item.className = "pendencia-item";
+
+        item.innerHTML = `
+          <div class="pendencia-info">
+            <strong>${escaparHtml(agendamento.nome || "Sem nome")}</strong><br>
+            📱 ${escaparHtml(agendamento.telefone || "Não informado")}<br>
+            📅 ${formatarData(agendamento.data)} às ${escaparHtml(agendamento.horario || "-")}
+          </div>
+
+          <div class="acoes">
+            <button class="btn-presenca">Confirmar presença</button>
+            <button class="btn-falta">Marcar falta</button>
+            <button class="btn-cancelar">Cancelar com motivo</button>
+          </div>
+        `;
+
+        const btnPresenca = item.querySelector(".btn-presenca");
+        const btnFalta = item.querySelector(".btn-falta");
+        const btnCancelar = item.querySelector(".btn-cancelar");
+
+        btnPresenca.addEventListener("click", () => {
+          confirmarPresenca(agendamento.id);
+        });
+
+        btnFalta.addEventListener("click", () => {
+          marcarFalta(agendamento.id);
+        });
+
+        btnCancelar.addEventListener("click", () => {
+          cancelarAgendamento(agendamento.id);
+        });
+
+        painelPendencias.appendChild(item);
+      });
     }
 
     // ===============================
@@ -713,6 +826,12 @@
             ⏰ Horário: ${escaparHtml(agendamento.horario || "-")}
           </div>
 
+          ${
+            agendamento.observacao
+              ? `<div class="observacao">📝 ${escaparHtml(agendamento.observacao)}</div>`
+              : ""
+          }
+
           <div class="acoes">
             <button class="btn-presenca" ${desabilitarPresenca ? "disabled" : ""}>
               Confirmar presença
@@ -728,11 +847,6 @@
           </div>
         `;
 
-        // ===============================
-        // EVENTOS DOS BOTÕES
-        // Usamos addEventListener em vez de onclick
-        // para evitar erro com IDs UUID ou textos especiais
-        // ===============================
         const btnPresenca = card.querySelector(".btn-presenca");
         const btnFalta = card.querySelector(".btn-falta");
         const btnCancelar = card.querySelector(".btn-cancelar");
@@ -754,13 +868,17 @@
     }
 
     // ===============================
+    // FUNÇÃO: RECARREGAR TUDO
+    // Atualiza resumo, pendências e lista
+    // ===============================
+    function recarregarPainel() {
+      carregarResumoRanking();
+      carregarPendencias();
+      carregarAgendamentos();
+    }
+
+    // ===============================
     // FUNÇÃO: CONFIRMAR PRESENÇA
-    //
-    // Regras:
-    // - Se estava "agendado": soma +1 presença
-    // - Se estava "faltou": corrige, tira 1 falta e soma 1 presença
-    // - Se já estava "compareceu": não soma de novo
-    // - Se estava "cancelado": não permite
     // ===============================
     async function confirmarPresenca(agendamentoId) {
       const confirmar = confirm("Confirmar presença deste jovem?");
@@ -789,8 +907,6 @@
         let presencasDelta = 1;
         let faltasDelta = 0;
 
-        // Se estava como falta e você corrigiu para presença,
-        // remove uma falta também.
         if (statusAtual === "faltou") {
           faltasDelta = -1;
         }
@@ -817,9 +933,7 @@
         }
 
         alert("Presença confirmada!");
-
-        carregarResumoRanking();
-        carregarAgendamentos();
+        recarregarPainel();
 
       } catch (err) {
         alert("Erro ao confirmar presença: " + err.message);
@@ -828,12 +942,6 @@
 
     // ===============================
     // FUNÇÃO: MARCAR FALTA
-    //
-    // Regras:
-    // - Se estava "agendado": soma +1 falta
-    // - Se estava "compareceu": corrige, tira 1 presença e soma 1 falta
-    // - Se já estava "faltou": não soma de novo
-    // - Se chegar a 2 faltas, bloqueia o usuário
     // ===============================
     async function marcarFalta(agendamentoId) {
       const confirmar = confirm("Marcar falta para este jovem?");
@@ -862,8 +970,6 @@
         let presencasDelta = 0;
         let faltasDelta = 1;
 
-        // Se estava como compareceu e você corrigiu para falta,
-        // remove uma presença também.
         if (statusAtual === "compareceu") {
           presencasDelta = -1;
         }
@@ -889,9 +995,7 @@
         }
 
         alert("Falta registrada!");
-
-        carregarResumoRanking();
-        carregarAgendamentos();
+        recarregarPainel();
 
       } catch (err) {
         alert("Erro ao marcar falta: " + err.message);
@@ -901,13 +1005,25 @@
     // ===============================
     // FUNÇÃO: CANCELAR AGENDAMENTO
     //
-    // Regra:
-    // - Só cancela agendamento ainda "agendado"
-    // - Não cancela se já foi marcado como falta ou presença
+    // Agora o cancelamento exige motivo.
+    // O motivo é salvo na coluna "observacao".
     // ===============================
     async function cancelarAgendamento(agendamentoId) {
       const confirmar = confirm("Cancelar este agendamento?");
       if (!confirmar) return;
+
+      const motivo = prompt(
+        "Informe o motivo do cancelamento:\n\nEx: jovem avisou com antecedência, evento interno, problema técnico, falta de equipe..."
+      );
+
+      if (motivo === null) return;
+
+      const motivoLimpo = motivo.trim();
+
+      if (!motivoLimpo) {
+        alert("Para cancelar, informe um motivo.");
+        return;
+      }
 
       try {
         const agendamento = await buscarAgendamentoPorId(agendamentoId);
@@ -927,7 +1043,8 @@
         const { error } = await client
           .from("agendamentos")
           .update({
-            status: "cancelado"
+            status: "cancelado",
+            observacao: motivoLimpo
           })
           .eq("id", agendamentoId);
 
@@ -936,10 +1053,8 @@
           return;
         }
 
-        alert("Agendamento cancelado!");
-
-        carregarResumoRanking();
-        carregarAgendamentos();
+        alert("Agendamento cancelado com motivo registrado!");
+        recarregarPainel();
 
       } catch (err) {
         alert("Erro ao cancelar: " + err.message);
@@ -950,8 +1065,7 @@
     // BOTÃO: FILTRAR
     // ===============================
     btnFiltrar.addEventListener("click", () => {
-      carregarResumoRanking();
-      carregarAgendamentos();
+      recarregarPainel();
     });
 
     // ===============================
@@ -960,16 +1074,13 @@
     btnLimpar.addEventListener("click", () => {
       filtroData.value = "";
       filtroStatus.value = "";
-
-      carregarResumoRanking();
-      carregarAgendamentos();
+      recarregarPainel();
     });
 
     // ===============================
     // CARREGAR PAINEL AO ABRIR
     // ===============================
-    carregarResumoRanking();
-    carregarAgendamentos();
+    recarregarPainel();
   </script>
 </body>
 </html>
