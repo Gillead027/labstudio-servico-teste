@@ -118,6 +118,10 @@
       background: var(--border);
     }
 
+    .btn-desbloquear {
+      background: var(--success);
+    }
+
     /* ===============================
        PAINEL DE RESUMO E RANKING
     =============================== */
@@ -187,6 +191,35 @@
     }
 
     .pendencia-info {
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    /* ===============================
+       PAINEL DE USUÁRIOS BLOQUEADOS
+    =============================== */
+    .painel-usuarios {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+
+    .painel-usuarios h2 {
+      margin-top: 0;
+      color: var(--danger);
+      font-size: 1.2rem;
+    }
+
+    .usuario-bloqueado {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+
+    .usuario-info {
       color: var(--muted);
       line-height: 1.6;
       margin-bottom: 10px;
@@ -281,7 +314,7 @@
 
   <div class="container">
     <h1>Painel Admin - LabStudio CRJ</h1>
-    <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos, pendências e ranking.</div>
+    <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos, pendências, ranking e desbloqueios.</div>
 
     <!-- ===============================
          FILTROS DO PAINEL
@@ -337,6 +370,17 @@
     </div>
 
     <!-- ===============================
+         PAINEL DE USUÁRIOS BLOQUEADOS
+         Aqui você pode regularizar alguém sem abrir o Supabase.
+    =============================== -->
+    <div class="painel-usuarios">
+      <h2>🚫 Usuários bloqueados</h2>
+      <div id="conteudoBloqueados">
+        <div class="vazio">Carregando usuários bloqueados...</div>
+      </div>
+    </div>
+
+    <!-- ===============================
          LISTA DE AGENDAMENTOS
     =============================== -->
     <div id="listaAgendamentos"></div>
@@ -362,6 +406,7 @@
     const lista = document.getElementById("listaAgendamentos");
     const painelResumo = document.getElementById("painelResumo");
     const conteudoPendencias = document.getElementById("conteudoPendencias");
+    const conteudoBloqueados = document.getElementById("conteudoBloqueados");
     const filtroBusca = document.getElementById("filtroBusca");
     const filtroData = document.getElementById("filtroData");
     const filtroStatus = document.getElementById("filtroStatus");
@@ -506,6 +551,41 @@
       const variantesBusca = gerarVariantesTelefone(busca);
 
       // Busca por variações de telefone
+      return variantesTelefone.some(numero =>
+        variantesBusca.includes(numero) ||
+        numero.includes(buscaNumerica) ||
+        buscaNumerica.includes(numero)
+      );
+    }
+
+    // ===============================
+    // FUNÇÃO: VERIFICAR SE UM USUÁRIO BATE COM A BUSCA
+    // Usado principalmente na lista de bloqueados
+    // ===============================
+    function usuarioCombinaComBusca(usuario) {
+      const busca = filtroBusca.value.trim();
+
+      if (!busca) return true;
+
+      const buscaTexto = normalizarTexto(busca);
+      const nomeUsuario = normalizarTexto(usuario.nome);
+
+      if (nomeUsuario.includes(buscaTexto)) {
+        return true;
+      }
+
+      const telefoneUsuario = limparTelefone(usuario.telefone);
+      const buscaNumerica = limparTelefone(busca);
+
+      if (!buscaNumerica) return false;
+
+      if (telefoneUsuario.includes(buscaNumerica)) {
+        return true;
+      }
+
+      const variantesTelefone = gerarVariantesTelefone(usuario.telefone);
+      const variantesBusca = gerarVariantesTelefone(busca);
+
       return variantesTelefone.some(numero =>
         variantesBusca.includes(numero) ||
         numero.includes(buscaNumerica) ||
@@ -773,7 +853,7 @@
           ${
             bloqueados.length === 0
               ? '<div class="item-ranking">Nenhum usuário bloqueado.</div>'
-              : bloqueados.map(user => `
+              : bloqueados.slice(0, 5).map(user => `
                   <div class="item-ranking">
                     ${escaparHtml(user.nome || "Sem nome")} — ${escaparHtml(user.telefone || "")}
                   </div>
@@ -781,6 +861,99 @@
           }
         </div>
       `;
+    }
+
+    // ===============================
+    // FUNÇÃO: CARREGAR USUÁRIOS BLOQUEADOS
+    // Mostra uma área específica para desbloquear usuários manualmente
+    // ===============================
+    async function carregarUsuariosBloqueados() {
+      conteudoBloqueados.innerHTML = '<div class="vazio">Carregando usuários bloqueados...</div>';
+
+      const { data, error } = await client
+        .from("usuarios")
+        .select("*")
+        .eq("status", "bloqueado")
+        .order("nome", { ascending: true });
+
+      if (error) {
+        conteudoBloqueados.innerHTML = `<div class="vazio">Erro ao carregar bloqueados: ${error.message}</div>`;
+        return;
+      }
+
+      const bloqueadosFiltrados = (data || []).filter(usuario =>
+        usuarioCombinaComBusca(usuario)
+      );
+
+      if (bloqueadosFiltrados.length === 0) {
+        conteudoBloqueados.innerHTML = '<div class="vazio">Nenhum usuário bloqueado encontrado.</div>';
+        return;
+      }
+
+      conteudoBloqueados.innerHTML = "";
+
+      bloqueadosFiltrados.forEach(usuario => {
+        const item = document.createElement("div");
+        item.className = "usuario-bloqueado";
+
+        item.innerHTML = `
+          <div class="usuario-info">
+            <strong>${escaparHtml(usuario.nome || "Sem nome")}</strong><br>
+            📱 ${escaparHtml(usuario.telefone || "Não informado")}<br>
+            ⚠️ Faltas: ${Number(usuario.faltas || 0)}<br>
+            ✅ Presenças: ${Number(usuario.presencas || 0)}<br>
+            🚫 Status: ${escaparHtml(usuario.status || "-")}
+          </div>
+
+          <div class="acoes">
+            <button class="btn-desbloquear">
+              Desbloquear e zerar faltas
+            </button>
+          </div>
+        `;
+
+        const btnDesbloquear = item.querySelector(".btn-desbloquear");
+
+        btnDesbloquear.addEventListener("click", () => {
+          desbloquearUsuario(usuario.id, usuario.nome);
+        });
+
+        conteudoBloqueados.appendChild(item);
+      });
+    }
+
+    // ===============================
+    // FUNÇÃO: DESBLOQUEAR USUÁRIO
+    //
+    // Importante:
+    // O index.html e o bot bloqueiam se faltas >= 2.
+    // Por isso, para desbloquear de verdade,
+    // precisamos colocar:
+    // status = ativo
+    // faltas = 0
+    // ===============================
+    async function desbloquearUsuario(usuarioId, nomeUsuario) {
+      const confirmar = confirm(
+        `Desbloquear ${nomeUsuario || "este usuário"}?\n\nIsso vai mudar o status para "ativo" e zerar as faltas.`
+      );
+
+      if (!confirmar) return;
+
+      const { error } = await client
+        .from("usuarios")
+        .update({
+          status: "ativo",
+          faltas: 0
+        })
+        .eq("id", usuarioId);
+
+      if (error) {
+        alert("Erro ao desbloquear usuário: " + error.message);
+        return;
+      }
+
+      alert("Usuário desbloqueado com sucesso!");
+      recarregarPainel();
     }
 
     // ===============================
@@ -967,11 +1140,12 @@
 
     // ===============================
     // FUNÇÃO: RECARREGAR TUDO
-    // Atualiza resumo, pendências e lista
+    // Atualiza resumo, pendências, bloqueados e lista
     // ===============================
     function recarregarPainel() {
       carregarResumoRanking();
       carregarPendencias();
+      carregarUsuariosBloqueados();
       carregarAgendamentos();
     }
 
