@@ -177,6 +177,10 @@
       background: var(--danger);
     }
 
+    .btn-salvar {
+      background: var(--success);
+    }
+
     /* ===============================
        PAINEL DE RESUMO E RANKING
     =============================== */
@@ -259,6 +263,24 @@
       color: var(--muted);
       line-height: 1.6;
       margin-bottom: 10px;
+    }
+
+    /* ===============================
+       FORMULÁRIO DE CADASTRO DE USUÁRIO
+    =============================== */
+    .form-cadastro {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+      align-items: end;
+    }
+
+    .form-ajuda {
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 8px;
+      font-size: 0.95rem;
     }
 
     /* ===============================
@@ -463,6 +485,53 @@
     </div>
 
     <!-- ===============================
+         CADASTRAR NOVO USUÁRIO
+         Nova área do passo 6.
+         Agora você não precisa abrir o Supabase para cadastrar.
+    =============================== -->
+    <div class="painel-usuarios">
+      <div class="usuarios-topo">
+        <h2>➕ Cadastrar novo usuário</h2>
+      </div>
+
+      <div class="form-ajuda">
+        Cadastre jovens diretamente pelo painel. O telefone pode ser digitado com ou sem +55, com ou sem traços.
+      </div>
+
+      <div class="form-cadastro">
+        <div class="grupo">
+          <label for="novoNome">Nome</label>
+          <input type="text" id="novoNome" placeholder="Ex: MC Jovem">
+        </div>
+
+        <div class="grupo">
+          <label for="novoTelefone">WhatsApp</label>
+          <input type="text" id="novoTelefone" placeholder="Ex: 27999999999">
+        </div>
+
+        <div class="grupo">
+          <label for="novoStatus">Status inicial</label>
+          <select id="novoStatus">
+            <option value="ativo">Ativo</option>
+            <option value="bloqueado">Bloqueado</option>
+          </select>
+        </div>
+
+        <div class="grupo">
+          <label for="novoCadastrado">Cadastro ativo?</label>
+          <select id="novoCadastrado">
+            <option value="true">Sim</option>
+            <option value="false">Não</option>
+          </select>
+        </div>
+
+        <button id="btnSalvarUsuario" class="btn-salvar">
+          Salvar usuário
+        </button>
+      </div>
+    </div>
+
+    <!-- ===============================
          TODOS OS USUÁRIOS CADASTRADOS
     =============================== -->
     <div class="painel-usuarios">
@@ -547,6 +616,15 @@
     const btnProcessarPendencias = document.getElementById("btnProcessarPendencias");
 
     // ===============================
+    // ELEMENTOS DO CADASTRO DE USUÁRIO
+    // ===============================
+    const novoNome = document.getElementById("novoNome");
+    const novoTelefone = document.getElementById("novoTelefone");
+    const novoStatus = document.getElementById("novoStatus");
+    const novoCadastrado = document.getElementById("novoCadastrado");
+    const btnSalvarUsuario = document.getElementById("btnSalvarUsuario");
+
+    // ===============================
     // FUNÇÃO: LIBERAR PAINEL
     // Esconde login, mostra painel e carrega os dados.
     // ===============================
@@ -626,6 +704,15 @@
       const [ano, mes, dia] = dataLimpa.split("-");
       return `${dia}/${mes}/${ano}`;
     }
+
+    // ===============================
+    // FIM DA PARTE 1
+    // Continue colando a PARTE 2 logo abaixo desta linha.
+    // ===============================
+        // ===============================
+    // INÍCIO DA PARTE 2
+    // Continue exatamente após o fim da PARTE 1.
+    // ===============================
 
     // ===============================
     // FUNÇÃO: CLASSE VISUAL DO STATUS DO AGENDAMENTO
@@ -776,7 +863,7 @@
     async function buscarUsuarioPorTelefone(telefone) {
       const variantesDigitadas = gerarVariantesTelefone(telefone);
 
-      console.log("🔎 Variantes do telefone do agendamento:", variantesDigitadas);
+      console.log("🔎 Variantes do telefone:", variantesDigitadas);
 
       const { data: usuarios, error } = await client
         .from("usuarios")
@@ -910,13 +997,84 @@
     }
 
     // ===============================
-    // FIM DA PARTE 1
-    // Continue colando a PARTE 2 logo abaixo desta linha.
+    // FUNÇÃO: CADASTRAR NOVO USUÁRIO
+    //
+    // Esta é a função nova do passo 6.
+    // Ela cria um jovem na tabela usuarios sem abrir o Supabase.
     // ===============================
+    async function cadastrarNovoUsuario() {
+      const nome = novoNome.value.trim();
+      const telefoneOriginal = novoTelefone.value.trim();
+      const telefoneLimpo = limparTelefone(telefoneOriginal);
+      const status = novoStatus.value;
+      const cadastrado = novoCadastrado.value === "true";
+
+      if (!nome || !telefoneLimpo) {
+        alert("Preencha nome e telefone.");
+        return;
+      }
+
+      if (telefoneLimpo.length < 10) {
+        alert("Telefone parece incompleto. Confira o número antes de salvar.");
+        return;
+      }
+
+      btnSalvarUsuario.disabled = true;
+      btnSalvarUsuario.innerText = "Salvando...";
+
+      try {
         // ===============================
-    // INÍCIO DA PARTE 2
-    // Continue exatamente após o fim da PARTE 1.
-    // ===============================
+        // VERIFICA SE JÁ EXISTE USUÁRIO COM ESSE TELEFONE
+        // A verificação considera variações com/sem +55 e com/sem nono dígito.
+        // ===============================
+        const usuarioExistente = await buscarUsuarioPorTelefone(telefoneLimpo);
+
+        if (usuarioExistente) {
+          alert(`Este telefone já está cadastrado para: ${usuarioExistente.nome || "Sem nome"}`);
+          return;
+        }
+
+        // ===============================
+        // INSERE O USUÁRIO NA TABELA usuarios
+        // Campos padrão:
+        // - faltas começa com 0
+        // - presencas começa com 0
+        // ===============================
+        const { error } = await client
+          .from("usuarios")
+          .insert([{
+            nome: nome,
+            telefone: telefoneLimpo,
+            cadastrado: cadastrado,
+            status: status,
+            faltas: 0,
+            presencas: 0
+          }]);
+
+        if (error) {
+          alert("Erro ao cadastrar usuário: " + error.message);
+          return;
+        }
+
+        alert("Usuário cadastrado com sucesso!");
+
+        // ===============================
+        // LIMPA O FORMULÁRIO
+        // ===============================
+        novoNome.value = "";
+        novoTelefone.value = "";
+        novoStatus.value = "ativo";
+        novoCadastrado.value = "true";
+
+        recarregarPainel();
+
+      } catch (err) {
+        alert("Erro ao cadastrar usuário: " + err.message);
+      } finally {
+        btnSalvarUsuario.disabled = false;
+        btnSalvarUsuario.innerText = "Salvar usuário";
+      }
+    }
 
     // ===============================
     // FUNÇÃO: CARREGAR RESUMO E RANKING
@@ -1099,6 +1257,15 @@
 
         conteudoBloqueados.appendChild(item);
       });
+
+      // ===============================
+      // FIM DA PARTE 2
+      // Continue colando a PARTE 3 logo abaixo desta linha.
+      // ===============================
+            // ===============================
+      // INÍCIO DA PARTE 3
+      // Continue exatamente após o fim da PARTE 2.
+      // ===============================
     }
 
     // ===============================
@@ -1813,6 +1980,22 @@
     // ===============================
     btnProcessarPendencias.addEventListener("click", () => {
       processarFaltasPendentes();
+    });
+
+    // ===============================
+    // BOTÃO: SALVAR NOVO USUÁRIO
+    // ===============================
+    btnSalvarUsuario.addEventListener("click", () => {
+      cadastrarNovoUsuario();
+    });
+
+    // ===============================
+    // CADASTRAR USUÁRIO COM ENTER NO CAMPO TELEFONE
+    // ===============================
+    novoTelefone.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        cadastrarNovoUsuario();
+      }
     });
 
     // ===============================
