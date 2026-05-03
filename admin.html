@@ -122,6 +122,14 @@
       background: var(--success);
     }
 
+    .btn-bloquear {
+      background: var(--danger);
+    }
+
+    .btn-cadastro {
+      background: var(--primary);
+    }
+
     /* ===============================
        PAINEL DE RESUMO E RANKING
     =============================== */
@@ -159,9 +167,10 @@
     }
 
     /* ===============================
-       PAINEL DE PENDÊNCIAS
+       PAINÉIS DE SEÇÕES
     =============================== */
-    .painel-pendencias {
+    .painel-pendencias,
+    .painel-usuarios {
       background: var(--card);
       border: 1px solid rgba(255,255,255,0.05);
       border-radius: 12px;
@@ -169,7 +178,8 @@
       margin-bottom: 20px;
     }
 
-    .pendencias-topo {
+    .pendencias-topo,
+    .usuarios-topo {
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -184,41 +194,20 @@
       font-size: 1.2rem;
     }
 
-    .pendencia-item {
-      border-top: 1px solid rgba(255,255,255,0.08);
-      padding-top: 12px;
-      margin-top: 12px;
-    }
-
-    .pendencia-info {
-      color: var(--muted);
-      line-height: 1.6;
-      margin-bottom: 10px;
-    }
-
-    /* ===============================
-       PAINEL DE USUÁRIOS BLOQUEADOS
-    =============================== */
-    .painel-usuarios {
-      background: var(--card);
-      border: 1px solid rgba(255,255,255,0.05);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 20px;
-    }
-
     .painel-usuarios h2 {
-      margin-top: 0;
-      color: var(--danger);
+      margin: 0;
+      color: var(--primary);
       font-size: 1.2rem;
     }
 
-    .usuario-bloqueado {
+    .pendencia-item,
+    .usuario-card {
       border-top: 1px solid rgba(255,255,255,0.08);
       padding-top: 12px;
       margin-top: 12px;
     }
 
+    .pendencia-info,
     .usuario-info {
       color: var(--muted);
       line-height: 1.6;
@@ -277,6 +266,21 @@
       color: #fecaca;
     }
 
+    .status-ativo {
+      background: #14532d;
+      color: #bbf7d0;
+    }
+
+    .status-bloqueado {
+      background: #7f1d1d;
+      color: #fecaca;
+    }
+
+    .status-pendente {
+      background: #713f12;
+      color: #fde68a;
+    }
+
     .info {
       color: var(--muted);
       line-height: 1.6;
@@ -314,7 +318,7 @@
 
   <div class="container">
     <h1>Painel Admin - LabStudio CRJ</h1>
-    <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos, pendências, ranking e desbloqueios.</div>
+    <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos, pendências, ranking e usuários.</div>
 
     <!-- ===============================
          FILTROS DO PAINEL
@@ -331,7 +335,7 @@
       </div>
 
       <div class="grupo">
-        <label for="filtroStatus">Status</label>
+        <label for="filtroStatus">Status do agendamento</label>
         <select id="filtroStatus">
           <option value="">Todos</option>
           <option value="agendado">Agendado</option>
@@ -370,13 +374,30 @@
     </div>
 
     <!-- ===============================
-         PAINEL DE USUÁRIOS BLOQUEADOS
-         Aqui você pode regularizar alguém sem abrir o Supabase.
+         USUÁRIOS BLOQUEADOS
+         Área rápida só para desbloquear quem está bloqueado.
     =============================== -->
     <div class="painel-usuarios">
-      <h2>🚫 Usuários bloqueados</h2>
+      <div class="usuarios-topo">
+        <h2>🚫 Usuários bloqueados</h2>
+      </div>
+
       <div id="conteudoBloqueados">
         <div class="vazio">Carregando usuários bloqueados...</div>
+      </div>
+    </div>
+
+    <!-- ===============================
+         TODOS OS USUÁRIOS CADASTRADOS
+         Esta é a nova área do passo 4.
+    =============================== -->
+    <div class="painel-usuarios">
+      <div class="usuarios-topo">
+        <h2>👥 Usuários cadastrados</h2>
+      </div>
+
+      <div id="conteudoUsuarios">
+        <div class="vazio">Carregando usuários...</div>
       </div>
     </div>
 
@@ -407,6 +428,7 @@
     const painelResumo = document.getElementById("painelResumo");
     const conteudoPendencias = document.getElementById("conteudoPendencias");
     const conteudoBloqueados = document.getElementById("conteudoBloqueados");
+    const conteudoUsuarios = document.getElementById("conteudoUsuarios");
     const filtroBusca = document.getElementById("filtroBusca");
     const filtroData = document.getElementById("filtroData");
     const filtroStatus = document.getElementById("filtroStatus");
@@ -416,7 +438,7 @@
 
     // ===============================
     // FUNÇÃO: ESCAPAR TEXTO
-    // Evita que texto digitado por usuário quebre o HTML
+    // Evita que texto digitado por usuário quebre o HTML.
     // ===============================
     function escaparHtml(valor) {
       return String(valor || "")
@@ -429,8 +451,7 @@
 
     // ===============================
     // FUNÇÃO: NORMALIZAR TEXTO
-    // Ajuda a busca por nome ignorando maiúsculas/minúsculas e acentos
-    // Exemplo: "João" pode ser encontrado buscando "joao"
+    // Ajuda a busca por nome ignorando maiúsculas/minúsculas e acentos.
     // ===============================
     function normalizarTexto(valor) {
       return String(valor || "")
@@ -442,7 +463,7 @@
 
     // ===============================
     // FUNÇÃO: FORMATAR DATA
-    // Recebe 2025-05-30 e mostra 30/05/2025
+    // Recebe 2025-05-30 e mostra 30/05/2025.
     // ===============================
     function formatarData(data) {
       if (!data) return "";
@@ -452,8 +473,8 @@
     }
 
     // ===============================
-    // FUNÇÃO: CLASSE VISUAL DO STATUS
-    // Define a cor do status no card
+    // FUNÇÃO: CLASSE VISUAL DO STATUS DO AGENDAMENTO
+    // Define a cor do status no card.
     // ===============================
     function classeStatus(status) {
       if (status === "compareceu") return "status status-compareceu";
@@ -463,8 +484,19 @@
     }
 
     // ===============================
+    // FUNÇÃO: CLASSE VISUAL DO STATUS DO USUÁRIO
+    // ===============================
+    function classeStatusUsuario(status) {
+      const statusNormalizado = String(status || "").toLowerCase();
+
+      if (statusNormalizado === "bloqueado") return "status status-bloqueado";
+      if (statusNormalizado === "pendente") return "status status-pendente";
+      return "status status-ativo";
+    }
+
+    // ===============================
     // FUNÇÃO: LIMPAR TELEFONE
-    // Remove tudo que não for número
+    // Remove tudo que não for número.
     // ===============================
     function limparTelefone(valor) {
       return String(valor || "").replace(/\D/g, "");
@@ -472,7 +504,7 @@
 
     // ===============================
     // FUNÇÃO: GERAR VARIAÇÕES DO TELEFONE
-    // Ajuda a encontrar usuário mesmo com telefone em formatos diferentes
+    // Ajuda a encontrar usuário mesmo com telefone em formatos diferentes.
     // ===============================
     function gerarVariantesTelefone(valor) {
       const numero = limparTelefone(valor);
@@ -499,13 +531,13 @@
 
       adicionar(sem55);
 
-      // Exemplo: 27997136155 também testa 2797136155
+      // Exemplo: 27997136155 também testa 2797136155.
       if (sem55.length === 11 && sem55[2] === "9") {
         const semNonoDigito = sem55.slice(0, 2) + sem55.slice(3);
         adicionar(semNonoDigito);
       }
 
-      // Exemplo: 2797136155 também testa 27997136155
+      // Exemplo: 2797136155 também testa 27997136155.
       if (sem55.length === 10) {
         const comNonoDigito = sem55.slice(0, 2) + "9" + sem55.slice(2);
         adicionar(comNonoDigito);
@@ -516,12 +548,7 @@
 
     // ===============================
     // FUNÇÃO: VERIFICAR SE UM AGENDAMENTO BATE COM A BUSCA
-    // A busca funciona por:
-    // - nome
-    // - telefone completo
-    // - pedaço do telefone
-    // - telefone com/sem +55
-    // - telefone com/sem nono dígito
+    // A busca funciona por nome ou telefone.
     // ===============================
     function agendamentoCombinaComBusca(agendamento) {
       const busca = filtroBusca.value.trim();
@@ -531,7 +558,6 @@
       const buscaTexto = normalizarTexto(busca);
       const nomeAgendamento = normalizarTexto(agendamento.nome);
 
-      // Busca por nome
       if (nomeAgendamento.includes(buscaTexto)) {
         return true;
       }
@@ -539,10 +565,8 @@
       const telefoneAgendamento = limparTelefone(agendamento.telefone);
       const buscaNumerica = limparTelefone(busca);
 
-      // Se a busca não tiver número, e não bateu com nome, retorna falso
       if (!buscaNumerica) return false;
 
-      // Busca por pedaço do telefone
       if (telefoneAgendamento.includes(buscaNumerica)) {
         return true;
       }
@@ -550,7 +574,6 @@
       const variantesTelefone = gerarVariantesTelefone(agendamento.telefone);
       const variantesBusca = gerarVariantesTelefone(busca);
 
-      // Busca por variações de telefone
       return variantesTelefone.some(numero =>
         variantesBusca.includes(numero) ||
         numero.includes(buscaNumerica) ||
@@ -560,7 +583,7 @@
 
     // ===============================
     // FUNÇÃO: VERIFICAR SE UM USUÁRIO BATE COM A BUSCA
-    // Usado principalmente na lista de bloqueados
+    // Usado na lista de bloqueados e usuários cadastrados.
     // ===============================
     function usuarioCombinaComBusca(usuario) {
       const busca = filtroBusca.value.trim();
@@ -595,7 +618,7 @@
 
     // ===============================
     // FUNÇÃO: BUSCAR USUÁRIO PELO TELEFONE
-    // Compara telefone do agendamento com telefones na tabela usuarios
+    // Compara telefone do agendamento com telefones na tabela usuarios.
     // ===============================
     async function buscarUsuarioPorTelefone(telefone) {
       const variantesDigitadas = gerarVariantesTelefone(telefone);
@@ -630,7 +653,7 @@
 
     // ===============================
     // FUNÇÃO: BUSCAR AGENDAMENTO POR ID
-    // Usada para evitar somar falta/presença repetidamente
+    // Usada para evitar somar falta/presença repetidamente.
     // ===============================
     async function buscarAgendamentoPorId(id) {
       const { data, error } = await client
@@ -648,7 +671,7 @@
 
     // ===============================
     // FUNÇÃO: VERIFICAR SE UM AGENDAMENTO JÁ PASSOU
-    // Usada para listar pendências comuns
+    // Usada para listar pendências comuns.
     // ===============================
     function agendamentoJaPassou(data, horario) {
       if (!data || !horario) return false;
@@ -664,7 +687,7 @@
 
     // ===============================
     // FUNÇÃO: VERIFICAR SE UM AGENDAMENTO PASSOU HÁ MAIS DE 24H
-    // Regra segura para processar faltas pendentes
+    // Regra segura para processar faltas pendentes.
     // ===============================
     function agendamentoPassouMaisDe24h(data, horario) {
       if (!data || !horario) return false;
@@ -683,7 +706,7 @@
 
     // ===============================
     // FUNÇÃO: ATUALIZAR CONTADORES DO USUÁRIO
-    // Usada para somar presença/falta e bloquear/desbloquear automaticamente
+    // Usada para somar presença/falta e bloquear/desbloquear automaticamente.
     // ===============================
     async function atualizarContadoresUsuario(telefone, presencasDelta, faltasDelta) {
       const usuario = await buscarUsuarioPorTelefone(telefone);
@@ -701,12 +724,10 @@
 
       let novoStatus = usuario.status || "ativo";
 
-      // Se chegou a 2 faltas, bloqueia automaticamente
       if (novasFaltas >= 2) {
         novoStatus = "bloqueado";
       }
 
-      // Se foi uma correção e caiu para menos de 2 faltas, desbloqueia automaticamente
       if (String(novoStatus).toLowerCase() === "bloqueado" && novasFaltas < 2) {
         novoStatus = "ativo";
       }
@@ -737,7 +758,7 @@
 
     // ===============================
     // FUNÇÃO: CARREGAR RESUMO E RANKING
-    // Monta resumo geral, ranking de presença, ranking de faltas e bloqueados
+    // Monta resumo geral, ranking de presença, ranking de faltas e bloqueados.
     // ===============================
     async function carregarResumoRanking() {
       painelResumo.innerHTML = '<div class="vazio">Carregando resumo...</div>';
@@ -791,6 +812,13 @@
         agendamentoPassouMaisDe24h(item.data, item.horario)
       ).length;
 
+      const totalUsuarios = listaUsuarios.length;
+
+      const totalCadastradosAtivos = listaUsuarios.filter(user =>
+        user.cadastrado === true &&
+        String(user.status || "").toLowerCase() === "ativo"
+      ).length;
+
       const totalBloqueados = listaUsuarios.filter(user =>
         String(user.status || "").toLowerCase() === "bloqueado"
       ).length;
@@ -822,6 +850,13 @@
         </div>
 
         <div class="bloco-resumo">
+          <h3>👥 Usuários</h3>
+          <div class="numero-grande">${totalUsuarios}</div>
+          <div class="item-ranking">Cadastrados ativos: ${totalCadastradosAtivos}</div>
+          <div class="item-ranking">Bloqueados: ${totalBloqueados}</div>
+        </div>
+
+        <div class="bloco-resumo">
           <h3>🏆 Ranking de presença</h3>
           ${
             rankingPresencas.length === 0
@@ -846,26 +881,12 @@
                 `).join("")
           }
         </div>
-
-        <div class="bloco-resumo">
-          <h3>🚫 Bloqueados</h3>
-          <div class="numero-grande">${totalBloqueados}</div>
-          ${
-            bloqueados.length === 0
-              ? '<div class="item-ranking">Nenhum usuário bloqueado.</div>'
-              : bloqueados.slice(0, 5).map(user => `
-                  <div class="item-ranking">
-                    ${escaparHtml(user.nome || "Sem nome")} — ${escaparHtml(user.telefone || "")}
-                  </div>
-                `).join("")
-          }
-        </div>
       `;
     }
 
     // ===============================
     // FUNÇÃO: CARREGAR USUÁRIOS BLOQUEADOS
-    // Mostra uma área específica para desbloquear usuários manualmente
+    // Mostra área específica para desbloquear usuários manualmente.
     // ===============================
     async function carregarUsuariosBloqueados() {
       conteudoBloqueados.innerHTML = '<div class="vazio">Carregando usuários bloqueados...</div>';
@@ -894,7 +915,7 @@
 
       bloqueadosFiltrados.forEach(usuario => {
         const item = document.createElement("div");
-        item.className = "usuario-bloqueado";
+        item.className = "usuario-card";
 
         item.innerHTML = `
           <div class="usuario-info">
@@ -923,12 +944,105 @@
     }
 
     // ===============================
+    // FUNÇÃO: CARREGAR TODOS OS USUÁRIOS
+    // Esta é a área nova do passo 4.
+    // Mostra cadastrados, faltas, presenças e status.
+    // ===============================
+    async function carregarUsuariosCadastrados() {
+      conteudoUsuarios.innerHTML = '<div class="vazio">Carregando usuários...</div>';
+
+      const { data, error } = await client
+        .from("usuarios")
+        .select("*")
+        .order("nome", { ascending: true });
+
+      if (error) {
+        conteudoUsuarios.innerHTML = `<div class="vazio">Erro ao carregar usuários: ${error.message}</div>`;
+        return;
+      }
+
+      const usuariosFiltrados = (data || []).filter(usuario =>
+        usuarioCombinaComBusca(usuario)
+      );
+
+      if (usuariosFiltrados.length === 0) {
+        conteudoUsuarios.innerHTML = '<div class="vazio">Nenhum usuário encontrado.</div>';
+        return;
+      }
+
+      conteudoUsuarios.innerHTML = "";
+
+      usuariosFiltrados.forEach(usuario => {
+        const statusUsuario = String(usuario.status || "ativo").toLowerCase();
+        const estaBloqueado = statusUsuario === "bloqueado";
+        const estaCadastrado = usuario.cadastrado === true;
+
+        const item = document.createElement("div");
+        item.className = "usuario-card";
+
+        item.innerHTML = `
+          <div class="linha-topo">
+            <div class="nome">${escaparHtml(usuario.nome || "Sem nome")}</div>
+            <div class="${classeStatusUsuario(statusUsuario)}">${escaparHtml(statusUsuario)}</div>
+          </div>
+
+          <div class="usuario-info">
+            📱 Telefone: ${escaparHtml(usuario.telefone || "Não informado")}<br>
+            🧾 Cadastrado: ${estaCadastrado ? "Sim" : "Não"}<br>
+            ✅ Presenças: ${Number(usuario.presencas || 0)}<br>
+            ⚠️ Faltas: ${Number(usuario.faltas || 0)}<br>
+            🚦 Status: ${escaparHtml(usuario.status || "ativo")}
+          </div>
+
+          <div class="acoes">
+            ${
+              estaBloqueado
+                ? `<button class="btn-desbloquear">Desbloquear e zerar faltas</button>`
+                : `<button class="btn-bloquear">Bloquear usuário</button>`
+            }
+
+            <button class="btn-secundario">Zerar faltas</button>
+
+            ${
+              estaCadastrado
+                ? `<button class="btn-cadastro">Desativar cadastro</button>`
+                : `<button class="btn-cadastro">Ativar cadastro</button>`
+            }
+          </div>
+        `;
+
+        const btnStatus = estaBloqueado
+          ? item.querySelector(".btn-desbloquear")
+          : item.querySelector(".btn-bloquear");
+
+        const btnZerarFaltas = item.querySelector(".btn-secundario");
+        const btnCadastro = item.querySelector(".btn-cadastro");
+
+        if (estaBloqueado) {
+          btnStatus.addEventListener("click", () => {
+            desbloquearUsuario(usuario.id, usuario.nome);
+          });
+        } else {
+          btnStatus.addEventListener("click", () => {
+            bloquearUsuario(usuario.id, usuario.nome);
+          });
+        }
+
+        btnZerarFaltas.addEventListener("click", () => {
+          zerarFaltasUsuario(usuario.id, usuario.nome);
+        });
+
+        btnCadastro.addEventListener("click", () => {
+          alterarCadastroUsuario(usuario.id, usuario.nome, !estaCadastrado);
+        });
+
+        conteudoUsuarios.appendChild(item);
+      });
+    }
+
+    // ===============================
     // FUNÇÃO: DESBLOQUEAR USUÁRIO
-    //
-    // Importante:
-    // O index.html e o bot bloqueiam se faltas >= 2.
-    // Por isso, para desbloquear de verdade,
-    // precisamos colocar:
+    // Para desbloquear de verdade:
     // status = ativo
     // faltas = 0
     // ===============================
@@ -957,9 +1071,93 @@
     }
 
     // ===============================
+    // FUNÇÃO: BLOQUEAR USUÁRIO MANUALMENTE
+    // Útil caso a equipe precise impedir acesso sem esperar duas faltas.
+    // ===============================
+    async function bloquearUsuario(usuarioId, nomeUsuario) {
+      const confirmar = confirm(
+        `Bloquear ${nomeUsuario || "este usuário"} manualmente?\n\nEle não poderá receber o link pelo bot nem agendar pelo site.`
+      );
+
+      if (!confirmar) return;
+
+      const { error } = await client
+        .from("usuarios")
+        .update({
+          status: "bloqueado"
+        })
+        .eq("id", usuarioId);
+
+      if (error) {
+        alert("Erro ao bloquear usuário: " + error.message);
+        return;
+      }
+
+      alert("Usuário bloqueado com sucesso!");
+      recarregarPainel();
+    }
+
+    // ===============================
+    // FUNÇÃO: ZERAR FALTAS DO USUÁRIO
+    // Se o usuário estiver bloqueado, também volta para ativo.
+    // ===============================
+    async function zerarFaltasUsuario(usuarioId, nomeUsuario) {
+      const confirmar = confirm(
+        `Zerar faltas de ${nomeUsuario || "este usuário"}?\n\nSe estiver bloqueado, ele também voltará para ativo.`
+      );
+
+      if (!confirmar) return;
+
+      const { error } = await client
+        .from("usuarios")
+        .update({
+          faltas: 0,
+          status: "ativo"
+        })
+        .eq("id", usuarioId);
+
+      if (error) {
+        alert("Erro ao zerar faltas: " + error.message);
+        return;
+      }
+
+      alert("Faltas zeradas com sucesso!");
+      recarregarPainel();
+    }
+
+    // ===============================
+    // FUNÇÃO: ATIVAR OU DESATIVAR CADASTRO
+    // cadastrado = false bloqueia a pessoa mesmo que status esteja ativo.
+    // O bot e o index.html verificam esse campo.
+    // ===============================
+    async function alterarCadastroUsuario(usuarioId, nomeUsuario, novoValor) {
+      const acao = novoValor ? "ativar" : "desativar";
+
+      const confirmar = confirm(
+        `Deseja ${acao} o cadastro de ${nomeUsuario || "este usuário"}?`
+      );
+
+      if (!confirmar) return;
+
+      const { error } = await client
+        .from("usuarios")
+        .update({
+          cadastrado: novoValor
+        })
+        .eq("id", usuarioId);
+
+      if (error) {
+        alert("Erro ao alterar cadastro: " + error.message);
+        return;
+      }
+
+      alert(`Cadastro ${novoValor ? "ativado" : "desativado"} com sucesso!`);
+      recarregarPainel();
+    }
+
+    // ===============================
     // FUNÇÃO: CARREGAR PENDÊNCIAS
-    // Mostra agendamentos antigos que ainda estão como "agendado"
-    // Agora respeita o filtro por nome/telefone
+    // Mostra agendamentos antigos que ainda estão como "agendado".
     // ===============================
     async function carregarPendencias() {
       conteudoPendencias.innerHTML = '<div class="vazio">Carregando pendências...</div>';
@@ -1034,11 +1232,7 @@
 
     // ===============================
     // FUNÇÃO: CARREGAR AGENDAMENTOS
-    // Busca os agendamentos no Supabase e monta os cards
-    // Agora respeita filtros por:
-    // - nome/telefone
-    // - data
-    // - status
+    // Busca os agendamentos no Supabase e monta os cards.
     // ===============================
     async function carregarAgendamentos() {
       lista.innerHTML = '<div class="vazio">Carregando agendamentos...</div>';
@@ -1140,12 +1334,13 @@
 
     // ===============================
     // FUNÇÃO: RECARREGAR TUDO
-    // Atualiza resumo, pendências, bloqueados e lista
+    // Atualiza resumo, pendências, bloqueados, usuários e lista.
     // ===============================
     function recarregarPainel() {
       carregarResumoRanking();
       carregarPendencias();
       carregarUsuariosBloqueados();
+      carregarUsuariosCadastrados();
       carregarAgendamentos();
     }
 
@@ -1276,7 +1471,7 @@
 
     // ===============================
     // FUNÇÃO: PROCESSAR FALTAS PENDENTES
-    // Processa automaticamente faltas com mais de 24h
+    // Processa automaticamente faltas com mais de 24h.
     // ===============================
     async function processarFaltasPendentes() {
       const confirmar = confirm(
@@ -1362,7 +1557,7 @@
 
     // ===============================
     // FUNÇÃO: CANCELAR AGENDAMENTO
-    // Exige motivo e salva na coluna observacao
+    // Exige motivo e salva na coluna observacao.
     // ===============================
     async function cancelarAgendamento(agendamentoId) {
       const confirmar = confirm("Cancelar este agendamento?");
@@ -1426,8 +1621,6 @@
 
     // ===============================
     // BUSCA COM ENTER
-    // Se estiver digitando no campo de busca e apertar Enter,
-    // o painel filtra automaticamente
     // ===============================
     filtroBusca.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
