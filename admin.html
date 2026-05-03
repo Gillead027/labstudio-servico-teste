@@ -173,6 +173,10 @@
       background: var(--primary);
     }
 
+    .btn-editar {
+      background: #0ea5e9;
+    }
+
     .btn-sair {
       background: var(--danger);
     }
@@ -892,6 +896,35 @@
     }
 
     // ===============================
+    // FUNÇÃO: BUSCAR TELEFONE DUPLICADO
+    // Usada na edição para impedir que dois usuários fiquem com o mesmo WhatsApp.
+    // O usuário que está sendo editado é ignorado na comparação.
+    // ===============================
+    async function buscarTelefoneDuplicado(usuarioIdAtual, telefone) {
+      const variantesDigitadas = gerarVariantesTelefone(telefone);
+
+      const { data: usuarios, error } = await client
+        .from("usuarios")
+        .select("*");
+
+      if (error) {
+        throw error;
+      }
+
+      return (usuarios || []).find(usuario => {
+        if (String(usuario.id) === String(usuarioIdAtual)) {
+          return false;
+        }
+
+        const variantesBanco = gerarVariantesTelefone(usuario.telefone);
+
+        return variantesBanco.some(numeroBanco =>
+          variantesDigitadas.includes(numeroBanco)
+        );
+      }) || null;
+    }
+
+    // ===============================
     // FUNÇÃO: BUSCAR AGENDAMENTO POR ID
     // Usada para evitar somar falta/presença repetidamente.
     // ===============================
@@ -1243,13 +1276,22 @@
           </div>
 
           <div class="acoes">
+            <button class="btn-editar">
+              Editar usuário
+            </button>
+
             <button class="btn-desbloquear">
               Desbloquear e zerar faltas
             </button>
           </div>
         `;
 
+        const btnEditar = item.querySelector(".btn-editar");
         const btnDesbloquear = item.querySelector(".btn-desbloquear");
+
+        btnEditar.addEventListener("click", () => {
+          editarUsuario(usuario);
+        });
 
         btnDesbloquear.addEventListener("click", () => {
           desbloquearUsuario(usuario.id, usuario.nome);
@@ -1319,6 +1361,8 @@
           </div>
 
           <div class="acoes">
+            <button class="btn-editar">Editar usuário</button>
+
             ${
               estaBloqueado
                 ? `<button class="btn-desbloquear">Desbloquear e zerar faltas</button>`
@@ -1339,8 +1383,13 @@
           ? item.querySelector(".btn-desbloquear")
           : item.querySelector(".btn-bloquear");
 
+        const btnEditar = item.querySelector(".btn-editar");
         const btnZerarFaltas = item.querySelector(".btn-secundario");
         const btnCadastro = item.querySelector(".btn-cadastro");
+
+        btnEditar.addEventListener("click", () => {
+          editarUsuario(usuario);
+        });
 
         if (estaBloqueado) {
           btnStatus.addEventListener("click", () => {
@@ -1362,6 +1411,118 @@
 
         conteudoUsuarios.appendChild(item);
       });
+    }
+
+    // ===============================
+    // FUNÇÃO: EDITAR USUÁRIO
+    // Permite ajustar dados do cadastro diretamente pelo painel.
+    // ===============================
+    async function editarUsuario(usuario) {
+      const nomeAtual = usuario.nome || "";
+      const telefoneAtual = usuario.telefone || "";
+      const statusAtual = String(usuario.status || "ativo").toLowerCase();
+      const cadastradoAtual = usuario.cadastrado === true ? "sim" : "não";
+      const faltasAtuais = Number(usuario.faltas || 0);
+      const presencasAtuais = Number(usuario.presencas || 0);
+
+      // ===============================
+      // COLETA DOS NOVOS DADOS
+      // Se a equipe clicar em cancelar, a edição é abandonada sem salvar.
+      // ===============================
+      const nome = prompt("Nome do usuário:", nomeAtual);
+      if (nome === null) return;
+
+      const telefone = prompt("Telefone / WhatsApp:", telefoneAtual);
+      if (telefone === null) return;
+
+      const status = prompt('Status do usuário: digite "ativo" ou "bloqueado"', statusAtual);
+      if (status === null) return;
+
+      const cadastradoTexto = prompt('Cadastro ativo? digite "sim" ou "não"', cadastradoAtual);
+      if (cadastradoTexto === null) return;
+
+      const faltasTexto = prompt("Quantidade de faltas:", String(faltasAtuais));
+      if (faltasTexto === null) return;
+
+      const presencasTexto = prompt("Quantidade de presenças:", String(presencasAtuais));
+      if (presencasTexto === null) return;
+
+      const nomeLimpo = nome.trim();
+      const telefoneLimpo = limparTelefone(telefone);
+      const statusLimpo = status.trim().toLowerCase();
+      const cadastradoLimpo = cadastradoTexto.trim().toLowerCase();
+      const faltasNumero = Number(faltasTexto);
+      const presencasNumero = Number(presencasTexto);
+
+      // ===============================
+      // VALIDAÇÕES DO FORMULÁRIO
+      // Evita salvar usuário sem dados básicos ou com valores inválidos.
+      // ===============================
+      if (!nomeLimpo) {
+        alert("O nome não pode ficar vazio.");
+        return;
+      }
+
+      if (!telefoneLimpo) {
+        alert("O telefone não pode ficar vazio.");
+        return;
+      }
+
+      if (!["ativo", "bloqueado"].includes(statusLimpo)) {
+        alert('Status inválido. Use apenas "ativo" ou "bloqueado".');
+        return;
+      }
+
+      if (!["sim", "não", "nao"].includes(cadastradoLimpo)) {
+        alert('Cadastro inválido. Use apenas "sim" ou "não".');
+        return;
+      }
+
+      if (!Number.isFinite(faltasNumero) || faltasNumero < 0) {
+        alert("Faltas não podem ser números negativos.");
+        return;
+      }
+
+      if (!Number.isFinite(presencasNumero) || presencasNumero < 0) {
+        alert("Presenças não podem ser números negativos.");
+        return;
+      }
+
+      try {
+        // ===============================
+        // VERIFICAÇÃO DE TELEFONE DUPLICADO
+        // Compara também variações com/sem 55 e com/sem nono dígito.
+        // ===============================
+        const usuarioDuplicado = await buscarTelefoneDuplicado(usuario.id, telefoneLimpo);
+
+        if (usuarioDuplicado) {
+          alert(`Este telefone já está cadastrado para: ${usuarioDuplicado.nome || "Sem nome"}`);
+          return;
+        }
+
+        const { error } = await client
+          .from("usuarios")
+          .update({
+            nome: nomeLimpo,
+            telefone: telefoneLimpo,
+            status: statusLimpo,
+            cadastrado: cadastradoLimpo === "sim",
+            faltas: faltasNumero,
+            presencas: presencasNumero
+          })
+          .eq("id", usuario.id);
+
+        if (error) {
+          alert("Erro ao editar usuário: " + error.message);
+          return;
+        }
+
+        alert("Usuário editado com sucesso!");
+        recarregarPainel();
+
+      } catch (err) {
+        alert("Erro ao editar usuário: " + err.message);
+      }
     }
 
     // ===============================
