@@ -49,6 +49,49 @@
     }
 
     /* ===============================
+       TELA DE LOGIN
+       Proteção simples para o painel admin.
+    =============================== */
+    .login-overlay {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .login-card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 28px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    }
+
+    .login-card h1 {
+      text-align: center;
+      margin-top: 0;
+    }
+
+    .login-card p {
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .login-erro {
+      color: #fecaca;
+      background: #7f1d1d;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 12px;
+      display: none;
+      text-align: center;
+    }
+
+    /* ===============================
        ÁREA DE FILTROS
     =============================== */
     .filtros {
@@ -128,6 +171,10 @@
 
     .btn-cadastro {
       background: var(--primary);
+    }
+
+    .btn-sair {
+      background: var(--danger);
     }
 
     /* ===============================
@@ -316,7 +363,35 @@
 
 <body>
 
-  <div class="container">
+  <!-- ===============================
+       TELA DE LOGIN
+       Antes de mostrar o painel, o usuário precisa digitar a senha.
+  =============================== -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <h1>LabStudio Admin</h1>
+      <p>Digite a senha para acessar o painel administrativo.</p>
+
+      <div class="grupo">
+        <label for="senhaAdmin">Senha</label>
+        <input type="password" id="senhaAdmin" placeholder="Digite a senha">
+      </div>
+
+      <button id="btnEntrar" style="width: 100%; margin-top: 16px;">
+        Entrar
+      </button>
+
+      <div id="loginErro" class="login-erro">
+        Senha incorreta.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===============================
+       PAINEL ADMIN
+       Fica escondido até a senha ser validada.
+  =============================== -->
+  <div id="painelAdmin" class="container" style="display: none;">
     <h1>Painel Admin - LabStudio CRJ</h1>
     <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos, pendências, ranking e usuários.</div>
 
@@ -347,6 +422,7 @@
 
       <button id="btnFiltrar">Filtrar</button>
       <button id="btnLimpar" class="btn-secundario">Limpar</button>
+      <button id="btnSair" class="btn-sair">Sair</button>
     </div>
 
     <!-- ===============================
@@ -375,7 +451,6 @@
 
     <!-- ===============================
          USUÁRIOS BLOQUEADOS
-         Área rápida só para desbloquear quem está bloqueado.
     =============================== -->
     <div class="painel-usuarios">
       <div class="usuarios-topo">
@@ -389,7 +464,6 @@
 
     <!-- ===============================
          TODOS OS USUÁRIOS CADASTRADOS
-         Esta é a nova área do passo 4.
     =============================== -->
     <div class="painel-usuarios">
       <div class="usuarios-topo">
@@ -414,12 +488,48 @@
 
   <script>
     // ===============================
+    // CONFIGURAÇÃO DA SENHA DO ADMIN
+    //
+    // Senha atual: crjflexal2026
+    //
+    // Por segurança básica, o código guarda o HASH da senha,
+    // e não a senha escrita diretamente.
+    // ===============================
+    const ADMIN_PASSWORD_HASH = "be24992d1206060b1646ddb866058f089c088e36dcd264e0729e4166631afd27";
+    const ADMIN_SESSION_KEY = "labstudio_admin_logado";
+
+    // ===============================
+    // FUNÇÃO: GERAR HASH SHA-256
+    // Usada para comparar a senha digitada com o hash salvo acima.
+    // ===============================
+    async function gerarHash(texto) {
+      const encoder = new TextEncoder();
+      const dados = encoder.encode(texto);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", dados);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+      return hashArray
+        .map(byte => byte.toString(16).padStart(2, "0"))
+        .join("");
+    }
+
+    // ===============================
     // CONEXÃO COM SUPABASE
     // ===============================
     const client = window.supabase.createClient(
       "https://hblxvxgocemzctjbutgi.supabase.co",
       "sb_publishable_12C1Wu47s3SuxqHZvQybdg_WubBGiQl"
     );
+
+    // ===============================
+    // ELEMENTOS DO LOGIN
+    // ===============================
+    const loginOverlay = document.getElementById("loginOverlay");
+    const painelAdmin = document.getElementById("painelAdmin");
+    const senhaAdmin = document.getElementById("senhaAdmin");
+    const btnEntrar = document.getElementById("btnEntrar");
+    const loginErro = document.getElementById("loginErro");
+    const btnSair = document.getElementById("btnSair");
 
     // ===============================
     // ELEMENTOS DA TELA
@@ -435,6 +545,51 @@
     const btnFiltrar = document.getElementById("btnFiltrar");
     const btnLimpar = document.getElementById("btnLimpar");
     const btnProcessarPendencias = document.getElementById("btnProcessarPendencias");
+
+    // ===============================
+    // FUNÇÃO: LIBERAR PAINEL
+    // Esconde login, mostra painel e carrega os dados.
+    // ===============================
+    function liberarPainel() {
+      loginOverlay.style.display = "none";
+      painelAdmin.style.display = "block";
+      recarregarPainel();
+    }
+
+    // ===============================
+    // FUNÇÃO: VERIFICAR LOGIN
+    // Compara a senha digitada com o hash configurado.
+    // ===============================
+    async function verificarLogin() {
+      const senhaDigitada = senhaAdmin.value.trim();
+
+      if (!senhaDigitada) {
+        loginErro.innerText = "Digite a senha.";
+        loginErro.style.display = "block";
+        return;
+      }
+
+      const hashDigitado = await gerarHash(senhaDigitada);
+
+      if (hashDigitado === ADMIN_PASSWORD_HASH) {
+        sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
+        liberarPainel();
+      } else {
+        loginErro.innerText = "Senha incorreta.";
+        loginErro.style.display = "block";
+        senhaAdmin.value = "";
+        senhaAdmin.focus();
+      }
+    }
+
+    // ===============================
+    // FUNÇÃO: SAIR DO PAINEL
+    // Remove a sessão local e volta para tela de login.
+    // ===============================
+    function sairPainel() {
+      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+      location.reload();
+    }
 
     // ===============================
     // FUNÇÃO: ESCAPAR TEXTO
@@ -531,13 +686,11 @@
 
       adicionar(sem55);
 
-      // Exemplo: 27997136155 também testa 2797136155.
       if (sem55.length === 11 && sem55[2] === "9") {
         const semNonoDigito = sem55.slice(0, 2) + sem55.slice(3);
         adicionar(semNonoDigito);
       }
 
-      // Exemplo: 2797136155 também testa 27997136155.
       if (sem55.length === 10) {
         const comNonoDigito = sem55.slice(0, 2) + "9" + sem55.slice(2);
         adicionar(comNonoDigito);
@@ -757,6 +910,15 @@
     }
 
     // ===============================
+    // FIM DA PARTE 1
+    // Continue colando a PARTE 2 logo abaixo desta linha.
+    // ===============================
+        // ===============================
+    // INÍCIO DA PARTE 2
+    // Continue exatamente após o fim da PARTE 1.
+    // ===============================
+
+    // ===============================
     // FUNÇÃO: CARREGAR RESUMO E RANKING
     // Monta resumo geral, ranking de presença, ranking de faltas e bloqueados.
     // ===============================
@@ -832,10 +994,6 @@
         .filter(user => Number(user.faltas || 0) > 0)
         .sort((a, b) => Number(b.faltas || 0) - Number(a.faltas || 0))
         .slice(0, 5);
-
-      const bloqueados = listaUsuarios.filter(user =>
-        String(user.status || "").toLowerCase() === "bloqueado"
-      );
 
       painelResumo.innerHTML = `
         <div class="bloco-resumo">
@@ -945,7 +1103,6 @@
 
     // ===============================
     // FUNÇÃO: CARREGAR TODOS OS USUÁRIOS
-    // Esta é a área nova do passo 4.
     // Mostra cadastrados, faltas, presenças e status.
     // ===============================
     async function carregarUsuariosCadastrados() {
@@ -1613,6 +1770,19 @@
     }
 
     // ===============================
+    // EVENTOS DO LOGIN
+    // ===============================
+    btnEntrar.addEventListener("click", verificarLogin);
+
+    senhaAdmin.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        verificarLogin();
+      }
+    });
+
+    btnSair.addEventListener("click", sairPainel);
+
+    // ===============================
     // BOTÃO: FILTRAR
     // ===============================
     btnFiltrar.addEventListener("click", () => {
@@ -1646,9 +1816,14 @@
     });
 
     // ===============================
-    // CARREGAR PAINEL AO ABRIR
+    // VERIFICA SE JÁ ESTÁ LOGADO NA SESSÃO
+    // sessionStorage dura enquanto a aba estiver aberta.
     // ===============================
-    recarregarPainel();
+    if (sessionStorage.getItem(ADMIN_SESSION_KEY) === "true") {
+      liberarPainel();
+    } else {
+      senhaAdmin.focus();
+    }
   </script>
 </body>
 </html>
