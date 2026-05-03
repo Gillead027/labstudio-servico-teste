@@ -25,14 +25,26 @@
     }
 
     /* ===============================
-       ESTILO GERAL
+       FUNDO GLOBAL CONTÍNUO
+       O gradiente fica no html para não repetir nem criar corte durante a rolagem.
+       Os wrappers principais ficam transparentes e os cards mantêm fundo próprio.
     =============================== */
-    body {
-      font-family: 'Segoe UI', Roboto, sans-serif;
-      background:
+    html {
+      min-height: 100%;
+      background-color: #020617;
+      background-image:
         radial-gradient(circle at top left, rgba(99, 102, 241, 0.22), transparent 34rem),
         linear-gradient(145deg, #020617 0%, var(--bg) 48%, #111827 100%);
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-attachment: fixed;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background: transparent;
       color: var(--text);
+      min-height: 100vh;
       margin: 0;
       padding: 20px;
     }
@@ -51,6 +63,75 @@
     .subtitle {
       color: var(--muted);
       margin-bottom: 30px;
+    }
+
+    /* ===============================
+       NAVEGAÇÃO POR ABAS
+       Organiza o painel em áreas menores sem criar novos arquivos.
+    =============================== */
+    .topo-admin {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .topo-admin h1 {
+      margin-top: 0;
+    }
+
+    .nav-abas {
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      border-radius: 14px;
+      padding: 8px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .aba-botao {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      box-shadow: none;
+    }
+
+    .aba-botao:hover {
+      color: var(--text);
+      background: rgba(99, 102, 241, 0.14);
+      box-shadow: none;
+    }
+
+    .aba-botao.ativa {
+      color: white;
+      background: linear-gradient(135deg, var(--primary), #0ea5e9);
+      border-color: rgba(255,255,255,0.18);
+      box-shadow: 0 12px 24px rgba(99, 102, 241, 0.25);
+    }
+
+    .aba-painel {
+      display: none;
+      animation: entrarSuave 0.28s ease both;
+    }
+
+    .aba-painel.ativa {
+      display: block;
+    }
+
+    .titulo-aba {
+      margin: 0 0 6px;
+      color: var(--text);
+    }
+
+    .descricao-aba {
+      color: var(--muted);
+      margin: 0 0 18px;
+      line-height: 1.5;
     }
 
     /* ===============================
@@ -452,14 +533,17 @@
       }
 
       .filtros,
-      .acoes {
+      .acoes,
+      .topo-admin,
+      .nav-abas {
         align-items: stretch;
         flex-direction: column;
       }
 
       .grupo,
       .filtros button,
-      .acoes button {
+      .acoes button,
+      .nav-abas button {
         width: 100%;
       }
 
@@ -511,145 +595,202 @@
        Fica escondido até a senha ser validada.
   =============================== -->
   <div id="painelAdmin" class="container" style="display: none;">
-    <h1>Painel Admin - LabStudio CRJ</h1>
-    <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos, pendências, ranking e usuários.</div>
-
-    <!-- ===============================
-         FILTROS DO PAINEL
-    =============================== -->
-    <div class="filtros">
-      <div class="grupo">
-        <label for="filtroBusca">Buscar por nome ou telefone</label>
-        <input type="text" id="filtroBusca" placeholder="Ex: MC Jovem ou 27999999999">
+    <div class="topo-admin">
+      <div>
+        <h1>Painel Admin - LabStudio CRJ</h1>
+        <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos, pendências, ranking e usuários.</div>
       </div>
 
-      <div class="grupo">
-        <label for="filtroData">Filtrar por data</label>
-        <input type="date" id="filtroData">
-      </div>
-
-      <div class="grupo">
-        <label for="filtroStatus">Status do agendamento</label>
-        <select id="filtroStatus">
-          <option value="">Todos</option>
-          <option value="agendado">Agendado</option>
-          <option value="compareceu">Compareceu</option>
-          <option value="faltou">Faltou</option>
-          <option value="cancelado">Cancelado</option>
-        </select>
-      </div>
-
-      <button id="btnFiltrar">Filtrar</button>
-      <button id="btnLimpar" class="btn-secundario">Limpar</button>
       <button id="btnSair" class="btn-sair">Sair</button>
     </div>
 
     <!-- ===============================
-         PAINEL DE RESUMO E RANKING
+         NAVEGAÇÃO INTERNA DO PAINEL
+         As abas evitam uma tela única muito longa.
     =============================== -->
-    <div id="painelResumo" class="painel-resumo">
-      <div class="vazio">Carregando resumo...</div>
+    <div class="nav-abas">
+      <button class="aba-botao ativa" data-tab="dashboard">Dashboard</button>
+      <button class="aba-botao" data-tab="agendamentos">Agendamentos</button>
+      <button class="aba-botao" data-tab="usuarios">Usuários</button>
+      <button class="aba-botao" data-tab="relatorios">Relatórios</button>
     </div>
 
     <!-- ===============================
-         PAINEL DE PENDÊNCIAS
+         ABA 1: DASHBOARD
+         Mostra apenas uma visão rápida do funcionamento.
     =============================== -->
-    <div class="painel-pendencias">
-      <div class="pendencias-topo">
-        <h2>⚠️ Pendências de verificação</h2>
+    <section id="aba-dashboard" class="aba-painel ativa">
+      <h2 class="titulo-aba">Dashboard</h2>
+      <p class="descricao-aba">Visão rápida para acompanhar o que precisa de atenção hoje.</p>
 
-        <button id="btnProcessarPendencias" class="btn-falta">
-          Processar faltas pendentes
-        </button>
+      <div id="painelResumo" class="painel-resumo">
+        <div class="vazio">Carregando resumo...</div>
       </div>
 
-      <div id="conteudoPendencias">
-        <div class="vazio">Carregando pendências...</div>
+      <div class="painel-pendencias">
+        <div class="pendencias-topo">
+          <h2>⚠️ Pendências de verificação</h2>
+
+          <button id="btnProcessarPendencias" class="btn-falta">
+            Processar faltas pendentes
+          </button>
+        </div>
+
+        <div id="conteudoPendencias">
+          <div class="vazio">Carregando pendências...</div>
+        </div>
       </div>
-    </div>
+
+      <div class="painel-usuarios">
+        <div class="usuarios-topo">
+          <h2>🚫 Usuários bloqueados</h2>
+        </div>
+
+        <div id="conteudoBloqueados">
+          <div class="vazio">Carregando usuários bloqueados...</div>
+        </div>
+      </div>
+
+      <div class="painel-pendencias">
+        <div class="pendencias-topo">
+          <h2>📅 Próximos agendamentos</h2>
+        </div>
+
+        <div id="dashboardAgendamentos">
+          <div class="vazio">Carregando próximos agendamentos...</div>
+        </div>
+      </div>
+    </section>
 
     <!-- ===============================
-         USUÁRIOS BLOQUEADOS
+         ABA 2: AGENDAMENTOS
+         Concentra filtros e lista completa de agendamentos.
     =============================== -->
-    <div class="painel-usuarios">
-      <div class="usuarios-topo">
-        <h2>🚫 Usuários bloqueados</h2>
-      </div>
+    <section id="aba-agendamentos" class="aba-painel">
+      <h2 class="titulo-aba">Agendamentos</h2>
+      <p class="descricao-aba">Consulte, filtre e atualize o status dos agendamentos.</p>
 
-      <div id="conteudoBloqueados">
-        <div class="vazio">Carregando usuários bloqueados...</div>
-      </div>
-    </div>
-
-    <!-- ===============================
-         CADASTRAR NOVO USUÁRIO
-         Nova área do passo 6.
-         Agora você não precisa abrir o Supabase para cadastrar.
-    =============================== -->
-    <div class="painel-usuarios">
-      <div class="usuarios-topo">
-        <h2>➕ Cadastrar novo usuário</h2>
-      </div>
-
-      <div class="form-ajuda">
-        Cadastre jovens diretamente pelo painel. O telefone pode ser digitado com ou sem +55, com ou sem traços.
-      </div>
-
-      <div class="form-cadastro">
+      <div class="filtros">
         <div class="grupo">
-          <label for="novoNome">Nome</label>
-          <input type="text" id="novoNome" placeholder="Ex: MC Jovem">
+          <label for="filtroBusca">Buscar por nome ou telefone</label>
+          <input type="text" id="filtroBusca" placeholder="Ex: MC Jovem ou 27999999999">
         </div>
 
         <div class="grupo">
-          <label for="novoTelefone">WhatsApp</label>
-          <input type="text" id="novoTelefone" placeholder="Ex: 27999999999">
+          <label for="filtroData">Filtrar por data</label>
+          <input type="date" id="filtroData">
         </div>
 
         <div class="grupo">
-          <label for="novaDataNascimento">Data de nascimento</label>
-          <input type="date" id="novaDataNascimento">
-        </div>
-
-        <div class="grupo">
-          <label for="novoStatus">Status inicial</label>
-          <select id="novoStatus">
-            <option value="ativo">Ativo</option>
-            <option value="bloqueado">Bloqueado</option>
+          <label for="filtroStatus">Status do agendamento</label>
+          <select id="filtroStatus">
+            <option value="">Todos</option>
+            <option value="agendado">Agendado</option>
+            <option value="compareceu">Compareceu</option>
+            <option value="faltou">Faltou</option>
+            <option value="cancelado">Cancelado</option>
           </select>
         </div>
 
-        <div class="grupo">
-          <label for="novoCadastrado">Cadastro ativo?</label>
-          <select id="novoCadastrado">
-            <option value="true">Sim</option>
-            <option value="false">Não</option>
-          </select>
+        <button id="btnFiltrar">Filtrar</button>
+        <button id="btnLimpar" class="btn-secundario">Limpar</button>
+      </div>
+
+      <div id="listaAgendamentos"></div>
+    </section>
+
+    <!-- ===============================
+         ABA 3: USUÁRIOS
+         Mantém cadastro, edição e ações de bloqueio.
+    =============================== -->
+    <section id="aba-usuarios" class="aba-painel">
+      <h2 class="titulo-aba">Usuários</h2>
+      <p class="descricao-aba">Cadastre jovens, edite dados, acompanhe faltas e controle bloqueios.</p>
+
+      <div class="painel-usuarios">
+        <div class="usuarios-topo">
+          <h2>📝 Cadastros online pendentes</h2>
         </div>
 
-        <button id="btnSalvarUsuario" class="btn-salvar">
-          Salvar usuário
-        </button>
+        <div class="form-ajuda">
+          Analise os cadastros enviados pelo formulário online antes de liberar o agendamento.
+        </div>
+
+        <div id="conteudoCadastrosOnline">
+          <div class="vazio">Carregando cadastros online pendentes...</div>
+        </div>
       </div>
-    </div>
+
+      <div class="painel-usuarios">
+        <div class="usuarios-topo">
+          <h2>➕ Cadastrar novo usuário</h2>
+        </div>
+
+        <div class="form-ajuda">
+          Cadastre jovens diretamente pelo painel. O telefone pode ser digitado com ou sem +55, com ou sem traços.
+        </div>
+
+        <div class="form-cadastro">
+          <div class="grupo">
+            <label for="novoNome">Nome</label>
+            <input type="text" id="novoNome" placeholder="Ex: MC Jovem">
+          </div>
+
+          <div class="grupo">
+            <label for="novoTelefone">WhatsApp</label>
+            <input type="text" id="novoTelefone" placeholder="Ex: 27999999999">
+          </div>
+
+          <div class="grupo">
+            <label for="novaDataNascimento">Data de nascimento</label>
+            <input type="date" id="novaDataNascimento">
+          </div>
+
+          <div class="grupo">
+            <label for="novoStatus">Status inicial</label>
+            <select id="novoStatus">
+              <option value="ativo">Ativo</option>
+              <option value="bloqueado">Bloqueado</option>
+            </select>
+          </div>
+
+          <div class="grupo">
+            <label for="novoCadastrado">Cadastro ativo?</label>
+            <select id="novoCadastrado">
+              <option value="true">Sim</option>
+              <option value="false">Não</option>
+            </select>
+          </div>
+
+          <button id="btnSalvarUsuario" class="btn-salvar">
+            Salvar usuário
+          </button>
+        </div>
+      </div>
+
+      <div class="painel-usuarios">
+        <div class="usuarios-topo">
+          <h2>👥 Usuários cadastrados</h2>
+        </div>
+
+        <div id="conteudoUsuarios">
+          <div class="vazio">Carregando usuários...</div>
+        </div>
+      </div>
+    </section>
 
     <!-- ===============================
-         TODOS OS USUÁRIOS CADASTRADOS
+         ABA 4: RELATÓRIOS
+         Consolida rankings e totais gerais.
     =============================== -->
-    <div class="painel-usuarios">
-      <div class="usuarios-topo">
-        <h2>👥 Usuários cadastrados</h2>
-      </div>
+    <section id="aba-relatorios" class="aba-painel">
+      <h2 class="titulo-aba">Relatórios</h2>
+      <p class="descricao-aba">Acompanhe números gerais, presença, faltas, cancelamentos e usuários.</p>
 
-      <div id="conteudoUsuarios">
-        <div class="vazio">Carregando usuários...</div>
+      <div id="painelRelatorios" class="painel-resumo">
+        <div class="vazio">Carregando relatórios...</div>
       </div>
-    </div>
-
-    <!-- ===============================
-         LISTA DE AGENDAMENTOS
-    =============================== -->
-    <div id="listaAgendamentos"></div>
+    </section>
   </div>
 
   <!-- ===============================
@@ -707,15 +848,20 @@
     // ===============================
     const lista = document.getElementById("listaAgendamentos");
     const painelResumo = document.getElementById("painelResumo");
+    const painelRelatorios = document.getElementById("painelRelatorios");
     const conteudoPendencias = document.getElementById("conteudoPendencias");
     const conteudoBloqueados = document.getElementById("conteudoBloqueados");
+    const conteudoCadastrosOnline = document.getElementById("conteudoCadastrosOnline");
     const conteudoUsuarios = document.getElementById("conteudoUsuarios");
+    const dashboardAgendamentos = document.getElementById("dashboardAgendamentos");
     const filtroBusca = document.getElementById("filtroBusca");
     const filtroData = document.getElementById("filtroData");
     const filtroStatus = document.getElementById("filtroStatus");
     const btnFiltrar = document.getElementById("btnFiltrar");
     const btnLimpar = document.getElementById("btnLimpar");
     const btnProcessarPendencias = document.getElementById("btnProcessarPendencias");
+    const botoesAbas = document.querySelectorAll(".aba-botao");
+    const paineisAbas = document.querySelectorAll(".aba-painel");
 
     // ===============================
     // ELEMENTOS DO CADASTRO DE USUÁRIO
@@ -734,7 +880,27 @@
     function liberarPainel() {
       loginOverlay.style.display = "none";
       painelAdmin.style.display = "block";
+      mostrarAba(localStorage.getItem("labstudio_admin_aba") || "dashboard");
       recarregarPainel();
+    }
+
+    // ===============================
+    // FUNÇÃO: MOSTRAR ABA DO PAINEL
+    // Esconde as outras seções e destaca a aba ativa.
+    // ===============================
+    function mostrarAba(nomeAba) {
+      const abaExiste = document.getElementById(`aba-${nomeAba}`);
+      const abaFinal = abaExiste ? nomeAba : "dashboard";
+
+      botoesAbas.forEach(botao => {
+        botao.classList.toggle("ativa", botao.dataset.tab === abaFinal);
+      });
+
+      paineisAbas.forEach(painel => {
+        painel.classList.toggle("ativa", painel.id === `aba-${abaFinal}`);
+      });
+
+      localStorage.setItem("labstudio_admin_aba", abaFinal);
     }
 
     // ===============================
@@ -868,6 +1034,22 @@
       }
 
       return `${formatarData(usuario.data_nascimento)} (${idade} anos)`;
+    }
+
+    // ===============================
+    // FUNÇÃO: FORMATAR DATA E HORA
+    // Usada para mostrar quando o cadastro online foi enviado.
+    // ===============================
+    function formatarDataHora(data) {
+      if (!data) return "Não informado";
+
+      const dataObjeto = new Date(data);
+
+      if (Number.isNaN(dataObjeto.getTime())) {
+        return String(data);
+      }
+
+      return dataObjeto.toLocaleString("pt-BR");
     }
 
     // ===============================
@@ -1295,6 +1477,7 @@
 
       if (erroAgendamentos) {
         painelResumo.innerHTML = `<div class="vazio">Erro ao carregar resumo: ${erroAgendamentos.message}</div>`;
+        painelRelatorios.innerHTML = `<div class="vazio">Erro ao carregar relatórios: ${erroAgendamentos.message}</div>`;
         return;
       }
 
@@ -1304,6 +1487,7 @@
 
       if (erroUsuarios) {
         painelResumo.innerHTML = `<div class="vazio">Erro ao carregar usuários: ${erroUsuarios.message}</div>`;
+        painelRelatorios.innerHTML = `<div class="vazio">Erro ao carregar usuários: ${erroUsuarios.message}</div>`;
         return;
       }
 
@@ -1359,14 +1543,45 @@
         .sort((a, b) => Number(b.faltas || 0) - Number(a.faltas || 0))
         .slice(0, 5);
 
+      // ===============================
+      // DASHBOARD RESUMIDO
+      // Mantém apenas os indicadores essenciais da tela inicial.
+      // ===============================
       painelResumo.innerHTML = `
         <div class="bloco-resumo">
-          <h3>📊 Resumo geral</h3>
+          <h3>📅 Agendamentos</h3>
           <div class="numero-grande">${totalAgendamentos}</div>
           <div class="item-ranking">Agendados: ${totalAgendados}</div>
           <div class="item-ranking">Compareceram: ${totalCompareceram}</div>
-          <div class="item-ranking">Faltaram: ${totalFaltaram}</div>
-          <div class="item-ranking">Cancelados: ${totalCancelados}</div>
+        </div>
+
+        <div class="bloco-resumo">
+          <h3>⚠️ Pendências</h3>
+          <div class="numero-grande">${totalPendentes}</div>
+          <div class="item-ranking">Pendentes +24h: ${totalPendentes24h}</div>
+          <div class="item-ranking">Faltas registradas: ${totalFaltaram}</div>
+        </div>
+
+        <div class="bloco-resumo">
+          <h3>🚫 Bloqueados</h3>
+          <div class="numero-grande">${totalBloqueados}</div>
+          <div class="item-ranking">Usuários ativos: ${totalCadastradosAtivos}</div>
+          <div class="item-ranking">Total de usuários: ${totalUsuarios}</div>
+        </div>
+      `;
+
+      // ===============================
+      // RELATÓRIOS COMPLETOS
+      // Concentra rankings e todos os totais gerais.
+      // ===============================
+      painelRelatorios.innerHTML = `
+        <div class="bloco-resumo">
+          <h3>📊 Totais gerais</h3>
+          <div class="numero-grande">${totalAgendamentos}</div>
+          <div class="item-ranking">Total de agendamentos: ${totalAgendamentos}</div>
+          <div class="item-ranking">Total de comparecimentos: ${totalCompareceram}</div>
+          <div class="item-ranking">Total de faltas: ${totalFaltaram}</div>
+          <div class="item-ranking">Total de cancelamentos: ${totalCancelados}</div>
           <div class="item-ranking">Pendentes: ${totalPendentes}</div>
           <div class="item-ranking">Pendentes +24h: ${totalPendentes24h}</div>
         </div>
@@ -1374,8 +1589,9 @@
         <div class="bloco-resumo">
           <h3>👥 Usuários</h3>
           <div class="numero-grande">${totalUsuarios}</div>
+          <div class="item-ranking">Total de usuários: ${totalUsuarios}</div>
           <div class="item-ranking">Cadastrados ativos: ${totalCadastradosAtivos}</div>
-          <div class="item-ranking">Bloqueados: ${totalBloqueados}</div>
+          <div class="item-ranking">Total de bloqueados: ${totalBloqueados}</div>
         </div>
 
         <div class="bloco-resumo">
@@ -1482,6 +1698,169 @@
       // INÍCIO DA PARTE 3
       // Continue exatamente após o fim da PARTE 2.
       // ===============================
+    }
+
+    // ===============================
+    // FUNÇÃO: CARREGAR CADASTROS ONLINE PENDENTES
+    // Lista solicitações enviadas pelo cadastro.html para análise da equipe.
+    // ===============================
+    async function carregarCadastrosOnlinePendentes() {
+      conteudoCadastrosOnline.innerHTML = '<div class="vazio">Carregando cadastros online pendentes...</div>';
+
+      const { data, error } = await client
+        .from("usuarios")
+        .select("*")
+        .eq("origem_cadastro", "online")
+        .order("cadastro_online_em", { ascending: true });
+
+      if (error) {
+        conteudoCadastrosOnline.innerHTML = `<div class="vazio">Erro ao carregar cadastros online: ${error.message}</div>`;
+        return;
+      }
+
+      const pendentes = (data || [])
+        .filter(usuario => {
+          const statusUsuario = String(usuario.status || "").toLowerCase();
+
+          return statusUsuario === "pendente" ||
+            (usuario.cadastrado === false && statusUsuario !== "bloqueado");
+        })
+        .filter(usuario => usuarioCombinaComBusca(usuario));
+
+      if (pendentes.length === 0) {
+        conteudoCadastrosOnline.innerHTML = '<div class="vazio">Nenhum cadastro online pendente encontrado.</div>';
+        return;
+      }
+
+      conteudoCadastrosOnline.innerHTML = "";
+
+      pendentes.forEach(usuario => {
+        const item = document.createElement("div");
+        item.className = "usuario-card";
+
+        item.innerHTML = `
+          <div class="linha-topo">
+            <div class="nome">${escaparHtml(usuario.nome || "Sem nome")}</div>
+            <div class="${classeStatusUsuario(usuario.status || "pendente")}">${escaparHtml(usuario.status || "pendente")}</div>
+          </div>
+
+          <div class="usuario-info">
+            📱 Telefone: ${escaparHtml(usuario.telefone || "Não informado")}<br>
+            🎂 Nascimento: ${escaparHtml(textoDataNascimento(usuario))}<br>
+            🕒 Enviado em: ${escaparHtml(formatarDataHora(usuario.cadastro_online_em))}<br>
+            📝 Observação: ${escaparHtml(usuario.observacao || "Sem observação")}
+          </div>
+
+          <div class="acoes">
+            <button class="btn-presenca">Aprovar cadastro</button>
+            <button class="btn-cancelar">Rejeitar cadastro</button>
+          </div>
+        `;
+
+        const btnAprovar = item.querySelector(".btn-presenca");
+        const btnRejeitar = item.querySelector(".btn-cancelar");
+
+        btnAprovar.addEventListener("click", () => {
+          aprovarCadastroOnline(usuario);
+        });
+
+        btnRejeitar.addEventListener("click", () => {
+          rejeitarCadastroOnline(usuario.id, usuario.nome);
+        });
+
+        conteudoCadastrosOnline.appendChild(item);
+      });
+    }
+
+    // ===============================
+    // FUNÇÃO: APROVAR CADASTRO ONLINE
+    // Libera o jovem para receber o link do bot e usar o agendamento.
+    // ===============================
+    async function aprovarCadastroOnline(usuario) {
+      const usuarioId = usuario.id;
+      const nomeUsuario = usuario.nome;
+
+      const confirmar = confirm(
+        `Aprovar cadastro online de ${nomeUsuario || "este usuário"}?`
+      );
+
+      if (!confirmar) return;
+
+      const { error } = await client
+        .from("usuarios")
+        .update({
+          status: "ativo",
+          cadastrado: true,
+          observacao: "Cadastro online aprovado pela equipe"
+        })
+        .eq("id", usuarioId);
+
+      if (error) {
+        alert("Erro ao aprovar cadastro: " + error.message);
+        return;
+      }
+
+      // ===============================
+      // NOTIFICAR APROVAÇÃO PELO WHATSAPP
+      // O servidor local usa o bot conectado para enviar o link de agendamento.
+      // ===============================
+      try {
+        const resposta = await fetch("/notificar-aprovacao", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            nome: usuario.nome,
+            telefone: usuario.telefone
+          })
+        });
+
+        if (!resposta.ok) {
+          throw new Error("Bot indisponível ou falha no envio.");
+        }
+
+        alert("Cadastro aprovado com sucesso! A mensagem com o link de agendamento foi enviada pelo WhatsApp.");
+      } catch (zapError) {
+        console.warn("Cadastro aprovado, mas a mensagem no WhatsApp falhou:", zapError);
+        alert("Cadastro aprovado com sucesso, mas não consegui enviar a mensagem pelo WhatsApp. Verifique se o bot está online.");
+      }
+
+      recarregarPainel();
+    }
+
+    // ===============================
+    // FUNÇÃO: REJEITAR CADASTRO ONLINE
+    // Usa status bloqueado para manter compatibilidade com as regras atuais.
+    // ===============================
+    async function rejeitarCadastroOnline(usuarioId, nomeUsuario) {
+      const motivo = prompt(
+        `Informe o motivo da rejeição de ${nomeUsuario || "este usuário"}:`
+      );
+
+      if (motivo === null) return;
+
+      const motivoLimpo = motivo.trim();
+
+      if (!motivoLimpo) {
+        alert("Informe um motivo para rejeitar o cadastro.");
+        return;
+      }
+
+      const { error } = await client
+        .from("usuarios")
+        .update({
+          status: "bloqueado",
+          cadastrado: false,
+          observacao: `Cadastro online rejeitado pela equipe. Motivo: ${motivoLimpo}`
+        })
+        .eq("id", usuarioId);
+
+      if (error) {
+        alert("Erro ao rejeitar cadastro: " + error.message);
+        return;
+      }
+
+      alert("Cadastro rejeitado com sucesso!");
+      recarregarPainel();
     }
 
     // ===============================
@@ -2009,6 +2388,60 @@
     }
 
     // ===============================
+    // FUNÇÃO: CARREGAR AGENDAMENTOS DO DASHBOARD
+    // Mostra poucos itens para a tela inicial não virar uma lista completa.
+    // ===============================
+    async function carregarAgendamentosDashboard() {
+      dashboardAgendamentos.innerHTML = '<div class="vazio">Carregando próximos agendamentos...</div>';
+
+      const hoje = new Date().toISOString().split("T")[0];
+
+      const { data, error } = await client
+        .from("agendamentos")
+        .select("*")
+        .neq("status", "cancelado")
+        .gte("data", hoje)
+        .order("data", { ascending: true })
+        .order("horario", { ascending: true })
+        .limit(5);
+
+      if (error) {
+        dashboardAgendamentos.innerHTML = `<div class="vazio">Erro ao carregar próximos agendamentos: ${error.message}</div>`;
+        return;
+      }
+
+      const proximos = data || [];
+
+      if (proximos.length === 0) {
+        dashboardAgendamentos.innerHTML = '<div class="vazio">Nenhum próximo agendamento encontrado.</div>';
+        return;
+      }
+
+      dashboardAgendamentos.innerHTML = "";
+
+      proximos.forEach(agendamento => {
+        const status = agendamento.status || "agendado";
+        const item = document.createElement("div");
+        item.className = "card";
+
+        item.innerHTML = `
+          <div class="linha-topo">
+            <div class="nome">${escaparHtml(agendamento.nome || "Sem nome")}</div>
+            <div class="${classeStatus(status)}">${escaparHtml(status)}</div>
+          </div>
+
+          <div class="info">
+            📱 Telefone: ${escaparHtml(agendamento.telefone || "Não informado")}<br>
+            📅 Data: ${formatarData(agendamento.data)}<br>
+            ⏰ Horário: ${escaparHtml(agendamento.horario || "-")}
+          </div>
+        `;
+
+        dashboardAgendamentos.appendChild(item);
+      });
+    }
+
+    // ===============================
     // FUNÇÃO: RECARREGAR TUDO
     // Atualiza resumo, pendências, bloqueados, usuários e lista.
     // ===============================
@@ -2016,8 +2449,10 @@
       carregarResumoRanking();
       carregarPendencias();
       carregarUsuariosBloqueados();
+      carregarCadastrosOnlinePendentes();
       carregarUsuariosCadastrados();
       carregarAgendamentos();
+      carregarAgendamentosDashboard();
     }
 
     // ===============================
@@ -2300,6 +2735,16 @@
     });
 
     btnSair.addEventListener("click", sairPainel);
+
+    // ===============================
+    // EVENTOS DAS ABAS
+    // Salva a última área aberta para facilitar o uso diário do painel.
+    // ===============================
+    botoesAbas.forEach(botao => {
+      botao.addEventListener("click", () => {
+        mostrarAba(botao.dataset.tab);
+      });
+    });
 
     // ===============================
     // BOTÃO: FILTRAR

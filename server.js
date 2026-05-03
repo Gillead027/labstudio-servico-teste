@@ -34,6 +34,11 @@ app.get("/admin.html", (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
 });
 
+// Página pública de cadastro online
+app.get("/cadastro.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "cadastro.html"));
+});
+
 // Rota simples para testar se o servidor está online
 app.get("/health", (req, res) => {
   res.send("🔥 BOT ONLINE");
@@ -108,6 +113,20 @@ client.on("auth_failure", (msg) => {
 // ===============================
 function limparTelefone(valor) {
   return String(valor || "").replace(/\D/g, "");
+}
+
+// ===============================
+// FUNÇÃO: FORMATAR DESTINO DO WHATSAPP
+// Garante o formato usado pelo whatsapp-web.js.
+// ===============================
+function formatarDestinoWhatsApp(telefone) {
+  const numero = limparTelefone(telefone);
+
+  if (!numero) return "";
+
+  const numeroComPais = numero.startsWith("55") ? numero : "55" + numero;
+
+  return `${numeroComPais}@c.us`;
 }
 
 // ===============================
@@ -349,22 +368,55 @@ client.on("message", async (msg) => {
     return;
   }
 
-  // Se não encontrar o usuário ou se cadastrado estiver falso
-  if (!usuario || usuario.cadastrado === false) {
+  // Se não encontrar o usuário, envia o link para cadastro online
+  if (!usuario) {
     await client.sendMessage(
       msg.from,
-      `Olá! Para realizar o agendamento do LabStudio CRJ FLEXAL, é necessário estar cadastrado no CRJ.
+      `Olá! Para agendar o LabStudio CRJ FLEXAL, é necessário estar cadastrado no CRJ.
 
 Identificamos que este número ainda não consta em nosso cadastro.
 
-📍 Procure presencialmente a equipe do CRJ para realizar seu cadastramento.
+Você pode realizar seu cadastro online pelo link abaixo:
+https://labstudio-sistema.vercel.app/cadastro.html
 
-Após o cadastro, você poderá solicitar novamente o link de agendamento pelo WhatsApp.`
+Após o envio, aguarde a análise da equipe do CRJ.`
     );
 
     console.log("❌ Usuário não cadastrado.");
     console.log("📱 Telefones detectados:", telefonesDetectados);
     console.log("🔎 Variantes testadas:", variantesMensagem);
+
+    return;
+  }
+
+  // Normaliza status e faltas para evitar erro de comparação
+  const statusUsuario = String(usuario.status || "").toLowerCase();
+  const faltasUsuario = Number(usuario.faltas || 0);
+
+  // Se estiver bloqueado ou tiver 2 faltas ou mais
+  if (statusUsuario === "bloqueado" || faltasUsuario >= 2) {
+    await client.sendMessage(
+      msg.from,
+      `Olá, ${usuario.nome || "jovem"}.
+
+No momento, seu acesso ao agendamento do LabStudio está bloqueado por faltas anteriores.
+
+📍 Procure presencialmente a equipe do CRJ para regularizar sua situação.`
+    );
+
+    console.log(`🚫 Usuário bloqueado: ${usuario.nome} - ${usuario.telefone}`);
+
+    return;
+  }
+
+  // Se o cadastro online existe, mas ainda não foi aprovado pela equipe
+  if (statusUsuario === "pendente" || usuario.cadastrado === false) {
+    await client.sendMessage(
+      msg.from,
+      "Seu cadastro online foi recebido e está aguardando análise da equipe do CRJ. Assim que for aprovado, você poderá solicitar o agendamento pelo WhatsApp."
+    );
+
+    console.log(`⏳ Usuário pendente de aprovação: ${usuario.nome} - ${usuario.telefone}`);
 
     return;
   }
@@ -402,27 +454,6 @@ O LabStudio atende jovens de 15 a 29 anos.
 
     return;
   }
-
-  // Normaliza status e faltas para evitar erro de comparação
-  const statusUsuario = String(usuario.status || "").toLowerCase();
-  const faltasUsuario = Number(usuario.faltas || 0);
-
-  // Se estiver bloqueado ou tiver 2 faltas ou mais
-  if (statusUsuario === "bloqueado" || faltasUsuario >= 2) {
-    await client.sendMessage(
-      msg.from,
-      `Olá, ${usuario.nome || "jovem"}.
-
-No momento, seu acesso ao agendamento do LabStudio está bloqueado por faltas anteriores.
-
-📍 Procure presencialmente a equipe do CRJ para regularizar sua situação.`
-    );
-
-    console.log(`🚫 Usuário bloqueado: ${usuario.nome} - ${usuario.telefone}`);
-
-    return;
-  }
-
   // ===============================
   // MENSAGEM PADRÃO DO LABSTUDIO
   // Mantida exatamente no formato que você pediu
@@ -491,6 +522,44 @@ Horário: ${horario}`;
     res.json({ status: "enviado" });
   } catch (err) {
     console.error("❌ Erro ao enviar:", err);
+    res.status(500).json({ erro: "falha_ao_enviar" });
+  }
+});
+
+// ===============================
+// ROTA /notificar-aprovacao
+// Envia para o jovem a confirmação de cadastro aprovado e o link de agendamento.
+// ===============================
+app.post("/notificar-aprovacao", async (req, res) => {
+  const { nome, telefone } = req.body;
+
+  const destino = formatarDestinoWhatsApp(telefone);
+
+  if (!destino) {
+    return res.status(400).json({ erro: "telefone_invalido" });
+  }
+
+  const mensagem = `Olá, ${nome || "jovem"}!
+
+Seu cadastro no LabStudio CRJ FLEXAL foi aprovado pela equipe do CRJ.
+
+Agora você já pode solicitar seu agendamento pelo link abaixo:
+https://labstudio-sistema.vercel.app/
+
+Aguardamos você para realizar sua gravação! 🔥`;
+
+  try {
+    if (!botPronto) {
+      console.log("⚠️ Bot ainda não está pronto para enviar aprovação.");
+      return res.status(503).json({ erro: "bot_nao_pronto" });
+    }
+
+    await client.sendMessage(destino, mensagem);
+
+    console.log(`✅ Aprovação enviada para ${nome || "usuário"} - ${telefone}`);
+    res.json({ status: "enviado" });
+  } catch (err) {
+    console.error("❌ Erro ao enviar aprovação:", err);
     res.status(500).json({ erro: "falha_ao_enviar" });
   }
 });

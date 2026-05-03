@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cadastro Online - LabStudio CRJ</title>
+
+  <style>
+    /* ===============================
+       CORES E FUNDO DO CADASTRO ONLINE
+       Mantém o mesmo tema escuro moderno do sistema.
+    =============================== */
+    :root {
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --input-bg: #334155;
+      --border: #475569;
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+
+    html {
+      min-height: 100%;
+      background-color: #020617;
+      background-image:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.24), transparent 34rem),
+        linear-gradient(145deg, #020617 0%, var(--bg) 48%, #111827 100%);
+      background-repeat: no-repeat;
+      background-size: cover;
+      background-attachment: fixed;
+    }
+
+    body {
+      font-family: 'Segoe UI', Roboto, sans-serif;
+      background: transparent;
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    /* ===============================
+       CARD PRINCIPAL DO CADASTRO
+    =============================== */
+    .container {
+      background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
+      padding: 2rem;
+      border-radius: 1.1rem;
+      box-shadow: 0 24px 70px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.06);
+      width: 100%;
+      max-width: 440px;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      animation: entrarSuave 0.45s ease both;
+    }
+
+    h1 {
+      margin: 0 0 0.8rem;
+      color: var(--primary);
+      font-size: 1.75rem;
+      text-align: center;
+    }
+
+    .descricao {
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+      margin: 0 0 1.6rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.55rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.85rem;
+      border-radius: 0.7rem;
+      border: 1px solid var(--border);
+      background: var(--input-bg);
+      color: white;
+      font-size: 1rem;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+      background: #273449;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+    }
+
+    button {
+      width: 100%;
+      padding: 1rem;
+      border: none;
+      border-radius: 0.7rem;
+      background: var(--primary);
+      color: white;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 0.6rem;
+      box-shadow: 0 14px 28px rgba(79, 70, 229, 0.28);
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 18px 34px rgba(79, 70, 229, 0.35);
+    }
+
+    button:disabled {
+      background: var(--border);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    /* ===============================
+       ALERTAS VISUAIS
+       Mostram o retorno da validação e do envio.
+    =============================== */
+    .aviso {
+      display: none;
+      margin-bottom: 1rem;
+      padding: 0.9rem;
+      border-radius: 0.8rem;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.82);
+      color: var(--text);
+      line-height: 1.4;
+      white-space: pre-line;
+    }
+
+    .aviso.erro {
+      border-color: rgba(239, 68, 68, 0.5);
+      background: rgba(127, 29, 29, 0.45);
+    }
+
+    .aviso.sucesso {
+      border-color: rgba(34, 197, 94, 0.5);
+      background: rgba(20, 83, 45, 0.45);
+    }
+
+    @keyframes entrarSuave {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        align-items: flex-start;
+        padding: 14px;
+      }
+
+      .container {
+        padding: 1.35rem;
+        margin-top: 18px;
+      }
+
+      h1 {
+        font-size: 1.45rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ===============================
+       FORMULÁRIO DE CADASTRO ONLINE
+  =============================== -->
+  <div class="container">
+    <h1>Cadastro Online - LabStudio CRJ</h1>
+    <p class="descricao">
+      Envie seus dados para análise da equipe do CRJ. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp.
+    </p>
+
+    <div id="aviso" class="aviso"></div>
+
+    <div class="form-group">
+      <label for="nome">Nome completo</label>
+      <input type="text" id="nome" placeholder="Digite seu nome completo">
+    </div>
+
+    <div class="form-group">
+      <label for="telefone">WhatsApp</label>
+      <input type="text" id="telefone" placeholder="Ex: 27999999999">
+    </div>
+
+    <div class="form-group">
+      <label for="dataNascimento">Data de nascimento</label>
+      <input type="date" id="dataNascimento">
+    </div>
+
+    <button id="btnEnviar">Enviar cadastro</button>
+  </div>
+
+  <!-- ===============================
+       BIBLIOTECA DO SUPABASE
+  =============================== -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script>
+    // ===============================
+    // CONEXÃO COM SUPABASE
+    // Usa a chave pública já utilizada nas telas do sistema.
+    // ===============================
+    const client = window.supabase.createClient(
+      "https://hblxvxgocemzctjbutgi.supabase.co",
+      "sb_publishable_12C1Wu47s3SuxqHZvQybdg_WubBGiQl"
+    );
+
+    const inputNome = document.getElementById("nome");
+    const inputTelefone = document.getElementById("telefone");
+    const inputDataNascimento = document.getElementById("dataNascimento");
+    const btnEnviar = document.getElementById("btnEnviar");
+    const aviso = document.getElementById("aviso");
+
+    // ===============================
+    // FUNÇÃO: MOSTRAR AVISO VISUAL
+    // ===============================
+    function mostrarAviso(mensagem, tipo = "erro") {
+      aviso.innerText = mensagem;
+      aviso.className = `aviso ${tipo}`;
+      aviso.style.display = "block";
+    }
+
+    // ===============================
+    // FUNÇÃO: LIMPAR TELEFONE
+    // Remove pontos, espaços, parênteses, traços e símbolos.
+    // ===============================
+    function limparTelefone(valor) {
+      return String(valor || "").replace(/\D/g, "");
+    }
+
+    // ===============================
+    // FUNÇÃO: GERAR VARIAÇÕES DO TELEFONE
+    // Compara números com/sem 55 e com/sem nono dígito.
+    // ===============================
+    function gerarVariantesTelefone(valor) {
+      const numero = limparTelefone(valor);
+
+      if (!numero) return [];
+
+      const variantes = new Set();
+
+      function adicionar(n) {
+        if (!n) return;
+
+        variantes.add(n);
+
+        if (n.startsWith("55")) {
+          variantes.add(n.slice(2));
+        } else {
+          variantes.add("55" + n);
+        }
+      }
+
+      adicionar(numero);
+
+      const sem55 = numero.startsWith("55") ? numero.slice(2) : numero;
+      adicionar(sem55);
+
+      if (sem55.length === 11 && sem55[2] === "9") {
+        adicionar(sem55.slice(0, 2) + sem55.slice(3));
+      }
+
+      if (sem55.length === 10) {
+        adicionar(sem55.slice(0, 2) + "9" + sem55.slice(2));
+      }
+
+      return [...variantes];
+    }
+
+    // ===============================
+    // FUNÇÃO: CALCULAR IDADE
+    // ===============================
+    function calcularIdade(dataNascimento) {
+      if (!dataNascimento) return null;
+
+      const partes = String(dataNascimento).split("T")[0].split("-");
+      if (partes.length !== 3) return null;
+
+      const [ano, mes, dia] = partes.map(Number);
+      const nascimento = new Date(ano, mes - 1, dia);
+
+      if (
+        Number.isNaN(nascimento.getTime()) ||
+        nascimento.getFullYear() !== ano ||
+        nascimento.getMonth() !== mes - 1 ||
+        nascimento.getDate() !== dia
+      ) {
+        return null;
+      }
+
+      const hoje = new Date();
+      let idade = hoje.getFullYear() - nascimento.getFullYear();
+      const aniversarioJaPassou =
+        hoje.getMonth() > nascimento.getMonth() ||
+        (hoje.getMonth() === nascimento.getMonth() && hoje.getDate() >= nascimento.getDate());
+
+      if (!aniversarioJaPassou) {
+        idade--;
+      }
+
+      return idade;
+    }
+
+    // ===============================
+    // FUNÇÃO: VALIDAR FAIXA ETÁRIA DO CRJ
+    // ===============================
+    function idadePermitida(dataNascimento) {
+      const idade = calcularIdade(dataNascimento);
+      return idade !== null && idade >= 15 && idade <= 29;
+    }
+
+    // ===============================
+    // FUNÇÃO: BUSCAR USUÁRIO PELO TELEFONE
+    // Consulta todos os usuários para comparar com as variações do telefone.
+    // ===============================
+    async function buscarUsuarioPorTelefone(telefone) {
+      const variantesDigitadas = gerarVariantesTelefone(telefone);
+
+      const { data: usuarios, error } = await client
+        .from("usuarios")
+        .select("*");
+
+      if (error) {
+        throw error;
+      }
+
+      return (usuarios || []).find(usuario => {
+        const variantesBanco = gerarVariantesTelefone(usuario.telefone);
+
+        return variantesBanco.some(numeroBanco =>
+          variantesDigitadas.includes(numeroBanco)
+        );
+      }) || null;
+    }
+
+    // ===============================
+    // EVENTO: ENVIAR CADASTRO ONLINE
+    // Valida dados, evita duplicidade e salva como pendente.
+    // ===============================
+    btnEnviar.addEventListener("click", async () => {
+      const nome = inputNome.value.trim();
+      const telefoneLimpo = limparTelefone(inputTelefone.value);
+      const dataNascimento = inputDataNascimento.value;
+
+      if (!nome || !telefoneLimpo || !dataNascimento) {
+        mostrarAviso("Preencha nome completo, WhatsApp e data de nascimento.");
+        return;
+      }
+
+      if (!idadePermitida(dataNascimento)) {
+        mostrarAviso("O CRJ atende jovens de 15 a 29 anos.");
+        return;
+      }
+
+      btnEnviar.disabled = true;
+      btnEnviar.innerText = "Enviando...";
+
+      try {
+        const usuarioExistente = await buscarUsuarioPorTelefone(telefoneLimpo);
+
+        if (usuarioExistente) {
+          const statusExistente = String(usuarioExistente.status || "").toLowerCase();
+
+          if (statusExistente === "pendente") {
+            mostrarAviso("Seu cadastro online já foi enviado e está aguardando análise da equipe.");
+            return;
+          }
+
+          mostrarAviso("Este número já possui cadastro. Chame o atendimento pelo WhatsApp para continuar.");
+          return;
+        }
+
+        const { error } = await client
+          .from("usuarios")
+          .insert([{
+            nome: nome,
+            telefone: telefoneLimpo,
+            data_nascimento: dataNascimento,
+            cadastrado: false,
+            status: "pendente",
+            faltas: 0,
+            presencas: 0,
+            origem_cadastro: "online",
+            cadastro_online_em: new Date().toISOString(),
+            observacao: "Cadastro realizado online"
+          }]);
+
+        if (error) {
+          throw error;
+        }
+
+        mostrarAviso(
+          "Cadastro enviado com sucesso! A equipe do CRJ irá analisar seus dados. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp.",
+          "sucesso"
+        );
+
+        inputNome.value = "";
+        inputTelefone.value = "";
+        inputDataNascimento.value = "";
+
+      } catch (err) {
+        mostrarAviso("Erro ao enviar cadastro: " + err.message);
+      } finally {
+        btnEnviar.disabled = false;
+        btnEnviar.innerText = "Enviar cadastro";
+      }
+    });
+  </script>
+</body>
+</html>
