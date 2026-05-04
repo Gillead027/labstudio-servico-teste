@@ -1101,9 +1101,14 @@ client.on("message", async (msg) => {
     // Ignora mensagens enviadas pelo próprio bot.
     if (msg.fromMe) return;
 
-    // Ignora mensagens de sistema/broadcast que não podem ser respondidas.
+    // Ignora mensagens de sistema, broadcast ou grupo que não devem ser processadas.
     const origem = String(msg.from || "").toLowerCase();
-    if (origem.endsWith("@broadcast") || origem === "status@broadcast") {
+    if (
+      origem.endsWith("@broadcast") ||
+      origem.endsWith("@g.us") ||
+      origem.startsWith("status") ||
+      origem.includes("status@")
+    ) {
       return;
     }
 
