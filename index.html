@@ -497,6 +497,7 @@
 
     async function fetchApiJson(url, options = {}) {
       const requestUrl = url.startsWith("http") ? url : `${API_BASE_URL.replace(/\/$/, "")}${url}`;
+      console.debug("fetchApiJson requestUrl:", requestUrl);
       const resposta = await fetch(requestUrl, options);
       const texto = await resposta.text();
       const contentType = (resposta.headers.get("content-type") || "").toLowerCase();
@@ -838,8 +839,10 @@
         // o agendamento continua salvo,
         // mas aparece aviso no console.
         // ===============================
+        let notificacaoOk = true;
+
         try {
-          await fetch("/notificar", {
+          await fetchApiJson("/notificar", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -850,7 +853,12 @@
             })
           });
         } catch (zapError) {
+          notificacaoOk = false;
           console.warn("Agendamento salvo, mas a notificação no WhatsApp falhou:", zapError);
+          mostrarToast(
+            "Agendamento salvo, mas não foi possível notificar por WhatsApp. Tente novamente em alguns minutos.",
+            "aviso"
+          );
         }
 
         const mensagemSucesso = resultadoAgendamento.mensagem || `Confirmado, ${nome}! 🔥\nTe esperamos dia ${dataStr} às ${horario}.`;
@@ -879,8 +887,25 @@
       }
     }
 
+    function verificarApiBaseUrl() {
+      const estaNoVercel = window.location.hostname.endsWith(".vercel.app");
+      const estaEmLocalhost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+
+      if (!API_BASE_URL && (estaNoVercel || !estaEmLocalhost)) {
+        mostrarAviso(
+          "A URL da API não está configurada. Defina API_BASE_URL no index.html para o backend Railway.",
+          "aviso"
+        );
+        mostrarToast(
+          "API_BASE_URL ausente. O frontend Vercel precisa da URL do backend Railway.",
+          "aviso"
+        );
+      }
+    }
+
     carregarTemaSalvo();
     verificarProtocoloLocal();
+    verificarApiBaseUrl();
     btnTema.addEventListener("click", alternarTema);
     inputNome.addEventListener("input", validarNomeTempoReal);
     inputTelefone.addEventListener("input", validarTelefoneTempoReal);

@@ -1115,7 +1115,18 @@ client.on("message", async (msg) => {
       "labstúdio",
       "estudio",
       "gravar",
-      "música"
+      "música",
+      "agendar",
+      "agendamento",
+      "agenda",
+      "horario",
+      "horário",
+      "marcar",
+      "reservar",
+      "reserva",
+      "oi",
+      "olá",
+      "ola"
     ];
 
     const encontrouGatilho = gatilhos.some((palavra) =>
