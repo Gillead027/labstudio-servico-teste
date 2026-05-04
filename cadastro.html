@@ -14,22 +14,68 @@
       --primary: #6366f1;
       --primary-hover: #4f46e5;
       --bg: #0f172a;
-      --card-bg: #1e293b;
+      --page-bg:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.24), transparent 34rem),
+        linear-gradient(145deg, #020617 0%, var(--bg) 48%, #111827 100%);
+      --card-bg: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
       --text: #f8fafc;
       --muted: #94a3b8;
+      --label: #94a3b8;
       --input-bg: #334155;
+      --input-text: #ffffff;
+      --input-focus-bg: #273449;
       --border: #475569;
       --danger: #ef4444;
       --success: #22c55e;
       --warning: #f59e0b;
+      --error-text: #fecaca;
+      --success-text: #bbf7d0;
+      --warning-text: #fde68a;
+      --shadow-card: 0 24px 70px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.06);
+      --shadow-button: 0 14px 28px rgba(79, 70, 229, 0.28);
+      --shadow-button-hover: 0 18px 34px rgba(79, 70, 229, 0.35);
+      --toast-bg: rgba(15, 23, 42, 0.96);
+      --aviso-bg: rgba(15, 23, 42, 0.82);
+      --aviso-erro-bg: rgba(127, 29, 29, 0.45);
+      --aviso-sucesso-bg: rgba(20, 83, 45, 0.45);
+      --aviso-alerta-bg: rgba(113, 63, 18, 0.45);
+    }
+
+    /* ===============================
+       TEMA CLARO
+       Usa as mesmas variáveis para preservar o layout e melhorar contraste.
+    =============================== */
+    html[data-theme="light"] {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg: #eef2ff;
+      --page-bg:
+        radial-gradient(circle at top left, rgba(79, 70, 229, 0.16), transparent 30rem),
+        linear-gradient(145deg, #f8fafc 0%, #eef2ff 52%, #e0f2fe 100%);
+      --card-bg: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(241,245,249,0.96));
+      --text: #0f172a;
+      --muted: #475569;
+      --label: #334155;
+      --input-bg: #ffffff;
+      --input-text: #0f172a;
+      --input-focus-bg: #f8fafc;
+      --border: #cbd5e1;
+      --error-text: #b91c1c;
+      --success-text: #166534;
+      --warning-text: #92400e;
+      --shadow-card: 0 22px 58px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255,255,255,0.7);
+      --shadow-button: 0 14px 28px rgba(79, 70, 229, 0.2);
+      --shadow-button-hover: 0 18px 34px rgba(79, 70, 229, 0.26);
+      --toast-bg: rgba(255,255,255,0.97);
+      --aviso-bg: rgba(255,255,255,0.9);
+      --aviso-erro-bg: rgba(254, 226, 226, 0.95);
+      --aviso-sucesso-bg: rgba(220, 252, 231, 0.95);
+      --aviso-alerta-bg: rgba(254, 243, 199, 0.95);
     }
 
     html {
       min-height: 100%;
-      background-color: #020617;
-      background-image:
-        radial-gradient(circle at top left, rgba(99, 102, 241, 0.24), transparent 34rem),
-        linear-gradient(145deg, #020617 0%, var(--bg) 48%, #111827 100%);
+      background: var(--page-bg);
       background-repeat: no-repeat;
       background-size: cover;
       background-attachment: fixed;
@@ -52,10 +98,10 @@
        CARD PRINCIPAL DO CADASTRO
     =============================== */
     .container {
-      background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
-      padding: 2rem;
+      background: var(--card-bg);
+      padding: 2.1rem;
       border-radius: 1.1rem;
-      box-shadow: 0 24px 70px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.06);
+      box-shadow: var(--shadow-card);
       width: 100%;
       max-width: 440px;
       border: 1px solid rgba(148, 163, 184, 0.2);
@@ -83,7 +129,7 @@
     label {
       display: block;
       margin-bottom: 0.55rem;
-      color: var(--muted);
+      color: var(--label);
       font-size: 0.85rem;
       font-weight: 700;
       text-transform: uppercase;
@@ -95,7 +141,7 @@
       border-radius: 0.7rem;
       border: 1px solid var(--border);
       background: var(--input-bg);
-      color: white;
+      color: var(--input-text);
       font-size: 1rem;
       outline: none;
       box-sizing: border-box;
@@ -104,7 +150,7 @@
 
     input:focus {
       border-color: var(--primary);
-      background: #273449;
+      background: var(--input-focus-bg);
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
     }
 
@@ -119,14 +165,19 @@
       font-size: 1rem;
       cursor: pointer;
       margin-top: 0.6rem;
-      box-shadow: 0 14px 28px rgba(79, 70, 229, 0.28);
+      box-shadow: var(--shadow-button);
       transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
     }
 
     button:hover {
       background: var(--primary-hover);
       transform: translateY(-1px);
-      box-shadow: 0 18px 34px rgba(79, 70, 229, 0.35);
+      box-shadow: var(--shadow-button-hover);
+    }
+
+    button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.24), var(--shadow-button-hover);
     }
 
     button:disabled {
@@ -146,7 +197,7 @@
       padding: 0.9rem;
       border-radius: 0.8rem;
       border: 1px solid rgba(148, 163, 184, 0.22);
-      background: rgba(15, 23, 42, 0.82);
+      background: var(--aviso-bg);
       color: var(--text);
       line-height: 1.4;
       white-space: pre-line;
@@ -154,17 +205,17 @@
 
     .aviso.erro {
       border-color: rgba(239, 68, 68, 0.5);
-      background: rgba(127, 29, 29, 0.45);
+      background: var(--aviso-erro-bg);
     }
 
     .aviso.sucesso {
       border-color: rgba(34, 197, 94, 0.5);
-      background: rgba(20, 83, 45, 0.45);
+      background: var(--aviso-sucesso-bg);
     }
 
     .aviso.aviso-tipo {
       border-color: rgba(245, 158, 11, 0.5);
-      background: rgba(113, 63, 18, 0.45);
+      background: var(--aviso-alerta-bg);
     }
 
     /* ===============================
@@ -180,15 +231,15 @@
     }
 
     .campo-ajuda.erro {
-      color: #fecaca;
+      color: var(--error-text);
     }
 
     .campo-ajuda.sucesso {
-      color: #bbf7d0;
+      color: var(--success-text);
     }
 
     .campo-ajuda.aviso {
-      color: #fde68a;
+      color: var(--warning-text);
     }
 
     input.campo-invalido {
@@ -202,7 +253,7 @@
     =============================== */
     .toast-container {
       position: fixed;
-      top: 18px;
+      top: 70px;
       right: 18px;
       z-index: 20;
       display: grid;
@@ -214,7 +265,7 @@
       padding: 0.9rem 1rem;
       border-radius: 0.85rem;
       border: 1px solid rgba(148, 163, 184, 0.22);
-      background: rgba(15, 23, 42, 0.96);
+      background: var(--toast-bg);
       color: var(--text);
       box-shadow: 0 18px 42px rgba(0,0,0,0.36);
       line-height: 1.4;
@@ -231,6 +282,33 @@
 
     .toast.aviso-tipo {
       border-color: rgba(245, 158, 11, 0.52);
+    }
+
+    /* ===============================
+       BOTÃO DE TEMA
+       Permite alternar claro/escuro sem ocupar o formulário.
+    =============================== */
+    .theme-toggle {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 25;
+      width: auto;
+      margin: 0;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      border-radius: 999px;
+      background: var(--toast-bg);
+      color: var(--text);
+      box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+      font-size: 0.9rem;
+    }
+
+    .theme-toggle:hover,
+    .theme-toggle:focus-visible {
+      border-color: rgba(99, 102, 241, 0.5);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 12px 32px rgba(0,0,0,0.18);
     }
 
     @keyframes entrarSuave {
@@ -261,16 +339,23 @@
       }
 
       .toast-container {
-        top: 10px;
+        top: 58px;
         right: 10px;
         left: 10px;
         width: auto;
+      }
+
+      .theme-toggle {
+        top: 10px;
+        right: 10px;
+        padding: 0.55rem 0.75rem;
       }
     }
   </style>
 </head>
 
 <body>
+  <button id="btnTema" class="theme-toggle" type="button" aria-label="Alternar tema">🌙 Escuro</button>
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
   <!-- ===============================
@@ -311,10 +396,39 @@
     const inputDataNascimento = document.getElementById("dataNascimento");
     const btnEnviar = document.getElementById("btnEnviar");
     const aviso = document.getElementById("aviso");
+    const btnTema = document.getElementById("btnTema");
     const toastContainer = document.getElementById("toastContainer");
     const ajudaNome = document.getElementById("ajudaNome");
     const ajudaTelefone = document.getElementById("ajudaTelefone");
     const ajudaDataNascimento = document.getElementById("ajudaDataNascimento");
+
+    // ===============================
+    // FUNÇÕES DE TEMA
+    // Aplicam o tema salvo e preservam a escolha no localStorage.
+    // ===============================
+    function aplicarTema(tema) {
+      const temaFinal = tema === "light" ? "light" : "dark";
+
+      document.documentElement.dataset.theme = temaFinal;
+      btnTema.innerText = temaFinal === "light" ? "☀️ Claro" : "🌙 Escuro";
+      btnTema.setAttribute(
+        "aria-label",
+        temaFinal === "light" ? "Tema claro ativo. Alternar para escuro." : "Tema escuro ativo. Alternar para claro."
+      );
+    }
+
+    function carregarTemaSalvo() {
+      const temaSalvo = localStorage.getItem("labstudio_tema") || "dark";
+      aplicarTema(temaSalvo);
+    }
+
+    function alternarTema() {
+      const temaAtual = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+      const proximoTema = temaAtual === "light" ? "dark" : "light";
+
+      localStorage.setItem("labstudio_tema", proximoTema);
+      aplicarTema(proximoTema);
+    }
 
     // ===============================
     // FUNÇÃO: MOSTRAR AVISO VISUAL
@@ -578,6 +692,8 @@
       }
     });
 
+    carregarTemaSalvo();
+    btnTema.addEventListener("click", alternarTema);
     inputNome.addEventListener("input", validarNomeTempoReal);
     inputTelefone.addEventListener("input", validarTelefoneTempoReal);
     inputDataNascimento.addEventListener("change", validarDataNascimentoTempoReal);

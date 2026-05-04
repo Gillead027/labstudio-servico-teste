@@ -11,17 +11,72 @@
     =============================== */
     :root {
       --primary: #6366f1;
+      --primary-hover: #4f46e5;
       --success: #22c55e;
       --danger: #ef4444;
       --warning: #f59e0b;
       --bg: #0f172a;
-      --card: #1e293b;
-      --card-strong: #162033;
+      --page-bg:
+        radial-gradient(circle at top left, rgba(99, 102, 241, 0.22), transparent 34rem),
+        linear-gradient(145deg, #020617 0%, var(--bg) 48%, #111827 100%);
+      --card: rgba(30, 41, 59, 0.92);
+      --card-strong: rgba(22, 32, 51, 0.92);
+      --card-gradient: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
+      --panel-bg: rgba(30, 41, 59, 0.82);
+      --nav-bg: rgba(15, 23, 42, 0.72);
+      --item-bg: rgba(15, 23, 42, 0.34);
+      --item-hover-bg: rgba(15, 23, 42, 0.48);
+      --empty-bg: rgba(30, 41, 59, 0.72);
+      --toast-bg: rgba(15, 23, 42, 0.96);
+      --obs-bg: rgba(255,255,255,0.04);
       --text: #f8fafc;
       --muted: #94a3b8;
       --border: #475569;
       --input: #334155;
+      --input-text: #f8fafc;
+      --input-focus-bg: #273449;
       --shadow: 0 18px 45px rgba(0,0,0,0.32);
+      --soft-border: rgba(148, 163, 184, 0.15);
+      --title-shadow: none;
+      --error-text: #fecaca;
+      --success-text: #bbf7d0;
+      --login-error-bg: rgba(127, 29, 29, 0.75);
+      --login-error-border: rgba(239, 68, 68, 0.35);
+    }
+
+    /* ===============================
+       TEMA CLARO
+       Usa as mesmas variáveis para preservar cards, abas, toasts e formulários.
+    =============================== */
+    html[data-theme="light"] {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg: #eef2ff;
+      --page-bg:
+        radial-gradient(circle at top left, rgba(79, 70, 229, 0.15), transparent 32rem),
+        linear-gradient(145deg, #f8fafc 0%, #eef2ff 52%, #e0f2fe 100%);
+      --card: rgba(255,255,255,0.94);
+      --card-strong: rgba(241,245,249,0.95);
+      --card-gradient: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(241,245,249,0.96));
+      --panel-bg: rgba(255,255,255,0.86);
+      --nav-bg: rgba(255,255,255,0.72);
+      --item-bg: rgba(241,245,249,0.76);
+      --item-hover-bg: rgba(226,232,240,0.9);
+      --empty-bg: rgba(255,255,255,0.75);
+      --toast-bg: rgba(255,255,255,0.98);
+      --obs-bg: rgba(79, 70, 229, 0.06);
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #cbd5e1;
+      --input: #ffffff;
+      --input-text: #0f172a;
+      --input-focus-bg: #f8fafc;
+      --shadow: 0 18px 45px rgba(15,23,42,0.13);
+      --soft-border: rgba(71, 85, 105, 0.18);
+      --error-text: #b91c1c;
+      --success-text: #166534;
+      --login-error-bg: rgba(254, 226, 226, 0.95);
+      --login-error-border: rgba(239, 68, 68, 0.35);
     }
 
     /* ===============================
@@ -31,10 +86,7 @@
     =============================== */
     html {
       min-height: 100%;
-      background-color: #020617;
-      background-image:
-        radial-gradient(circle at top left, rgba(99, 102, 241, 0.22), transparent 34rem),
-        linear-gradient(145deg, #020617 0%, var(--bg) 48%, #111827 100%);
+      background: var(--page-bg);
       background-repeat: no-repeat;
       background-size: cover;
       background-attachment: fixed;
@@ -47,6 +99,7 @@
       min-height: 100vh;
       margin: 0;
       padding: 20px;
+      transition: color 0.2s ease, background 0.2s ease;
     }
 
     .container {
@@ -58,6 +111,7 @@
     h1 {
       color: var(--primary);
       margin-bottom: 10px;
+      text-shadow: var(--title-shadow);
     }
 
     .subtitle {
@@ -82,9 +136,16 @@
       margin-top: 0;
     }
 
+    .topo-acoes {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
     .nav-abas {
-      background: rgba(15, 23, 42, 0.72);
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: var(--nav-bg);
+      border: 1px solid var(--soft-border);
       border-radius: 14px;
       padding: 8px;
       display: flex;
@@ -147,8 +208,8 @@
     }
 
     .login-card {
-      background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
-      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: var(--card-gradient);
+      border: 1px solid var(--soft-border);
       border-radius: 16px;
       padding: 28px;
       width: 100%;
@@ -169,9 +230,9 @@
     }
 
     .login-erro {
-      color: #fecaca;
-      background: rgba(127, 29, 29, 0.75);
-      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: var(--error-text);
+      background: var(--login-error-bg);
+      border: 1px solid var(--login-error-border);
       border-radius: 8px;
       padding: 10px;
       margin-top: 12px;
@@ -183,7 +244,7 @@
        ÁREA DE FILTROS
     =============================== */
     .filtros {
-      background: rgba(30, 41, 59, 0.82);
+      background: var(--panel-bg);
       padding: 20px;
       border-radius: 12px;
       margin-bottom: 20px;
@@ -191,7 +252,7 @@
       gap: 10px;
       flex-wrap: wrap;
       align-items: end;
-      border: 1px solid rgba(148, 163, 184, 0.16);
+      border: 1px solid var(--soft-border);
       box-shadow: var(--shadow);
     }
 
@@ -210,7 +271,7 @@
 
     input, select {
       background: var(--input);
-      color: var(--text);
+      color: var(--input-text);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 10px;
@@ -221,7 +282,7 @@
     input:focus,
     select:focus {
       border-color: var(--primary);
-      background: #273449;
+      background: var(--input-focus-bg);
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
     }
 
@@ -233,11 +294,11 @@
     }
 
     .campo-ajuda.erro {
-      color: #fecaca;
+      color: var(--error-text);
     }
 
     .campo-ajuda.sucesso {
-      color: #bbf7d0;
+      color: var(--success-text);
     }
 
     input.campo-invalido {
@@ -260,6 +321,11 @@
       opacity: 0.9;
       transform: translateY(-1px);
       box-shadow: 0 10px 22px rgba(0,0,0,0.22);
+    }
+
+    button:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.22), 0 10px 22px rgba(0,0,0,0.18);
     }
 
     button:disabled {
@@ -309,6 +375,19 @@
       background: var(--success);
     }
 
+    .btn-tema {
+      background: var(--toast-bg);
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.14);
+      white-space: nowrap;
+    }
+
+    .btn-tema:hover {
+      border-color: rgba(99, 102, 241, 0.5);
+      background: var(--panel-bg);
+    }
+
     /* ===============================
        PAINEL DE RESUMO E RANKING
     =============================== */
@@ -320,8 +399,8 @@
     }
 
     .bloco-resumo {
-      background: linear-gradient(180deg, rgba(30, 41, 59, 0.92), rgba(22, 32, 51, 0.92));
-      border: 1px solid rgba(148, 163, 184, 0.15);
+      background: var(--card-gradient);
+      border: 1px solid var(--soft-border);
       border-radius: 12px;
       padding: 16px;
       box-shadow: var(--shadow);
@@ -368,8 +447,8 @@
     =============================== */
     .painel-pendencias,
     .painel-usuarios {
-      background: rgba(30, 41, 59, 0.82);
-      border: 1px solid rgba(148, 163, 184, 0.15);
+      background: var(--panel-bg);
+      border: 1px solid var(--soft-border);
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 20px;
@@ -400,11 +479,11 @@
 
     .pendencia-item,
     .usuario-card {
-      border: 1px solid rgba(148, 163, 184, 0.14);
+      border: 1px solid var(--soft-border);
       border-radius: 10px;
       padding: 14px;
       margin-top: 12px;
-      background: rgba(15, 23, 42, 0.34);
+      background: var(--item-bg);
       transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
     }
 
@@ -412,7 +491,7 @@
     .usuario-card:hover {
       transform: translateY(-1px);
       border-color: rgba(99, 102, 241, 0.38);
-      background: rgba(15, 23, 42, 0.48);
+      background: var(--item-hover-bg);
     }
 
     .pendencia-info,
@@ -444,8 +523,8 @@
        CARDS DE AGENDAMENTO
     =============================== */
     .card {
-      background: linear-gradient(180deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.86));
-      border: 1px solid rgba(148, 163, 184, 0.15);
+      background: var(--card-gradient);
+      border: 1px solid var(--soft-border);
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 14px;
@@ -522,8 +601,8 @@
     }
 
     .observacao {
-      background: rgba(255,255,255,0.04);
-      color: #cbd5e1;
+      background: var(--obs-bg);
+      color: var(--text);
       border-left: 3px solid var(--primary);
       padding: 10px;
       border-radius: 8px;
@@ -540,8 +619,8 @@
 
     .vazio {
       color: var(--muted);
-      background: rgba(30, 41, 59, 0.72);
-      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: var(--empty-bg);
+      border: 1px solid var(--soft-border);
       border-radius: 12px;
       padding: 20px;
       text-align: center;
@@ -576,7 +655,7 @@
       padding: 12px 14px;
       border-radius: 12px;
       border: 1px solid rgba(148, 163, 184, 0.22);
-      background: rgba(15, 23, 42, 0.96);
+      background: var(--toast-bg);
       color: var(--text);
       box-shadow: var(--shadow);
       line-height: 1.45;
@@ -625,10 +704,16 @@
       }
 
       .grupo,
+      .topo-acoes,
       .filtros button,
       .acoes button,
       .nav-abas button {
         width: 100%;
+      }
+
+      .topo-acoes {
+        align-items: stretch;
+        flex-direction: column;
       }
 
       input,
@@ -698,7 +783,10 @@
         <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos, pendências, ranking e usuários.</div>
       </div>
 
-      <button id="btnSair" class="btn-sair">Sair</button>
+      <div class="topo-acoes">
+        <button id="btnTema" class="btn-tema" type="button" aria-label="Alternar tema">🌙 Escuro</button>
+        <button id="btnSair" class="btn-sair">Sair</button>
+      </div>
     </div>
 
     <!-- ===============================
@@ -938,6 +1026,7 @@
     const btnEntrar = document.getElementById("btnEntrar");
     const loginErro = document.getElementById("loginErro");
     const btnSair = document.getElementById("btnSair");
+    const btnTema = document.getElementById("btnTema");
 
     // ===============================
     // ELEMENTOS DA TELA
@@ -990,6 +1079,34 @@
     function limparErroLogin() {
       loginErro.innerText = "";
       loginErro.style.display = "none";
+    }
+
+    // ===============================
+    // FUNÇÕES DE TEMA
+    // Aplicam o tema salvo e mantêm a preferência ao recarregar o painel.
+    // ===============================
+    function aplicarTema(tema) {
+      const temaFinal = tema === "light" ? "light" : "dark";
+
+      document.documentElement.dataset.theme = temaFinal;
+      btnTema.innerText = temaFinal === "light" ? "☀️ Claro" : "🌙 Escuro";
+      btnTema.setAttribute(
+        "aria-label",
+        temaFinal === "light" ? "Tema claro ativo. Alternar para escuro." : "Tema escuro ativo. Alternar para claro."
+      );
+    }
+
+    function carregarTemaSalvo() {
+      const temaSalvo = localStorage.getItem("labstudio_tema") || "dark";
+      aplicarTema(temaSalvo);
+    }
+
+    function alternarTema() {
+      const temaAtual = document.documentElement.dataset.theme === "light" ? "light" : "dark";
+      const proximoTema = temaAtual === "light" ? "dark" : "light";
+
+      localStorage.setItem("labstudio_tema", proximoTema);
+      aplicarTema(proximoTema);
     }
 
     // ===============================
@@ -3332,6 +3449,7 @@
     });
 
     btnSair.addEventListener("click", sairPainel);
+    btnTema.addEventListener("click", alternarTema);
 
     // ===============================
     // EVENTOS DAS ABAS
@@ -3400,6 +3518,7 @@
     // VERIFICA SESSÃO AUTENTICADA
     // Mantém o painel aberto quando o Supabase Auth ainda reconhece o admin.
     // ===============================
+    carregarTemaSalvo();
     verificarSessaoAdmin();
   </script>
 </body>
