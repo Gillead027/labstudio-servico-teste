@@ -7,7 +7,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const { Client, LocalAuth } = require("whatsapp-web.js");
-const qrcode = require("qrcode-terminal");
+const QRCode = require("qrcode");
 const { createClient } = require("@supabase/supabase-js");
 
 // ===============================
@@ -19,9 +19,20 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_NOTIFY_NUMBER = process.env.BOT_NOTIFY_NUMBER;
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || "").replace(/\/$/, "");
+
+// URL pública do bot no Railway.
+// Exemplo:
+// PUBLIC_BOT_URL=https://labstudio-sistema-production.up.railway.app
+const PUBLIC_BOT_URL = String(process.env.PUBLIC_BOT_URL || "").replace(/\/$/, "");
+
+// Token para proteger a página do QR Code.
+// Crie no Railway:
+// QR_PAGE_TOKEN=uma_senha_forte
+const QR_PAGE_TOKEN = process.env.QR_PAGE_TOKEN;
+
 const ALLOWED_ORIGINS = String(process.env.ALLOWED_ORIGINS || "")
   .split(",")
-  .map(origem => origem.trim())
+  .map((origem) => origem.trim().replace(/\/$/, ""))
   .filter(Boolean);
 
 const ORIGENS_PADRAO_DESENVOLVIMENTO = [
@@ -32,7 +43,8 @@ const ORIGENS_PADRAO_DESENVOLVIMENTO = [
 const origensPermitidas = new Set([
   ...ORIGENS_PADRAO_DESENVOLVIMENTO,
   ...ALLOWED_ORIGINS,
-  ...(PUBLIC_SITE_URL ? [PUBLIC_SITE_URL] : [])
+  ...(PUBLIC_SITE_URL ? [PUBLIC_SITE_URL] : []),
+  ...(PUBLIC_BOT_URL ? [PUBLIC_BOT_URL] : [])
 ]);
 
 function exigirVariavelAmbiente(nome, valor) {
@@ -46,6 +58,11 @@ exigirVariavelAmbiente("SUPABASE_URL", SUPABASE_URL);
 exigirVariavelAmbiente("SUPABASE_SERVICE_ROLE_KEY", SUPABASE_SERVICE_ROLE_KEY);
 exigirVariavelAmbiente("BOT_NOTIFY_NUMBER", BOT_NOTIFY_NUMBER);
 exigirVariavelAmbiente("PUBLIC_SITE_URL", PUBLIC_SITE_URL);
+
+// QR_PAGE_TOKEN não derruba o servidor, mas a rota /qr fica bloqueada se ele não existir.
+if (!QR_PAGE_TOKEN) {
+  console.warn("⚠️ QR_PAGE_TOKEN não configurado. A página /qr ficará bloqueada por segurança.");
+}
 
 // ===============================
 // CONFIGURAÇÃO DO SERVIDOR EXPRESS
@@ -61,7 +78,9 @@ const app = express();
 // ===============================
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || origensPermitidas.has(origin)) {
+    const origemNormalizada = origin ? String(origin).replace(/\/$/, "") : "";
+
+    if (!origin || origensPermitidas.has(origemNormalizada)) {
       return callback(null, true);
     }
 
@@ -75,6 +94,7 @@ app.use(express.json());
 // ===============================
 // SERVIR ARQUIVOS DO SITE LOCALMENTE
 // Isso permite abrir index.html e admin.html pelo próprio servidor.
+// No Railway, seu site principal já está no Vercel, mas manter isso não atrapalha.
 // ===============================
 app.use(express.static(__dirname));
 
@@ -122,8 +142,10 @@ const DATAS_BLOQUEADAS = [
 
 // ===============================
 // CONFIGURAÇÃO DO CLIENTE WHATSAPP
-// LocalAuth salva a sessão do WhatsApp
-// No Railway, usamos uma pasta persistente para não perder o login
+// LocalAuth salva a sessão do WhatsApp.
+// No Railway, usamos uma pasta persistente para não perder o login.
+// Exemplo recomendado no Railway:
+// WWEBJS_AUTH_PATH=/data
 // ===============================
 const client = new Client({
   authStrategy: new LocalAuth({
@@ -147,17 +169,339 @@ const client = new Client({
 
 // ===============================
 // STATUS DO BOT
-// Usamos isso para saber se o WhatsApp já está pronto
+// Usamos isso para saber se o WhatsApp já está pronto.
 // ===============================
 let botPronto = false;
 
 // ===============================
-// QR CODE PARA LOGIN NO WHATSAPP
-// Só aparece se precisar conectar ou reconectar o WhatsApp
+// CONTROLE DO QR CODE
+// Em vez de imprimir o QR no terminal, salvamos o QR atual em memória
+// e servimos como imagem via rota /qr.png.
 // ===============================
-client.on("qr", (qr) => {
-  console.log("\n📲 Escaneie o QR Code abaixo:\n");
-  qrcode.generate(qr, { small: true });
+let qrAtualTexto = null;
+let qrAtualDataUrl = null;
+let qrGeradoEm = null;
+
+// ===============================
+// FUNÇÃO: OBTER URL BASE DO BOT
+// Se PUBLIC_BOT_URL existir, usamos ela.
+// Se não existir, montamos com base na requisição.
+// ===============================
+function obterUrlBaseBot(req = null) {
+  if (PUBLIC_BOT_URL) return PUBLIC_BOT_URL;
+
+  if (req) {
+    const protocolo = req.headers["x-forwarded-proto"] || req.protocol || "https";
+    const host = req.headers["x-forwarded-host"] || req.headers.host;
+    return `${protocolo}://${host}`;
+  }
+
+  return `http://localhost:${PORT}`;
+}
+
+// ===============================
+// FUNÇÃO: VERIFICAR TOKEN DA PÁGINA DO QR
+// Protege o QR Code para ninguém aleatório logar seu WhatsApp.
+// ===============================
+function verificarTokenQr(req, res) {
+  if (!QR_PAGE_TOKEN) {
+    res.status(500).send(`
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>QR Code bloqueado</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; padding: 32px;">
+          <h2>QR Code bloqueado</h2>
+          <p>A variável <strong>QR_PAGE_TOKEN</strong> não está configurada no servidor.</p>
+          <p>Crie essa variável no Railway para liberar a página com segurança.</p>
+        </body>
+      </html>
+    `);
+
+    return false;
+  }
+
+  const tokenRecebido = String(req.query.token || "");
+
+  if (tokenRecebido !== QR_PAGE_TOKEN) {
+    res.status(403).send(`
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Acesso negado</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; padding: 32px;">
+          <h2>Acesso negado</h2>
+          <p>Token inválido ou ausente.</p>
+        </body>
+      </html>
+    `);
+
+    return false;
+  }
+
+  return true;
+}
+
+// ===============================
+// ROTA: PÁGINA DO QR CODE
+// Acesse assim:
+// https://SEU-BOT.up.railway.app/qr?token=SEU_TOKEN
+// ===============================
+app.get("/qr", (req, res) => {
+  if (!verificarTokenQr(req, res)) return;
+
+  const baseUrl = obterUrlBaseBot(req);
+  const token = encodeURIComponent(QR_PAGE_TOKEN);
+  const qrImagemUrl = `${baseUrl}/qr.png?token=${token}&t=${Date.now()}`;
+  const status = botPronto ? "conectado" : qrAtualTexto ? "aguardando_qr" : "iniciando";
+
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>QR Code WhatsApp - LabStudio</title>
+
+        <style>
+          * {
+            box-sizing: border-box;
+          }
+
+          body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: #f9fafb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+          }
+
+          .card {
+            width: 100%;
+            max-width: 460px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            border-radius: 18px;
+            padding: 28px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+          }
+
+          h1 {
+            font-size: 24px;
+            margin: 0 0 8px;
+          }
+
+          p {
+            color: #d1d5db;
+            line-height: 1.5;
+          }
+
+          .status {
+            display: inline-block;
+            margin: 12px 0 20px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-size: 14px;
+            background: #374151;
+          }
+
+          .qr-box {
+            background: #ffffff;
+            padding: 16px;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 12px 0;
+          }
+
+          .qr-box img {
+            width: 300px;
+            max-width: 100%;
+            height: auto;
+            display: block;
+          }
+
+          .success {
+            background: #064e3b;
+            color: #d1fae5;
+            border: 1px solid #065f46;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 18px;
+          }
+
+          .warning {
+            background: #78350f;
+            color: #fffbeb;
+            border: 1px solid #92400e;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 18px;
+          }
+
+          .small {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-top: 18px;
+          }
+
+          .button {
+            display: inline-block;
+            margin-top: 16px;
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+          }
+
+          code {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 2px 6px;
+          }
+        </style>
+      </head>
+
+      <body>
+        <main class="card">
+          <h1>QR Code WhatsApp</h1>
+          <p>Use o WhatsApp no celular para escanear e conectar o bot do LabStudio.</p>
+
+          <div class="status">
+            Status: <strong>${status}</strong>
+          </div>
+
+          ${
+            botPronto
+              ? `
+                <div class="success">
+                  <strong>✅ WhatsApp conectado.</strong>
+                  <p>O bot já está pronto para enviar e receber mensagens.</p>
+                </div>
+              `
+              : qrAtualTexto
+                ? `
+                  <div class="qr-box">
+                    <img src="${qrImagemUrl}" alt="QR Code WhatsApp" />
+                  </div>
+
+                  <p class="small">
+                    QR gerado em: ${qrGeradoEm ? new Date(qrGeradoEm).toLocaleString("pt-BR") : "não informado"}
+                  </p>
+
+                  <a class="button" href="${baseUrl}/qr?token=${token}">
+                    Atualizar QR
+                  </a>
+
+                  <p class="small">
+                    Se o QR expirar, aguarde alguns segundos e atualize esta página.
+                  </p>
+                `
+                : `
+                  <div class="warning">
+                    <strong>⏳ Nenhum QR disponível ainda.</strong>
+                    <p>O bot ainda está iniciando ou tentando restaurar uma sessão salva.</p>
+                    <p>Atualize a página em alguns segundos.</p>
+                  </div>
+
+                  <a class="button" href="${baseUrl}/qr?token=${token}">
+                    Atualizar página
+                  </a>
+                `
+          }
+        </main>
+      </body>
+    </html>
+  `);
+});
+
+// ===============================
+// ROTA: IMAGEM PNG DO QR CODE
+// Essa rota retorna uma imagem real do QR Code.
+// A página /qr usa essa imagem.
+// ===============================
+app.get("/qr.png", async (req, res) => {
+  if (!verificarTokenQr(req, res)) return;
+
+  if (!qrAtualTexto) {
+    return res.status(404).send("Nenhum QR Code disponível no momento.");
+  }
+
+  try {
+    const qrBuffer = await QRCode.toBuffer(qrAtualTexto, {
+      type: "png",
+      width: 420,
+      margin: 2,
+      errorCorrectionLevel: "M"
+    });
+
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+    res.send(qrBuffer);
+  } catch (err) {
+    console.error("❌ Erro ao gerar imagem do QR Code:", err);
+    res.status(500).send("Erro ao gerar imagem do QR Code.");
+  }
+});
+
+// ===============================
+// ROTA: STATUS DO BOT
+// Útil para testar no navegador.
+// ===============================
+app.get("/status", (req, res) => {
+  res.json({
+    ok: true,
+    botPronto,
+    temQrDisponivel: Boolean(qrAtualTexto),
+    qrGeradoEm,
+    publicSiteUrl: PUBLIC_SITE_URL,
+    publicBotUrl: PUBLIC_BOT_URL || null
+  });
+});
+
+// ===============================
+// QR CODE PARA LOGIN NO WHATSAPP
+// Agora NÃO imprimimos mais o QR no terminal.
+// Geramos um link para abrir o QR como imagem no navegador.
+// ===============================
+client.on("qr", async (qr) => {
+  try {
+    qrAtualTexto = qr;
+    qrGeradoEm = new Date().toISOString();
+
+    // Também geramos Data URL para deixar salvo em memória, caso você queira usar depois.
+    qrAtualDataUrl = await QRCode.toDataURL(qr, {
+      width: 420,
+      margin: 2,
+      errorCorrectionLevel: "M"
+    });
+
+    const baseUrl = obterUrlBaseBot();
+    const token = QR_PAGE_TOKEN ? encodeURIComponent(QR_PAGE_TOKEN) : "CONFIGURE_QR_PAGE_TOKEN";
+    const qrPageUrl = `${baseUrl}/qr?token=${token}`;
+    const qrImageUrl = `${baseUrl}/qr.png?token=${token}`;
+
+    console.log("📲 Novo QR Code gerado.");
+    console.log(`🔗 Página do QR: ${qrPageUrl}`);
+    console.log(`🖼️ Imagem direta: ${qrImageUrl}`);
+
+    if (!QR_PAGE_TOKEN) {
+      console.log("⚠️ Configure QR_PAGE_TOKEN no Railway para liberar a visualização do QR.");
+    }
+  } catch (err) {
+    console.error("❌ Erro ao preparar QR Code:", err);
+  }
 });
 
 // ===============================
@@ -165,6 +509,12 @@ client.on("qr", (qr) => {
 // ===============================
 client.on("ready", () => {
   botPronto = true;
+
+  // Quando conecta, limpamos o QR para não deixar QR antigo disponível.
+  qrAtualTexto = null;
+  qrAtualDataUrl = null;
+  qrGeradoEm = null;
+
   console.log("✅ NOVO MOTOR CONECTADO COM SUCESSO!");
 });
 
@@ -181,6 +531,12 @@ client.on("disconnected", (reason) => {
 // ===============================
 client.on("auth_failure", (msg) => {
   botPronto = false;
+
+  // Se falhar autenticação, provavelmente será necessário gerar novo QR.
+  qrAtualTexto = null;
+  qrAtualDataUrl = null;
+  qrGeradoEm = null;
+
   console.log("❌ Falha de autenticação:", msg);
 });
 
@@ -243,11 +599,11 @@ function gerarVariantesTelefone(valor) {
 
     variantes.add(n);
 
-    // Se tem 55, também testa sem 55
+    // Se tem 55, também testa sem 55.
     if (n.startsWith("55")) {
       variantes.add(n.slice(2));
     } else {
-      // Se não tem 55, também testa com 55
+      // Se não tem 55, também testa com 55.
       variantes.add("55" + n);
     }
   }
@@ -450,12 +806,12 @@ async function buscarUsuarioPorWhatsApp(msg) {
   try {
     const contato = await msg.getContact();
 
-    // Número do contato quando disponível
+    // Número do contato quando disponível.
     if (contato.number) {
       telefonesDetectados.push(contato.number);
     }
 
-    // ID interno do WhatsApp quando disponível
+    // ID interno do WhatsApp quando disponível.
     if (contato.id && contato.id.user) {
       telefonesDetectados.push(contato.id.user);
     }
@@ -463,13 +819,13 @@ async function buscarUsuarioPorWhatsApp(msg) {
     console.log("⚠️ Não consegui pegar contato:", err.message);
   }
 
-  // Fallback: pega o número direto do msg.from
-  // Exemplo: 5527997136155@c.us vira 5527997136155
+  // Fallback: pega o número direto do msg.from.
+  // Exemplo: 5527997136155@c.us vira 5527997136155.
   if (msg.from) {
     telefonesDetectados.push(String(msg.from).split("@")[0]);
   }
 
-  // Cria todas as variações possíveis do número da pessoa
+  // Cria todas as variações possíveis do número da pessoa.
   const variantesMensagem = [
     ...new Set(telefonesDetectados.flatMap(gerarVariantesTelefone))
   ];
@@ -477,8 +833,8 @@ async function buscarUsuarioPorWhatsApp(msg) {
   console.log("📱 Telefones detectados:", telefonesDetectados);
   console.log("🔎 Variantes para busca:", variantesMensagem);
 
-  // Busca todos os usuários cadastrados
-  // Fazemos assim para conseguir comparar mesmo que o telefone esteja salvo com máscara
+  // Busca todos os usuários cadastrados.
+  // Fazemos assim para conseguir comparar mesmo que o telefone esteja salvo com máscara.
   const { data: usuarios, error } = await supabase
     .from("usuarios")
     .select("*");
@@ -494,7 +850,7 @@ async function buscarUsuarioPorWhatsApp(msg) {
     };
   }
 
-  // Compara cada telefone do banco com as variações detectadas
+  // Compara cada telefone do banco com as variações detectadas.
   const usuarioEncontrado = (usuarios || []).find((usuario) => {
     const variantesBanco = gerarVariantesTelefone(usuario.telefone);
 
@@ -738,64 +1094,64 @@ app.post("/api/cadastro-online", async (req, res) => {
 
 // ===============================
 // AUTOATENDIMENTO DO WHATSAPP
-// Detecta palavras-chave e decide se envia o link
+// Detecta palavras-chave e decide se envia o link.
 // ===============================
 client.on("message", async (msg) => {
   try {
-  // Ignora mensagens enviadas pelo próprio bot
-  if (msg.fromMe) return;
+    // Ignora mensagens enviadas pelo próprio bot.
+    if (msg.fromMe) return;
 
-  // Ignora mensagens vazias
-  if (!msg.body) return;
+    // Ignora mensagens vazias.
+    if (!msg.body) return;
 
-  const mensagemRecebida = msg.body.toLowerCase();
+    const mensagemRecebida = msg.body.toLowerCase();
 
-  // Palavras que ativam o atendimento do LabStudio
-  const gatilhos = [
-    "estúdio",
-    "stúdio",
-    "studio",
-    "labstudio",
-    "labstúdio",
-    "estudio",
-    "gravar",
-    "música"
-  ];
+    // Palavras que ativam o atendimento do LabStudio.
+    const gatilhos = [
+      "estúdio",
+      "stúdio",
+      "studio",
+      "labstudio",
+      "labstúdio",
+      "estudio",
+      "gravar",
+      "música"
+    ];
 
-  const encontrouGatilho = gatilhos.some((palavra) =>
-    mensagemRecebida.includes(palavra)
-  );
-
-  // Se não encontrou gatilho, não faz nada
-  if (!encontrouGatilho) return;
-
-  console.log(`📩 Gatilho recebido de: ${msg.from}`);
-
-  // Busca o usuário no Supabase antes de mandar o link
-  const {
-    usuario,
-    telefonesDetectados,
-    variantesMensagem,
-    error
-  } = await buscarUsuarioPorWhatsApp(msg);
-
-  // Caso dê erro ao consultar Supabase
-  if (error) {
-    console.log("❌ Erro ao consultar cadastro:", error.message);
-
-    await client.sendMessage(
-      msg.from,
-      "No momento não consegui consultar seu cadastro. Tente novamente mais tarde ou procure a equipe do CRJ."
+    const encontrouGatilho = gatilhos.some((palavra) =>
+      mensagemRecebida.includes(palavra)
     );
 
-    return;
-  }
+    // Se não encontrou gatilho, não faz nada.
+    if (!encontrouGatilho) return;
 
-  // Se não encontrar o usuário, envia o link para cadastro online
-  if (!usuario) {
-    await client.sendMessage(
-      msg.from,
-      `Olá! Para agendar o LabStudio CRJ FLEXAL, é necessário estar cadastrado no CRJ.
+    console.log(`📩 Gatilho recebido de: ${msg.from}`);
+
+    // Busca o usuário no Supabase antes de mandar o link.
+    const {
+      usuario,
+      telefonesDetectados,
+      variantesMensagem,
+      error
+    } = await buscarUsuarioPorWhatsApp(msg);
+
+    // Caso dê erro ao consultar Supabase.
+    if (error) {
+      console.log("❌ Erro ao consultar cadastro:", error.message);
+
+      await client.sendMessage(
+        msg.from,
+        "No momento não consegui consultar seu cadastro. Tente novamente mais tarde ou procure a equipe do CRJ."
+      );
+
+      return;
+    }
+
+    // Se não encontrar o usuário, envia o link para cadastro online.
+    if (!usuario) {
+      await client.sendMessage(
+        msg.from,
+        `Olá! Para agendar o LabStudio CRJ FLEXAL, é necessário estar cadastrado no CRJ.
 
 Identificamos que este número ainda não consta em nosso cadastro.
 
@@ -803,85 +1159,85 @@ Você pode realizar seu cadastro online pelo link abaixo:
 ${PUBLIC_SITE_URL}/cadastro.html
 
 Após o envio, aguarde a análise da equipe do CRJ.`
-    );
+      );
 
-    console.log("❌ Usuário não cadastrado.");
-    console.log("📱 Telefones detectados:", telefonesDetectados);
-    console.log("🔎 Variantes testadas:", variantesMensagem);
+      console.log("❌ Usuário não cadastrado.");
+      console.log("📱 Telefones detectados:", telefonesDetectados);
+      console.log("🔎 Variantes testadas:", variantesMensagem);
 
-    return;
-  }
+      return;
+    }
 
-  // Normaliza status e faltas para evitar erro de comparação
-  const statusUsuario = String(usuario.status || "").toLowerCase();
-  const faltasUsuario = Number(usuario.faltas || 0);
+    // Normaliza status e faltas para evitar erro de comparação.
+    const statusUsuario = String(usuario.status || "").toLowerCase();
+    const faltasUsuario = Number(usuario.faltas || 0);
 
-  // Se estiver bloqueado ou tiver 2 faltas ou mais
-  if (statusUsuario === "bloqueado" || faltasUsuario >= 2) {
-    await client.sendMessage(
-      msg.from,
-      `Olá, ${usuario.nome || "jovem"}.
+    // Se estiver bloqueado ou tiver 2 faltas ou mais.
+    if (statusUsuario === "bloqueado" || faltasUsuario >= 2) {
+      await client.sendMessage(
+        msg.from,
+        `Olá, ${usuario.nome || "jovem"}.
 
 No momento, seu acesso ao agendamento do LabStudio está bloqueado por faltas anteriores.
 
 📍 Procure presencialmente a equipe do CRJ para regularizar sua situação.`
-    );
+      );
 
-    console.log(`🚫 Usuário bloqueado: ${usuario.nome} - ${usuario.telefone}`);
+      console.log(`🚫 Usuário bloqueado: ${usuario.nome} - ${usuario.telefone}`);
 
-    return;
-  }
+      return;
+    }
 
-  // Se o cadastro online existe, mas ainda não foi aprovado pela equipe
-  if (statusUsuario === "pendente" || usuario.cadastrado === false) {
-    await client.sendMessage(
-      msg.from,
-      "Seu cadastro online foi recebido e está aguardando análise da equipe do CRJ. Assim que for aprovado, você poderá solicitar o agendamento pelo WhatsApp."
-    );
+    // Se o cadastro online existe, mas ainda não foi aprovado pela equipe.
+    if (statusUsuario === "pendente" || usuario.cadastrado === false) {
+      await client.sendMessage(
+        msg.from,
+        "Seu cadastro online foi recebido e está aguardando análise da equipe do CRJ. Assim que for aprovado, você poderá solicitar o agendamento pelo WhatsApp."
+      );
 
-    console.log(`⏳ Usuário pendente de aprovação: ${usuario.nome} - ${usuario.telefone}`);
+      console.log(`⏳ Usuário pendente de aprovação: ${usuario.nome} - ${usuario.telefone}`);
 
-    return;
-  }
+      return;
+    }
 
-  // ===============================
-  // VERIFICAR DATA DE NASCIMENTO E IDADE
-  // Bloqueia antes de enviar o link quando o cadastro está incompleto.
-  // ===============================
-  if (!usuario.data_nascimento) {
-    await client.sendMessage(
-      msg.from,
-      `Olá, ${usuario.nome || "jovem"}.
+    // ===============================
+    // VERIFICAR DATA DE NASCIMENTO E IDADE
+    // Bloqueia antes de enviar o link quando o cadastro está incompleto.
+    // ===============================
+    if (!usuario.data_nascimento) {
+      await client.sendMessage(
+        msg.from,
+        `Olá, ${usuario.nome || "jovem"}.
 
 Seu cadastro precisa ser atualizado com a data de nascimento antes de acessar o agendamento do LabStudio.
 
 📍 Procure presencialmente a equipe do CRJ para atualizar seu cadastro.`
-    );
+      );
 
-    console.log(`⚠️ Usuário sem data de nascimento: ${usuario.nome} - ${usuario.telefone}`);
+      console.log(`⚠️ Usuário sem data de nascimento: ${usuario.nome} - ${usuario.telefone}`);
 
-    return;
-  }
+      return;
+    }
 
-  if (!idadePermitida(usuario.data_nascimento)) {
-    await client.sendMessage(
-      msg.from,
-      `Olá, ${usuario.nome || "jovem"}.
+    if (!idadePermitida(usuario.data_nascimento)) {
+      await client.sendMessage(
+        msg.from,
+        `Olá, ${usuario.nome || "jovem"}.
 
 O LabStudio atende jovens de 15 a 29 anos.
 
 📍 Procure presencialmente a equipe do CRJ para mais orientações.`
-    );
+      );
 
-    console.log(`🚫 Usuário fora da faixa etária: ${usuario.nome} - ${usuario.telefone}`);
+      console.log(`🚫 Usuário fora da faixa etária: ${usuario.nome} - ${usuario.telefone}`);
 
-    return;
-  }
-  // ===============================
-  // MENSAGEM PADRÃO DO LABSTUDIO
-  // Mantida exatamente no formato que você pediu
-  // ===============================
-  const resposta = `Olá! Você está em contato com o atendimento automático do LabStudio CRJ FLEXAL. 🎙️
+      return;
+    }
+
+    // ===============================
+    // MENSAGEM PADRÃO DO LABSTUDIO
+    // ===============================
+    const resposta = `Olá! Você está em contato com o atendimento automático do LabStudio CRJ FLEXAL. 🎙️
 
 Identificamos que você tem interesse em utilizar nossos serviços de estúdio. Para garantir a organização e o acesso de todos, nossos agendamentos são realizados exclusivamente através do nosso portal oficial.
 
@@ -895,11 +1251,11 @@ Orientações importantes:
 
 Aguardamos você para realizar sua gravação! 🔥`;
 
-  await client.sendMessage(msg.from, resposta);
+    await client.sendMessage(msg.from, resposta);
 
-  console.log(
-    `✅ Auto-resposta enviada para usuário cadastrado: ${usuario.nome} - ${usuario.telefone}`
-  );
+    console.log(
+      `✅ Auto-resposta enviada para usuário cadastrado: ${usuario.nome} - ${usuario.telefone}`
+    );
   } catch (err) {
     console.error("❌ Erro inesperado ao processar mensagem do WhatsApp:", err);
 
@@ -917,17 +1273,9 @@ Aguardamos você para realizar sua gravação! 🔥`;
 });
 
 // ===============================
-// ROTA DE TESTE
-// Serve para abrir no navegador e ver se o bot está online
-// Exemplo:
-// http://localhost:3001
-// ou link do ngrok
-// ===============================
-
-// ===============================
 // ROTA /notificar
-// O site chama essa rota quando alguém conclui o agendamento
-// Aqui o bot envia a notificação para seu número B
+// O site chama essa rota quando alguém conclui o agendamento.
+// Aqui o bot envia a notificação para seu número B.
 // ===============================
 app.post("/notificar", async (req, res) => {
   const { nome, telefone, data, horario } = req.body;
@@ -950,7 +1298,7 @@ app.post("/notificar", async (req, res) => {
     });
   }
 
-  // Mensagem que chega no seu WhatsApp pessoal/trabalho
+  // Mensagem que chega no seu WhatsApp pessoal/trabalho.
   const mensagem = `🚀 NOVO AGENDAMENTO
 
 Nome: ${nome}
@@ -973,6 +1321,7 @@ Horário: ${horario}`;
     await client.sendMessage(numeroB, mensagem);
 
     console.log(`✅ Notificação enviada com sucesso para ${mascararNumeroWhatsApp(numeroB)}.`);
+
     res.json({
       status: "enviado",
       destino: mascararNumeroWhatsApp(numeroB)
@@ -1032,10 +1381,15 @@ Aguardamos você para realizar sua gravação! 🔥`;
 client.initialize();
 
 // ===============================
-// INICIALIZA O SERVIDOR LOCAL
-// A porta vem do .env. Por padrão, use PORT=3001.
-// O ngrok precisa apontar para a mesma porta configurada.
+// INICIALIZA O SERVIDOR
+// No Railway, a porta vem automaticamente pela variável PORT.
 // ===============================
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
+
+  const baseUrl = obterUrlBaseBot();
+  const token = QR_PAGE_TOKEN ? encodeURIComponent(QR_PAGE_TOKEN) : "CONFIGURE_QR_PAGE_TOKEN";
+
+  console.log(`🔎 Status do bot: ${baseUrl}/status`);
+  console.log(`📲 Página do QR: ${baseUrl}/qr?token=${token}`);
 });
