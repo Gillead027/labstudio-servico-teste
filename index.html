@@ -21,6 +21,7 @@
       --border: #475569;
       --danger: #ef4444;
       --success: #22c55e;
+      --warning: #f59e0b;
     }
 
     /* ===============================
@@ -156,6 +157,74 @@
       background: rgba(20, 83, 45, 0.45);
     }
 
+    .aviso.aviso-tipo {
+      border-color: rgba(245, 158, 11, 0.5);
+      background: rgba(113, 63, 18, 0.45);
+    }
+
+    /* ===============================
+       VALIDAÇÃO EM TEMPO REAL
+       Mostra orientações curtas abaixo dos campos sem interromper o uso.
+    =============================== */
+    .campo-ajuda {
+      min-height: 1.1rem;
+      margin-top: 0.45rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .campo-ajuda.erro {
+      color: #fecaca;
+    }
+
+    .campo-ajuda.sucesso {
+      color: #bbf7d0;
+    }
+
+    input.campo-invalido,
+    select.campo-invalido {
+      border-color: rgba(239, 68, 68, 0.72);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+    }
+
+    /* ===============================
+       TOASTS VISUAIS
+       Notificações rápidas para substituir alerts simples.
+    =============================== */
+    .toast-container {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 20;
+      display: grid;
+      gap: 10px;
+      width: min(340px, calc(100vw - 28px));
+    }
+
+    .toast {
+      padding: 0.9rem 1rem;
+      border-radius: 0.85rem;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.96);
+      color: var(--text);
+      box-shadow: 0 18px 42px rgba(0,0,0,0.36);
+      line-height: 1.4;
+      animation: entrarSuave 0.22s ease both;
+    }
+
+    .toast.sucesso {
+      border-color: rgba(34, 197, 94, 0.48);
+    }
+
+    .toast.erro {
+      border-color: rgba(239, 68, 68, 0.52);
+    }
+
+    .toast.aviso-tipo {
+      border-color: rgba(245, 158, 11, 0.52);
+    }
+
     @keyframes entrarSuave {
       from {
         opacity: 0;
@@ -192,11 +261,19 @@
       input, select, button {
         font-size: 0.98rem;
       }
+
+      .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+      }
     }
   </style>
 </head>
 
 <body>
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
   <!-- ===============================
        FORMULÁRIO DE AGENDAMENTO
@@ -209,11 +286,13 @@
     <div class="form-group">
       <label for="nome">Nome do Artista / Grupo</label>
       <input type="text" id="nome" placeholder="Ex: MC Jovem">
+      <div id="ajudaNome" class="campo-ajuda"></div>
     </div>
 
     <div class="form-group">
       <label for="telefone">WhatsApp</label>
       <input type="text" id="telefone" placeholder="Ex: 27999999999">
+      <div id="ajudaTelefone" class="campo-ajuda"></div>
     </div>
 
     <div class="form-group">
@@ -260,15 +339,42 @@
     const selectHorario = document.getElementById("horario");
     const btnAgendar = document.getElementById("btn");
     const aviso = document.getElementById("aviso");
+    const toastContainer = document.getElementById("toastContainer");
+    const ajudaNome = document.getElementById("ajudaNome");
+    const ajudaTelefone = document.getElementById("ajudaTelefone");
 
     // ===============================
     // FUNÇÃO: MOSTRAR AVISO VISUAL
-    // Exibe mensagens importantes dentro do card e mantém o alert como apoio.
+    // Exibe mensagens importantes dentro do card.
     // ===============================
     function mostrarAviso(mensagem, tipo = "erro") {
       aviso.innerText = mensagem;
-      aviso.className = `aviso ${tipo}`;
+      aviso.className = `aviso ${tipo === "aviso" ? "aviso-tipo" : tipo}`;
       aviso.style.display = "block";
+    }
+
+    // ===============================
+    // FUNÇÃO: MOSTRAR TOAST
+    // Cria uma notificação visual rápida sem usar alert do navegador.
+    // ===============================
+    function mostrarToast(mensagem, tipo = "erro") {
+      const toast = document.createElement("div");
+      toast.className = `toast ${tipo === "aviso" ? "aviso-tipo" : tipo}`;
+      toast.textContent = mensagem;
+      toastContainer.appendChild(toast);
+
+      setTimeout(() => {
+        toast.remove();
+      }, 4200);
+    }
+
+    // ===============================
+    // FUNÇÃO: ESTADO DE LOADING DO BOTÃO
+    // Desabilita o botão e troca o texto enquanto a ação está em andamento.
+    // ===============================
+    function definirLoadingBotao(botao, carregando, textoCarregando, textoNormal) {
+      botao.disabled = carregando;
+      botao.innerText = carregando ? textoCarregando : textoNormal;
     }
 
     // ===============================
@@ -326,6 +432,57 @@
     // ===============================
     function limparTelefone(valor) {
       return String(valor || "").replace(/\D/g, "");
+    }
+
+    // ===============================
+    // FUNÇÕES: VALIDAÇÃO EM TEMPO REAL
+    // Orientam o jovem antes do envio final do agendamento.
+    // ===============================
+    function atualizarAjuda(campo, elementoAjuda, mensagem, tipo = "") {
+      elementoAjuda.textContent = mensagem;
+      elementoAjuda.className = `campo-ajuda ${tipo}`;
+      campo.classList.toggle("campo-invalido", tipo === "erro");
+    }
+
+    function validarNomeTempoReal() {
+      const nome = inputNome.value.trim();
+
+      if (!nome) {
+        atualizarAjuda(inputNome, ajudaNome, "Informe o nome do artista ou grupo.", "erro");
+        return false;
+      }
+
+      if (nome.length < 2) {
+        atualizarAjuda(inputNome, ajudaNome, "O nome parece curto demais.", "erro");
+        return false;
+      }
+
+      atualizarAjuda(inputNome, ajudaNome, "Nome preenchido.", "sucesso");
+      return true;
+    }
+
+    function validarTelefoneTempoReal() {
+      const telefone = limparTelefone(inputTelefone.value);
+
+      if (!telefone) {
+        atualizarAjuda(inputTelefone, ajudaTelefone, "Informe um WhatsApp com DDD.", "erro");
+        return false;
+      }
+
+      if (telefone.length < 10) {
+        atualizarAjuda(inputTelefone, ajudaTelefone, "Telefone incompleto. Use DDD + número.", "erro");
+        return false;
+      }
+
+      atualizarAjuda(inputTelefone, ajudaTelefone, "Telefone preenchido.", "sucesso");
+      return true;
+    }
+
+    function validarFormularioTempoReal() {
+      const nomeValido = validarNomeTempoReal();
+      const telefoneValido = validarTelefoneTempoReal();
+
+      return nomeValido && telefoneValido;
     }
 
     // ===============================
@@ -409,7 +566,7 @@
       // ===============================
       if (![2, 4].includes(diaSemana)) {
         mostrarAviso("O LabStudio funciona apenas às terças e quintas-feiras.");
-        alert("O LabStudio funciona apenas às terças e quintas-feiras.");
+        mostrarToast("O LabStudio funciona apenas às terças e quintas-feiras.", "aviso");
         inputData.value = "";
         selectHorario.innerHTML = '<option value="">Dia indisponível</option>';
         return;
@@ -420,7 +577,7 @@
       // ===============================
       if (datasBloqueadas.includes(dataSelecionada)) {
         mostrarAviso("Esta data está reservada para evento interno ou feriado.");
-        alert("Esta data está reservada para evento interno ou feriado.");
+        mostrarToast("Esta data está reservada para evento interno ou feriado.", "aviso");
         inputData.value = "";
         selectHorario.innerHTML = '<option value="">Dia indisponível</option>';
         return;
@@ -460,7 +617,7 @@
 
       } catch (err) {
         mostrarAviso("Erro ao buscar horários: " + err.message);
-        alert("Erro ao buscar horários: " + err.message);
+        mostrarToast("Erro ao buscar horários: " + err.message, "erro");
         selectHorario.innerHTML = '<option value="">Erro ao consultar agenda</option>';
       }
     });
@@ -483,14 +640,15 @@
       // ===============================
       // VALIDAÇÃO SIMPLES DOS CAMPOS
       // ===============================
-      if (!nome || !telefone || !dataStr || !horario) {
+      const camposBasicosValidos = validarFormularioTempoReal();
+
+      if (!camposBasicosValidos || !dataStr || !horario) {
         mostrarAviso("Preencha todos os campos corretamente.");
-        alert("Preencha todos os campos corretamente.");
+        mostrarToast("Preencha todos os campos corretamente.", "aviso");
         return;
       }
 
-      btnAgendar.disabled = true;
-      btnAgendar.innerText = "Agendando...";
+      definirLoadingBotao(btnAgendar, true, "Agendando...", "Confirmar Agendamento");
 
       try {
         // ===============================
@@ -542,16 +700,21 @@
         const mensagemSucesso = resultadoAgendamento.mensagem || `Confirmado, ${nome}! 🔥\nTe esperamos dia ${dataStr} às ${horario}.`;
 
         mostrarAviso(mensagemSucesso, "sucesso");
-        alert(mensagemSucesso);
-        location.reload();
+        mostrarToast(mensagemSucesso, "sucesso");
+
+        setTimeout(() => {
+          location.reload();
+        }, 1300);
 
       } catch (err) {
         mostrarAviso("Erro ao salvar: " + err.message);
-        alert("Erro ao salvar: " + err.message);
-        btnAgendar.disabled = false;
-        btnAgendar.innerText = "Confirmar Agendamento";
+        mostrarToast("Erro ao salvar: " + err.message, "erro");
+        definirLoadingBotao(btnAgendar, false, "Agendando...", "Confirmar Agendamento");
       }
     });
+
+    inputNome.addEventListener("input", validarNomeTempoReal);
+    inputTelefone.addEventListener("input", validarTelefoneTempoReal);
   </script>
 </body>
 </html>

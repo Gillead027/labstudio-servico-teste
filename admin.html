@@ -225,6 +225,26 @@
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
     }
 
+    .campo-ajuda {
+      min-height: 1.05rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .campo-ajuda.erro {
+      color: #fecaca;
+    }
+
+    .campo-ajuda.sucesso {
+      color: #bbf7d0;
+    }
+
+    input.campo-invalido {
+      border-color: rgba(239, 68, 68, 0.72);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+    }
+
     button {
       border: none;
       border-radius: 8px;
@@ -325,6 +345,22 @@
       margin-bottom: 8px;
       line-height: 1.4;
       font-size: 0.95rem;
+    }
+
+    /* ===============================
+       LOGS ADMINISTRATIVOS
+       Mantém o histórico recente legível dentro da aba Relatórios.
+    =============================== */
+    .log-admin-meta {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+
+    .log-admin-descricao {
+      color: var(--text);
+      line-height: 1.5;
     }
 
     /* ===============================
@@ -511,6 +547,54 @@
       text-align: center;
     }
 
+    .vazio strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .vazio span {
+      display: block;
+      line-height: 1.45;
+    }
+
+    /* ===============================
+       TOASTS VISUAIS
+       Notificações rápidas para sucesso, erro e aviso no painel.
+    =============================== */
+    .toast-container {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 50;
+      display: grid;
+      gap: 10px;
+      width: min(360px, calc(100vw - 28px));
+    }
+
+    .toast {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.96);
+      color: var(--text);
+      box-shadow: var(--shadow);
+      line-height: 1.45;
+      animation: entrarSuave 0.22s ease both;
+    }
+
+    .toast.sucesso {
+      border-color: rgba(34, 197, 94, 0.5);
+    }
+
+    .toast.erro {
+      border-color: rgba(239, 68, 68, 0.55);
+    }
+
+    .toast.aviso {
+      border-color: rgba(245, 158, 11, 0.55);
+    }
+
     /* ===============================
        ANIMAÇÕES E RESPONSIVIDADE
        Melhoram a leitura do painel em desktop e celular.
@@ -560,11 +644,19 @@
       .card {
         border-radius: 10px;
       }
+
+      .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+      }
     }
   </style>
 </head>
 
 <body>
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
 
   <!-- ===============================
        TELA DE LOGIN
@@ -739,16 +831,19 @@
           <div class="grupo">
             <label for="novoNome">Nome</label>
             <input type="text" id="novoNome" placeholder="Ex: MC Jovem">
+            <div id="ajudaNovoNome" class="campo-ajuda"></div>
           </div>
 
           <div class="grupo">
             <label for="novoTelefone">WhatsApp</label>
             <input type="text" id="novoTelefone" placeholder="Ex: 27999999999">
+            <div id="ajudaNovoTelefone" class="campo-ajuda"></div>
           </div>
 
           <div class="grupo">
             <label for="novaDataNascimento">Data de nascimento</label>
             <input type="date" id="novaDataNascimento">
+            <div id="ajudaNovaDataNascimento" class="campo-ajuda"></div>
           </div>
 
           <div class="grupo">
@@ -795,6 +890,20 @@
       <div id="painelRelatorios" class="painel-resumo">
         <div class="vazio">Carregando relatórios...</div>
       </div>
+
+      <!-- ===============================
+           LOGS ADMINISTRATIVOS
+           Mostra as ações recentes feitas por administradores.
+      =============================== -->
+      <div class="painel-usuarios">
+        <div class="usuarios-topo">
+          <h2>Logs administrativos</h2>
+        </div>
+
+        <div id="conteudoLogsAdmin">
+          <div class="vazio">Carregando logs administrativos...</div>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -823,6 +932,7 @@
     // ===============================
     const loginOverlay = document.getElementById("loginOverlay");
     const painelAdmin = document.getElementById("painelAdmin");
+    const toastContainer = document.getElementById("toastContainer");
     const emailAdmin = document.getElementById("emailAdmin");
     const senhaAdmin = document.getElementById("senhaAdmin");
     const btnEntrar = document.getElementById("btnEntrar");
@@ -839,6 +949,7 @@
     const conteudoBloqueados = document.getElementById("conteudoBloqueados");
     const conteudoCadastrosOnline = document.getElementById("conteudoCadastrosOnline");
     const conteudoUsuarios = document.getElementById("conteudoUsuarios");
+    const conteudoLogsAdmin = document.getElementById("conteudoLogsAdmin");
     const dashboardAgendamentos = document.getElementById("dashboardAgendamentos");
     const filtroBusca = document.getElementById("filtroBusca");
     const filtroData = document.getElementById("filtroData");
@@ -858,6 +969,9 @@
     const novoStatus = document.getElementById("novoStatus");
     const novoCadastrado = document.getElementById("novoCadastrado");
     const btnSalvarUsuario = document.getElementById("btnSalvarUsuario");
+    const ajudaNovoNome = document.getElementById("ajudaNovoNome");
+    const ajudaNovoTelefone = document.getElementById("ajudaNovoTelefone");
+    const ajudaNovaDataNascimento = document.getElementById("ajudaNovaDataNascimento");
     let adminValidado = false;
 
     // ===============================
@@ -876,6 +990,45 @@
     function limparErroLogin() {
       loginErro.innerText = "";
       loginErro.style.display = "none";
+    }
+
+    // ===============================
+    // FUNÇÃO: MOSTRAR TOAST
+    // Exibe mensagens rápidas sem interromper o fluxo do painel.
+    // ===============================
+    function mostrarToast(mensagem, tipo = "erro") {
+      const toast = document.createElement("div");
+      toast.className = `toast ${tipo}`;
+      toast.textContent = mensagem;
+      toastContainer.appendChild(toast);
+
+      setTimeout(() => {
+        toast.remove();
+      }, 4600);
+    }
+
+    // ===============================
+    // FUNÇÃO: ESTADO DE LOADING DO BOTÃO
+    // Centraliza o padrão visual de ações em processamento.
+    // ===============================
+    function definirLoadingBotao(botao, carregando, textoCarregando, textoNormal) {
+      if (!botao) return;
+
+      botao.disabled = carregando;
+      botao.innerText = carregando ? textoCarregando : textoNormal;
+    }
+
+    // ===============================
+    // FUNÇÃO: MENSAGEM DE ESTADO VAZIO
+    // Cria blocos mais amigáveis para listas sem resultados.
+    // ===============================
+    function mensagemVazio(titulo, descricao) {
+      return `
+        <div class="vazio">
+          <strong>${escaparHtml(titulo)}</strong>
+          <span>${escaparHtml(descricao)}</span>
+        </div>
+      `;
     }
 
     // ===============================
@@ -918,6 +1071,7 @@
         painelAdmin.style.display = "none";
         loginOverlay.style.display = "flex";
         mostrarErroLogin("Usuário sem permissão administrativa.");
+        mostrarToast("Usuário sem permissão administrativa.", "erro");
         emailAdmin.focus();
         return;
       }
@@ -997,6 +1151,7 @@
 
       if (!emailDigitado || !senhaDigitada) {
         mostrarErroLogin("Digite email e senha.");
+        mostrarToast("Digite email e senha.", "aviso");
         return;
       }
 
@@ -1011,6 +1166,7 @@
 
         if (error || !data.user) {
           mostrarErroLogin("Email ou senha inválidos.");
+          mostrarToast("Email ou senha inválidos.", "erro");
           senhaAdmin.value = "";
           senhaAdmin.focus();
           return;
@@ -1020,6 +1176,7 @@
       } catch (err) {
         console.error("Erro inesperado ao fazer login administrativo:", err);
         mostrarErroLogin("Email ou senha inválidos.");
+        mostrarToast("Email ou senha inválidos.", "erro");
       } finally {
         btnEntrar.disabled = false;
         btnEntrar.innerText = "Entrar";
@@ -1040,6 +1197,75 @@
       }
 
       location.reload();
+    }
+
+    // ===============================
+    // FUNÇÃO: REGISTRAR LOG ADMINISTRATIVO
+    // Grava auditoria sem interromper a ação principal caso o log falhe.
+    // ===============================
+    async function registrarLogAdmin(acao, tabela, registroId, descricao) {
+      try {
+        const { data: dadosAuth, error: erroAuth } = await client.auth.getUser();
+        const usuarioAuth = dadosAuth && dadosAuth.user ? dadosAuth.user : null;
+
+        if (erroAuth || !usuarioAuth) {
+          console.warn("Não foi possível identificar o admin para registrar log:", erroAuth ? erroAuth.message : "usuário ausente");
+          return;
+        }
+
+        // Busca o registro administrativo ligado ao usuário autenticado.
+        // Se não encontrar, usa o próprio id do Auth como fallback para não travar a ação.
+        const { data: adminAtual, error: erroAdmin } = await client
+          .from("admin_users")
+          .select("id, user_id")
+          .eq("user_id", usuarioAuth.id)
+          .maybeSingle();
+
+        if (erroAdmin) {
+          console.warn("Não foi possível consultar admin_users para log:", erroAdmin.message);
+        }
+
+        const baseLog = {
+          acao,
+          tabela,
+          registro_id: registroId ? String(registroId) : null,
+          descricao,
+          criado_em: new Date().toISOString()
+        };
+
+        // Primeiro usa o id do Supabase Auth, que costuma ser usado em policies com auth.uid().
+        const { error: erroLogAuth } = await client
+          .from("admin_logs")
+          .insert([{
+            ...baseLog,
+            admin_user_id: usuarioAuth.id
+          }]);
+
+        if (!erroLogAuth) {
+          return;
+        }
+
+        // Se a tabela admin_logs estiver ligada ao id da tabela admin_users, tenta o fallback.
+        if (adminAtual && adminAtual.id && adminAtual.id !== usuarioAuth.id) {
+          const { error: erroLogAdmin } = await client
+            .from("admin_logs")
+            .insert([{
+              ...baseLog,
+              admin_user_id: adminAtual.id
+            }]);
+
+          if (!erroLogAdmin) {
+            return;
+          }
+
+          console.warn("Não foi possível registrar log administrativo:", erroLogAdmin.message);
+          return;
+        }
+
+        console.warn("Não foi possível registrar log administrativo:", erroLogAuth.message);
+      } catch (err) {
+        console.warn("Falha inesperada ao registrar log administrativo:", err);
+      }
     }
 
     // ===============================
@@ -1193,6 +1419,78 @@
     // ===============================
     function limparTelefone(valor) {
       return String(valor || "").replace(/\D/g, "");
+    }
+
+    // ===============================
+    // FUNÇÕES: VALIDAÇÃO EM TEMPO REAL DO CADASTRO MANUAL
+    // Ajuda a equipe a identificar erros antes de salvar o usuário.
+    // ===============================
+    function atualizarAjudaCampo(campo, elementoAjuda, mensagem, tipo = "") {
+      if (!elementoAjuda) return;
+
+      elementoAjuda.textContent = mensagem;
+      elementoAjuda.className = `campo-ajuda ${tipo}`;
+      campo.classList.toggle("campo-invalido", tipo === "erro");
+    }
+
+    function validarNovoNomeTempoReal() {
+      const nome = novoNome.value.trim();
+
+      if (!nome) {
+        atualizarAjudaCampo(novoNome, ajudaNovoNome, "Informe o nome do jovem.", "erro");
+        return false;
+      }
+
+      if (nome.length < 2) {
+        atualizarAjudaCampo(novoNome, ajudaNovoNome, "Nome curto demais.", "erro");
+        return false;
+      }
+
+      atualizarAjudaCampo(novoNome, ajudaNovoNome, "Nome preenchido.", "sucesso");
+      return true;
+    }
+
+    function validarNovoTelefoneTempoReal() {
+      const telefone = limparTelefone(novoTelefone.value);
+
+      if (!telefone) {
+        atualizarAjudaCampo(novoTelefone, ajudaNovoTelefone, "Informe um WhatsApp com DDD.", "erro");
+        return false;
+      }
+
+      if (telefone.length < 10) {
+        atualizarAjudaCampo(novoTelefone, ajudaNovoTelefone, "Telefone incompleto. Use DDD + número.", "erro");
+        return false;
+      }
+
+      atualizarAjudaCampo(novoTelefone, ajudaNovoTelefone, "Telefone preenchido.", "sucesso");
+      return true;
+    }
+
+    function validarNovaDataNascimentoTempoReal() {
+      const dataNascimento = novaDataNascimento.value;
+      const idade = calcularIdade(dataNascimento);
+
+      if (!dataNascimento || idade === null) {
+        atualizarAjudaCampo(novaDataNascimento, ajudaNovaDataNascimento, "Informe uma data de nascimento válida.", "erro");
+        return false;
+      }
+
+      if (!idadePermitida(dataNascimento)) {
+        atualizarAjudaCampo(novaDataNascimento, ajudaNovaDataNascimento, `Idade calculada: ${idade} anos. O CRJ atende jovens de 15 a 29 anos.`, "erro");
+        return false;
+      }
+
+      atualizarAjudaCampo(novaDataNascimento, ajudaNovaDataNascimento, `Idade calculada: ${idade} anos.`, "sucesso");
+      return true;
+    }
+
+    function validarCadastroManualTempoReal() {
+      const nomeValido = validarNovoNomeTempoReal();
+      const telefoneValido = validarNovoTelefoneTempoReal();
+      const dataValida = validarNovaDataNascimentoTempoReal();
+
+      return nomeValido && telefoneValido && dataValida;
     }
 
     // ===============================
@@ -1432,7 +1730,7 @@
       const usuario = await buscarUsuarioPorTelefone(telefone);
 
       if (!usuario) {
-        alert("Não encontrei o usuário na tabela usuarios para atualizar presença/falta.");
+        mostrarToast("Não encontrei o usuário na tabela usuarios para atualizar presença/falta.", "erro");
         return false;
       }
 
@@ -1462,7 +1760,7 @@
         .eq("id", usuario.id);
 
       if (error) {
-        alert("Erro ao atualizar usuário: " + error.message);
+        mostrarToast("Erro ao atualizar usuário: " + error.message, "erro");
         return false;
       }
 
@@ -1490,13 +1788,8 @@
       const status = novoStatus.value;
       const cadastrado = novoCadastrado.value === "true";
 
-      if (!nome || !telefoneLimpo || !dataNascimento) {
-        alert("Preencha nome, telefone e data de nascimento.");
-        return;
-      }
-
-      if (telefoneLimpo.length < 10) {
-        alert("Telefone parece incompleto. Confira o número antes de salvar.");
+      if (!validarCadastroManualTempoReal() || !nome || !telefoneLimpo || !dataNascimento) {
+        mostrarToast("Preencha nome, telefone e data de nascimento antes de salvar.", "aviso");
         return;
       }
 
@@ -1505,12 +1798,11 @@
       // O CRJ atende jovens de 15 a 29 anos.
       // ===============================
       if (!idadePermitida(dataNascimento)) {
-        alert("O CRJ atende jovens de 15 a 29 anos.");
+        mostrarToast("O CRJ atende jovens de 15 a 29 anos.", "aviso");
         return;
       }
 
-      btnSalvarUsuario.disabled = true;
-      btnSalvarUsuario.innerText = "Salvando...";
+      definirLoadingBotao(btnSalvarUsuario, true, "Salvando...", "Salvar usuário");
 
       try {
         // ===============================
@@ -1520,7 +1812,7 @@
         const usuarioExistente = await buscarUsuarioPorTelefone(telefoneLimpo);
 
         if (usuarioExistente) {
-          alert(`Este telefone já está cadastrado para: ${usuarioExistente.nome || "Sem nome"}`);
+          mostrarToast(`Este telefone já está cadastrado para: ${usuarioExistente.nome || "Sem nome"}`, "erro");
           return;
         }
 
@@ -1543,11 +1835,11 @@
           }]);
 
         if (error) {
-          alert("Erro ao cadastrar usuário: " + error.message);
+          mostrarToast("Erro ao cadastrar usuário: " + error.message, "erro");
           return;
         }
 
-        alert("Usuário cadastrado com sucesso!");
+        mostrarToast("Usuário cadastrado com sucesso!", "sucesso");
 
         // ===============================
         // LIMPA O FORMULÁRIO
@@ -1557,14 +1849,19 @@
         novaDataNascimento.value = "";
         novoStatus.value = "ativo";
         novoCadastrado.value = "true";
+        ajudaNovoNome.textContent = "";
+        ajudaNovoTelefone.textContent = "";
+        ajudaNovaDataNascimento.textContent = "";
+        novoNome.classList.remove("campo-invalido");
+        novoTelefone.classList.remove("campo-invalido");
+        novaDataNascimento.classList.remove("campo-invalido");
 
         recarregarPainel();
 
       } catch (err) {
-        alert("Erro ao cadastrar usuário: " + err.message);
+        mostrarToast("Erro ao cadastrar usuário: " + err.message, "erro");
       } finally {
-        btnSalvarUsuario.disabled = false;
-        btnSalvarUsuario.innerText = "Salvar usuário";
+        definirLoadingBotao(btnSalvarUsuario, false, "Salvando...", "Salvar usuário");
       }
     }
 
@@ -1727,6 +2024,55 @@
     }
 
     // ===============================
+    // FUNÇÃO: CARREGAR LOGS ADMINISTRATIVOS
+    // Lista os registros recentes de auditoria na aba Relatórios.
+    // ===============================
+    async function carregarLogsAdmin() {
+      conteudoLogsAdmin.innerHTML = '<div class="vazio">Carregando logs administrativos...</div>';
+
+      const { data, error } = await client
+        .from("admin_logs")
+        .select("acao, tabela, registro_id, descricao, criado_em")
+        .order("criado_em", { ascending: false })
+        .limit(30);
+
+      if (error) {
+        conteudoLogsAdmin.innerHTML = `<div class="vazio">Erro ao carregar logs administrativos: ${error.message}</div>`;
+        return;
+      }
+
+      const logs = data || [];
+
+      if (logs.length === 0) {
+        conteudoLogsAdmin.innerHTML = mensagemVazio(
+          "Nenhum log administrativo registrado ainda.",
+          "As próximas ações importantes feitas no painel aparecerão aqui."
+        );
+        return;
+      }
+
+      conteudoLogsAdmin.innerHTML = "";
+
+      logs.forEach(log => {
+        const item = document.createElement("div");
+        item.className = "usuario-card";
+
+        item.innerHTML = `
+          <div class="log-admin-meta">
+            ${escaparHtml(formatarDataHora(log.criado_em))}<br>
+            Ação: ${escaparHtml(log.acao || "-")} | Tabela: ${escaparHtml(log.tabela || "-")}
+          </div>
+
+          <div class="log-admin-descricao">
+            ${escaparHtml(log.descricao || "Sem descrição")}
+          </div>
+        `;
+
+        conteudoLogsAdmin.appendChild(item);
+      });
+    }
+
+    // ===============================
     // FUNÇÃO: CARREGAR USUÁRIOS BLOQUEADOS
     // Mostra área específica para desbloquear usuários manualmente.
     // ===============================
@@ -1749,7 +2095,10 @@
       );
 
       if (bloqueadosFiltrados.length === 0) {
-        conteudoBloqueados.innerHTML = '<div class="vazio">Nenhum usuário bloqueado encontrado.</div>';
+        conteudoBloqueados.innerHTML = mensagemVazio(
+          "Nenhum usuário bloqueado.",
+          "Ótimo: não há jovens bloqueados nos filtros atuais."
+        );
         return;
       }
 
@@ -1784,11 +2133,11 @@
         const btnDesbloquear = item.querySelector(".btn-desbloquear");
 
         btnEditar.addEventListener("click", () => {
-          editarUsuario(usuario);
+          editarUsuario(usuario, btnEditar);
         });
 
         btnDesbloquear.addEventListener("click", () => {
-          desbloquearUsuario(usuario.id, usuario.nome);
+          desbloquearUsuario(usuario.id, usuario.nome, btnDesbloquear);
         });
 
         conteudoBloqueados.appendChild(item);
@@ -1832,7 +2181,10 @@
         .filter(usuario => usuarioCombinaComBusca(usuario));
 
       if (pendentes.length === 0) {
-        conteudoCadastrosOnline.innerHTML = '<div class="vazio">Nenhum cadastro online pendente encontrado.</div>';
+        conteudoCadastrosOnline.innerHTML = mensagemVazio(
+          "Tudo em dia por aqui.",
+          "Não há cadastros online pendentes de análise no momento."
+        );
         return;
       }
 
@@ -1865,11 +2217,11 @@
         const btnRejeitar = item.querySelector(".btn-cancelar");
 
         btnAprovar.addEventListener("click", () => {
-          aprovarCadastroOnline(usuario);
+          aprovarCadastroOnline(usuario, btnAprovar);
         });
 
         btnRejeitar.addEventListener("click", () => {
-          rejeitarCadastroOnline(usuario.id, usuario.nome);
+          rejeitarCadastroOnline(usuario.id, usuario.nome, btnRejeitar);
         });
 
         conteudoCadastrosOnline.appendChild(item);
@@ -1880,7 +2232,7 @@
     // FUNÇÃO: APROVAR CADASTRO ONLINE
     // Libera o jovem para receber o link do bot e usar o agendamento.
     // ===============================
-    async function aprovarCadastroOnline(usuario) {
+    async function aprovarCadastroOnline(usuario, botao = null) {
       const usuarioId = usuario.id;
       const nomeUsuario = usuario.nome;
 
@@ -1890,25 +2242,34 @@
 
       if (!confirmar) return;
 
-      const { error } = await client
-        .from("usuarios")
-        .update({
-          status: "ativo",
-          cadastrado: true,
-          observacao: "Cadastro online aprovado pela equipe"
-        })
-        .eq("id", usuarioId);
+      definirLoadingBotao(botao, true, "Aprovando...", "Aprovar cadastro");
 
-      if (error) {
-        alert("Erro ao aprovar cadastro: " + error.message);
-        return;
-      }
-
-      // ===============================
-      // NOTIFICAR APROVAÇÃO PELO WHATSAPP
-      // O servidor local usa o bot conectado para enviar o link de agendamento.
-      // ===============================
       try {
+        const { error } = await client
+          .from("usuarios")
+          .update({
+            status: "ativo",
+            cadastrado: true,
+            observacao: "Cadastro online aprovado pela equipe"
+          })
+          .eq("id", usuarioId);
+
+        if (error) {
+          mostrarToast("Erro ao aprovar cadastro: " + error.message, "erro");
+          return;
+        }
+
+        await registrarLogAdmin(
+          "aprovar_cadastro_online",
+          "usuarios",
+          usuarioId,
+          `Aprovou o cadastro online de ${nomeUsuario || "usuário sem nome"} (${usuario.telefone || "telefone não informado"}).`
+        );
+
+        // ===============================
+        // NOTIFICAR APROVAÇÃO PELO WHATSAPP
+        // O servidor local usa o bot conectado para enviar o link de agendamento.
+        // ===============================
         const resposta = await fetch("/notificar-aprovacao", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1922,10 +2283,12 @@
           throw new Error("Bot indisponível ou falha no envio.");
         }
 
-        alert("Cadastro aprovado com sucesso! A mensagem com o link de agendamento foi enviada pelo WhatsApp.");
+        mostrarToast("Cadastro aprovado. A mensagem com o link foi enviada pelo WhatsApp.", "sucesso");
       } catch (zapError) {
         console.warn("Cadastro aprovado, mas a mensagem no WhatsApp falhou:", zapError);
-        alert("Cadastro aprovado com sucesso, mas não consegui enviar a mensagem pelo WhatsApp. Verifique se o bot está online.");
+        mostrarToast("Cadastro aprovado, mas não consegui enviar a mensagem pelo WhatsApp. Verifique se o bot está online.", "aviso");
+      } finally {
+        definirLoadingBotao(botao, false, "Aprovando...", "Aprovar cadastro");
       }
 
       recarregarPainel();
@@ -1935,7 +2298,7 @@
     // FUNÇÃO: REJEITAR CADASTRO ONLINE
     // Usa status bloqueado para manter compatibilidade com as regras atuais.
     // ===============================
-    async function rejeitarCadastroOnline(usuarioId, nomeUsuario) {
+    async function rejeitarCadastroOnline(usuarioId, nomeUsuario, botao = null) {
       const motivo = prompt(
         `Informe o motivo da rejeição de ${nomeUsuario || "este usuário"}:`
       );
@@ -1945,26 +2308,39 @@
       const motivoLimpo = motivo.trim();
 
       if (!motivoLimpo) {
-        alert("Informe um motivo para rejeitar o cadastro.");
+        mostrarToast("Informe um motivo para rejeitar o cadastro.", "aviso");
         return;
       }
 
-      const { error } = await client
-        .from("usuarios")
-        .update({
-          status: "bloqueado",
-          cadastrado: false,
-          observacao: `Cadastro online rejeitado pela equipe. Motivo: ${motivoLimpo}`
-        })
-        .eq("id", usuarioId);
+      definirLoadingBotao(botao, true, "Rejeitando...", "Rejeitar cadastro");
 
-      if (error) {
-        alert("Erro ao rejeitar cadastro: " + error.message);
-        return;
+      try {
+        const { error } = await client
+          .from("usuarios")
+          .update({
+            status: "bloqueado",
+            cadastrado: false,
+            observacao: `Cadastro online rejeitado pela equipe. Motivo: ${motivoLimpo}`
+          })
+          .eq("id", usuarioId);
+
+        if (error) {
+          mostrarToast("Erro ao rejeitar cadastro: " + error.message, "erro");
+          return;
+        }
+
+        await registrarLogAdmin(
+          "rejeitar_cadastro_online",
+          "usuarios",
+          usuarioId,
+          `Rejeitou o cadastro online de ${nomeUsuario || "usuário sem nome"}. Motivo: ${motivoLimpo}.`
+        );
+
+        mostrarToast("Cadastro rejeitado com sucesso!", "sucesso");
+        recarregarPainel();
+      } finally {
+        definirLoadingBotao(botao, false, "Rejeitando...", "Rejeitar cadastro");
       }
-
-      alert("Cadastro rejeitado com sucesso!");
-      recarregarPainel();
     }
 
     // ===============================
@@ -1989,7 +2365,10 @@
       );
 
       if (usuariosFiltrados.length === 0) {
-        conteudoUsuarios.innerHTML = '<div class="vazio">Nenhum usuário encontrado.</div>';
+        conteudoUsuarios.innerHTML = mensagemVazio(
+          "Nenhum usuário encontrado.",
+          "Cadastre um novo jovem ou ajuste os filtros de busca."
+        );
         return;
       }
 
@@ -2046,25 +2425,25 @@
         const btnCadastro = item.querySelector(".btn-cadastro");
 
         btnEditar.addEventListener("click", () => {
-          editarUsuario(usuario);
+          editarUsuario(usuario, btnEditar);
         });
 
         if (estaBloqueado) {
           btnStatus.addEventListener("click", () => {
-            desbloquearUsuario(usuario.id, usuario.nome);
+            desbloquearUsuario(usuario.id, usuario.nome, btnStatus);
           });
         } else {
           btnStatus.addEventListener("click", () => {
-            bloquearUsuario(usuario.id, usuario.nome);
+            bloquearUsuario(usuario.id, usuario.nome, btnStatus);
           });
         }
 
         btnZerarFaltas.addEventListener("click", () => {
-          zerarFaltasUsuario(usuario.id, usuario.nome);
+          zerarFaltasUsuario(usuario.id, usuario.nome, btnZerarFaltas);
         });
 
         btnCadastro.addEventListener("click", () => {
-          alterarCadastroUsuario(usuario.id, usuario.nome, !estaCadastrado);
+          alterarCadastroUsuario(usuario.id, usuario.nome, !estaCadastrado, btnCadastro);
         });
 
         conteudoUsuarios.appendChild(item);
@@ -2075,7 +2454,7 @@
     // FUNÇÃO: EDITAR USUÁRIO
     // Permite ajustar dados do cadastro diretamente pelo painel.
     // ===============================
-    async function editarUsuario(usuario) {
+    async function editarUsuario(usuario, botao = null) {
       const nomeAtual = usuario.nome || "";
       const telefoneAtual = usuario.telefone || "";
       const dataNascimentoAtual = usuario.data_nascimento || "";
@@ -2122,46 +2501,48 @@
       // Evita salvar usuário sem dados básicos ou com valores inválidos.
       // ===============================
       if (!nomeLimpo) {
-        alert("O nome não pode ficar vazio.");
+        mostrarToast("O nome não pode ficar vazio.", "aviso");
         return;
       }
 
       if (!telefoneLimpo) {
-        alert("O telefone não pode ficar vazio.");
+        mostrarToast("O telefone não pode ficar vazio.", "aviso");
         return;
       }
 
       if (!dataNascimentoLimpa) {
-        alert("A data de nascimento não pode ficar vazia.");
+        mostrarToast("A data de nascimento não pode ficar vazia.", "aviso");
         return;
       }
 
       if (!idadePermitida(dataNascimentoLimpa)) {
-        alert("O CRJ atende jovens de 15 a 29 anos.");
+        mostrarToast("O CRJ atende jovens de 15 a 29 anos.", "aviso");
         return;
       }
 
       if (!["ativo", "bloqueado"].includes(statusLimpo)) {
-        alert('Status inválido. Use apenas "ativo" ou "bloqueado".');
+        mostrarToast('Status inválido. Use apenas "ativo" ou "bloqueado".', "aviso");
         return;
       }
 
       if (!["sim", "não", "nao"].includes(cadastradoLimpo)) {
-        alert('Cadastro inválido. Use apenas "sim" ou "não".');
+        mostrarToast('Cadastro inválido. Use apenas "sim" ou "não".', "aviso");
         return;
       }
 
       if (!Number.isFinite(faltasNumero) || faltasNumero < 0) {
-        alert("Faltas não podem ser números negativos.");
+        mostrarToast("Faltas não podem ser números negativos.", "aviso");
         return;
       }
 
       if (!Number.isFinite(presencasNumero) || presencasNumero < 0) {
-        alert("Presenças não podem ser números negativos.");
+        mostrarToast("Presenças não podem ser números negativos.", "aviso");
         return;
       }
 
       try {
+        definirLoadingBotao(botao, true, "Editando...", "Editar usuário");
+
         // ===============================
         // VERIFICAÇÃO DE TELEFONE DUPLICADO
         // Compara também variações com/sem 55 e com/sem nono dígito.
@@ -2169,7 +2550,7 @@
         const usuarioDuplicado = await buscarTelefoneDuplicado(usuario.id, telefoneLimpo);
 
         if (usuarioDuplicado) {
-          alert(`Este telefone já está cadastrado para: ${usuarioDuplicado.nome || "Sem nome"}`);
+          mostrarToast(`Este telefone já está cadastrado para: ${usuarioDuplicado.nome || "Sem nome"}`, "erro");
           return;
         }
 
@@ -2187,15 +2568,24 @@
           .eq("id", usuario.id);
 
         if (error) {
-          alert("Erro ao editar usuário: " + error.message);
+          mostrarToast("Erro ao editar usuário: " + error.message, "erro");
           return;
         }
 
-        alert("Usuário editado com sucesso!");
+        await registrarLogAdmin(
+          "editar_usuario",
+          "usuarios",
+          usuario.id,
+          `Editou usuário ${nomeLimpo}. Status: ${statusLimpo}; cadastro ativo: ${cadastradoLimpo === "sim" ? "sim" : "não"}; faltas: ${faltasNumero}; presenças: ${presencasNumero}.`
+        );
+
+        mostrarToast("Usuário editado com sucesso!", "sucesso");
         recarregarPainel();
 
       } catch (err) {
-        alert("Erro ao editar usuário: " + err.message);
+        mostrarToast("Erro ao editar usuário: " + err.message, "erro");
+      } finally {
+        definirLoadingBotao(botao, false, "Editando...", "Editar usuário");
       }
     }
 
@@ -2205,12 +2595,14 @@
     // status = ativo
     // faltas = 0
     // ===============================
-    async function desbloquearUsuario(usuarioId, nomeUsuario) {
+    async function desbloquearUsuario(usuarioId, nomeUsuario, botao = null) {
       const confirmar = confirm(
         `Desbloquear ${nomeUsuario || "este usuário"}?\n\nIsso vai mudar o status para "ativo" e zerar as faltas.`
       );
 
       if (!confirmar) return;
+
+      definirLoadingBotao(botao, true, "Desbloqueando...", "Desbloquear e zerar faltas");
 
       const { error } = await client
         .from("usuarios")
@@ -2221,11 +2613,20 @@
         .eq("id", usuarioId);
 
       if (error) {
-        alert("Erro ao desbloquear usuário: " + error.message);
+        mostrarToast("Erro ao desbloquear usuário: " + error.message, "erro");
+        definirLoadingBotao(botao, false, "Desbloqueando...", "Desbloquear e zerar faltas");
         return;
       }
 
-      alert("Usuário desbloqueado com sucesso!");
+      await registrarLogAdmin(
+        "desbloquear_usuario",
+        "usuarios",
+        usuarioId,
+        `Desbloqueou ${nomeUsuario || "usuário sem nome"} e zerou as faltas.`
+      );
+
+      mostrarToast("Usuário desbloqueado com sucesso!", "sucesso");
+      definirLoadingBotao(botao, false, "Desbloqueando...", "Desbloquear e zerar faltas");
       recarregarPainel();
     }
 
@@ -2233,12 +2634,14 @@
     // FUNÇÃO: BLOQUEAR USUÁRIO MANUALMENTE
     // Útil caso a equipe precise impedir acesso sem esperar duas faltas.
     // ===============================
-    async function bloquearUsuario(usuarioId, nomeUsuario) {
+    async function bloquearUsuario(usuarioId, nomeUsuario, botao = null) {
       const confirmar = confirm(
         `Bloquear ${nomeUsuario || "este usuário"} manualmente?\n\nEle não poderá receber o link pelo bot nem agendar pelo site.`
       );
 
       if (!confirmar) return;
+
+      definirLoadingBotao(botao, true, "Bloqueando...", "Bloquear usuário");
 
       const { error } = await client
         .from("usuarios")
@@ -2248,11 +2651,20 @@
         .eq("id", usuarioId);
 
       if (error) {
-        alert("Erro ao bloquear usuário: " + error.message);
+        mostrarToast("Erro ao bloquear usuário: " + error.message, "erro");
+        definirLoadingBotao(botao, false, "Bloqueando...", "Bloquear usuário");
         return;
       }
 
-      alert("Usuário bloqueado com sucesso!");
+      await registrarLogAdmin(
+        "bloquear_usuario",
+        "usuarios",
+        usuarioId,
+        `Bloqueou manualmente ${nomeUsuario || "usuário sem nome"}.`
+      );
+
+      mostrarToast("Usuário bloqueado com sucesso!", "sucesso");
+      definirLoadingBotao(botao, false, "Bloqueando...", "Bloquear usuário");
       recarregarPainel();
     }
 
@@ -2260,12 +2672,14 @@
     // FUNÇÃO: ZERAR FALTAS DO USUÁRIO
     // Se o usuário estiver bloqueado, também volta para ativo.
     // ===============================
-    async function zerarFaltasUsuario(usuarioId, nomeUsuario) {
+    async function zerarFaltasUsuario(usuarioId, nomeUsuario, botao = null) {
       const confirmar = confirm(
         `Zerar faltas de ${nomeUsuario || "este usuário"}?\n\nSe estiver bloqueado, ele também voltará para ativo.`
       );
 
       if (!confirmar) return;
+
+      definirLoadingBotao(botao, true, "Zerando...", "Zerar faltas");
 
       const { error } = await client
         .from("usuarios")
@@ -2276,11 +2690,20 @@
         .eq("id", usuarioId);
 
       if (error) {
-        alert("Erro ao zerar faltas: " + error.message);
+        mostrarToast("Erro ao zerar faltas: " + error.message, "erro");
+        definirLoadingBotao(botao, false, "Zerando...", "Zerar faltas");
         return;
       }
 
-      alert("Faltas zeradas com sucesso!");
+      await registrarLogAdmin(
+        "zerar_faltas",
+        "usuarios",
+        usuarioId,
+        `Zerou faltas de ${nomeUsuario || "usuário sem nome"} e definiu status como ativo.`
+      );
+
+      mostrarToast("Faltas zeradas com sucesso!", "sucesso");
+      definirLoadingBotao(botao, false, "Zerando...", "Zerar faltas");
       recarregarPainel();
     }
 
@@ -2289,7 +2712,7 @@
     // cadastrado = false bloqueia a pessoa mesmo que status esteja ativo.
     // O bot e o index.html verificam esse campo.
     // ===============================
-    async function alterarCadastroUsuario(usuarioId, nomeUsuario, novoValor) {
+    async function alterarCadastroUsuario(usuarioId, nomeUsuario, novoValor, botao = null) {
       const acao = novoValor ? "ativar" : "desativar";
 
       const confirmar = confirm(
@@ -2297,6 +2720,8 @@
       );
 
       if (!confirmar) return;
+
+      definirLoadingBotao(botao, true, "Salvando...", novoValor ? "Ativar cadastro" : "Desativar cadastro");
 
       const { error } = await client
         .from("usuarios")
@@ -2306,11 +2731,20 @@
         .eq("id", usuarioId);
 
       if (error) {
-        alert("Erro ao alterar cadastro: " + error.message);
+        mostrarToast("Erro ao alterar cadastro: " + error.message, "erro");
+        definirLoadingBotao(botao, false, "Salvando...", novoValor ? "Ativar cadastro" : "Desativar cadastro");
         return;
       }
 
-      alert(`Cadastro ${novoValor ? "ativado" : "desativado"} com sucesso!`);
+      await registrarLogAdmin(
+        novoValor ? "ativar_cadastro" : "desativar_cadastro",
+        "usuarios",
+        usuarioId,
+        `${novoValor ? "Ativou" : "Desativou"} o cadastro de ${nomeUsuario || "usuário sem nome"}.`
+      );
+
+      mostrarToast(`Cadastro ${novoValor ? "ativado" : "desativado"} com sucesso!`, "sucesso");
+      definirLoadingBotao(botao, false, "Salvando...", novoValor ? "Ativar cadastro" : "Desativar cadastro");
       recarregarPainel();
     }
 
@@ -2338,7 +2772,10 @@
         .filter(item => agendamentoCombinaComBusca(item));
 
       if (pendencias.length === 0) {
-        conteudoPendencias.innerHTML = '<div class="vazio">Nenhuma pendência encontrada.</div>';
+        conteudoPendencias.innerHTML = mensagemVazio(
+          "Nenhuma pendência encontrada.",
+          "Os agendamentos antigos já estão resolvidos ou não há itens vencidos."
+        );
         return;
       }
 
@@ -2374,15 +2811,15 @@
         const btnCancelar = item.querySelector(".btn-cancelar");
 
         btnPresenca.addEventListener("click", () => {
-          confirmarPresenca(agendamento.id);
+          confirmarPresenca(agendamento.id, btnPresenca);
         });
 
         btnFalta.addEventListener("click", () => {
-          marcarFalta(agendamento.id);
+          marcarFalta(agendamento.id, btnFalta);
         });
 
         btnCancelar.addEventListener("click", () => {
-          cancelarAgendamento(agendamento.id);
+          cancelarAgendamento(agendamento.id, btnCancelar);
         });
 
         conteudoPendencias.appendChild(item);
@@ -2422,7 +2859,10 @@
       );
 
       if (!agendamentosFiltrados || agendamentosFiltrados.length === 0) {
-        lista.innerHTML = '<div class="vazio">Nenhum agendamento encontrado.</div>';
+        lista.innerHTML = mensagemVazio(
+          "Nenhum agendamento encontrado.",
+          "Quando houver agendamentos compatíveis com os filtros, eles aparecerão aqui."
+        );
         return;
       }
 
@@ -2476,15 +2916,15 @@
         const btnCancelar = card.querySelector(".btn-cancelar");
 
         btnPresenca.addEventListener("click", () => {
-          confirmarPresenca(agendamento.id);
+          confirmarPresenca(agendamento.id, btnPresenca);
         });
 
         btnFalta.addEventListener("click", () => {
-          marcarFalta(agendamento.id);
+          marcarFalta(agendamento.id, btnFalta);
         });
 
         btnCancelar.addEventListener("click", () => {
-          cancelarAgendamento(agendamento.id);
+          cancelarAgendamento(agendamento.id, btnCancelar);
         });
 
         lista.appendChild(card);
@@ -2517,7 +2957,10 @@
       const proximos = data || [];
 
       if (proximos.length === 0) {
-        dashboardAgendamentos.innerHTML = '<div class="vazio">Nenhum próximo agendamento encontrado.</div>';
+        dashboardAgendamentos.innerHTML = mensagemVazio(
+          "Nenhum próximo agendamento.",
+          "A agenda futura está livre nos próximos registros carregados."
+        );
         return;
       }
 
@@ -2562,32 +3005,35 @@
       carregarUsuariosCadastrados();
       carregarAgendamentos();
       carregarAgendamentosDashboard();
+      carregarLogsAdmin();
     }
 
     // ===============================
     // FUNÇÃO: CONFIRMAR PRESENÇA
     // ===============================
-    async function confirmarPresenca(agendamentoId) {
+    async function confirmarPresenca(agendamentoId, botao = null) {
       const confirmar = confirm("Confirmar presença deste jovem?");
       if (!confirmar) return;
+
+      definirLoadingBotao(botao, true, "Confirmando...", "Confirmar presença");
 
       try {
         const agendamento = await buscarAgendamentoPorId(agendamentoId);
 
         if (!agendamento) {
-          alert("Agendamento não encontrado.");
+          mostrarToast("Agendamento não encontrado.", "erro");
           return;
         }
 
         const statusAtual = agendamento.status || "agendado";
 
         if (statusAtual === "compareceu") {
-          alert("Este agendamento já está marcado como compareceu.");
+          mostrarToast("Este agendamento já está marcado como compareceu.", "aviso");
           return;
         }
 
         if (statusAtual === "cancelado") {
-          alert("Este agendamento está cancelado e não pode receber presença.");
+          mostrarToast("Este agendamento está cancelado e não pode receber presença.", "aviso");
           return;
         }
 
@@ -2615,42 +3061,53 @@
           .eq("id", agendamentoId);
 
         if (erroAgenda) {
-          alert("Erro ao confirmar presença: " + erroAgenda.message);
+          mostrarToast("Erro ao confirmar presença: " + erroAgenda.message, "erro");
           return;
         }
 
-        alert("Presença confirmada!");
+        await registrarLogAdmin(
+          "confirmar_presenca",
+          "agendamentos",
+          agendamentoId,
+          `Confirmou presença de ${agendamento.nome || "jovem sem nome"} em ${formatarData(agendamento.data)} às ${agendamento.horario || "-"}.`
+        );
+
+        mostrarToast("Presença confirmada!", "sucesso");
         recarregarPainel();
 
       } catch (err) {
-        alert("Erro ao confirmar presença: " + err.message);
+        mostrarToast("Erro ao confirmar presença: " + err.message, "erro");
+      } finally {
+        definirLoadingBotao(botao, false, "Confirmando...", "Confirmar presença");
       }
     }
 
     // ===============================
     // FUNÇÃO: MARCAR FALTA
     // ===============================
-    async function marcarFalta(agendamentoId) {
+    async function marcarFalta(agendamentoId, botao = null) {
       const confirmar = confirm("Marcar falta para este jovem?");
       if (!confirmar) return;
+
+      definirLoadingBotao(botao, true, "Marcando...", "Marcar falta");
 
       try {
         const agendamento = await buscarAgendamentoPorId(agendamentoId);
 
         if (!agendamento) {
-          alert("Agendamento não encontrado.");
+          mostrarToast("Agendamento não encontrado.", "erro");
           return;
         }
 
         const statusAtual = agendamento.status || "agendado";
 
         if (statusAtual === "faltou") {
-          alert("Este agendamento já está marcado como falta.");
+          mostrarToast("Este agendamento já está marcado como falta.", "aviso");
           return;
         }
 
         if (statusAtual === "cancelado") {
-          alert("Este agendamento está cancelado e não pode receber falta.");
+          mostrarToast("Este agendamento está cancelado e não pode receber falta.", "aviso");
           return;
         }
 
@@ -2677,15 +3134,24 @@
           .eq("id", agendamentoId);
 
         if (erroAgenda) {
-          alert("Erro ao marcar falta: " + erroAgenda.message);
+          mostrarToast("Erro ao marcar falta: " + erroAgenda.message, "erro");
           return;
         }
 
-        alert("Falta registrada!");
+        await registrarLogAdmin(
+          "marcar_falta",
+          "agendamentos",
+          agendamentoId,
+          `Marcou falta para ${agendamento.nome || "jovem sem nome"} em ${formatarData(agendamento.data)} às ${agendamento.horario || "-"}.`
+        );
+
+        mostrarToast("Falta registrada!", "sucesso");
         recarregarPainel();
 
       } catch (err) {
-        alert("Erro ao marcar falta: " + err.message);
+        mostrarToast("Erro ao marcar falta: " + err.message, "erro");
+      } finally {
+        definirLoadingBotao(botao, false, "Marcando...", "Marcar falta");
       }
     }
 
@@ -2700,8 +3166,7 @@
 
       if (!confirmar) return;
 
-      btnProcessarPendencias.disabled = true;
-      btnProcessarPendencias.innerText = "Processando...";
+      definirLoadingBotao(btnProcessarPendencias, true, "Processando...", "Processar faltas pendentes");
 
       try {
         const { data, error } = await client
@@ -2710,7 +3175,7 @@
           .eq("status", "agendado");
 
         if (error) {
-          alert("Erro ao buscar pendências: " + error.message);
+          mostrarToast("Erro ao buscar pendências: " + error.message, "erro");
           return;
         }
 
@@ -2719,7 +3184,7 @@
         );
 
         if (pendencias24h.length === 0) {
-          alert("Nenhuma pendência com mais de 24h para processar.");
+          mostrarToast("Nenhuma pendência com mais de 24h para processar.", "aviso");
           return;
         }
 
@@ -2763,15 +3228,21 @@
           processados++;
         }
 
-        alert(`Processamento concluído!\n\nFaltas processadas: ${processados}\nIgnorados: ${ignorados}`);
+        await registrarLogAdmin(
+          "processar_faltas_pendentes",
+          "agendamentos",
+          null,
+          `Processou faltas pendentes com mais de 24h. Faltas processadas: ${processados}; ignorados: ${ignorados}.`
+        );
+
+        mostrarToast(`Processamento concluído. Faltas processadas: ${processados}; ignorados: ${ignorados}.`, "sucesso");
 
         recarregarPainel();
 
       } catch (err) {
-        alert("Erro ao processar pendências: " + err.message);
+        mostrarToast("Erro ao processar pendências: " + err.message, "erro");
       } finally {
-        btnProcessarPendencias.disabled = false;
-        btnProcessarPendencias.innerText = "Processar faltas pendentes";
+        definirLoadingBotao(btnProcessarPendencias, false, "Processando...", "Processar faltas pendentes");
       }
     }
 
@@ -2779,7 +3250,7 @@
     // FUNÇÃO: CANCELAR AGENDAMENTO
     // Exige motivo e salva na coluna observacao.
     // ===============================
-    async function cancelarAgendamento(agendamentoId) {
+    async function cancelarAgendamento(agendamentoId, botao = null) {
       const confirmar = confirm("Cancelar este agendamento?");
       if (!confirmar) return;
 
@@ -2792,22 +3263,24 @@
       const motivoLimpo = motivo.trim();
 
       if (!motivoLimpo) {
-        alert("Para cancelar, informe um motivo.");
+        mostrarToast("Para cancelar, informe um motivo.", "aviso");
         return;
       }
+
+      definirLoadingBotao(botao, true, "Cancelando...", "Cancelar");
 
       try {
         const agendamento = await buscarAgendamentoPorId(agendamentoId);
 
         if (!agendamento) {
-          alert("Agendamento não encontrado.");
+          mostrarToast("Agendamento não encontrado.", "erro");
           return;
         }
 
         const statusAtual = agendamento.status || "agendado";
 
         if (statusAtual !== "agendado") {
-          alert("Só é possível cancelar agendamentos que ainda estão como agendados.");
+          mostrarToast("Só é possível cancelar agendamentos que ainda estão como agendados.", "aviso");
           return;
         }
 
@@ -2820,15 +3293,24 @@
           .eq("id", agendamentoId);
 
         if (error) {
-          alert("Erro ao cancelar: " + error.message);
+          mostrarToast("Erro ao cancelar: " + error.message, "erro");
           return;
         }
 
-        alert("Agendamento cancelado com motivo registrado!");
+        await registrarLogAdmin(
+          "cancelar_agendamento",
+          "agendamentos",
+          agendamentoId,
+          `Cancelou agendamento de ${agendamento.nome || "jovem sem nome"} em ${formatarData(agendamento.data)} às ${agendamento.horario || "-"}. Motivo: ${motivoLimpo}.`
+        );
+
+        mostrarToast("Agendamento cancelado com motivo registrado!", "sucesso");
         recarregarPainel();
 
       } catch (err) {
-        alert("Erro ao cancelar: " + err.message);
+        mostrarToast("Erro ao cancelar: " + err.message, "erro");
+      } finally {
+        definirLoadingBotao(botao, false, "Cancelando...", "Cancelar");
       }
     }
 
@@ -2900,6 +3382,10 @@
     btnSalvarUsuario.addEventListener("click", () => {
       cadastrarNovoUsuario();
     });
+
+    novoNome.addEventListener("input", validarNovoNomeTempoReal);
+    novoTelefone.addEventListener("input", validarNovoTelefoneTempoReal);
+    novaDataNascimento.addEventListener("change", validarNovaDataNascimentoTempoReal);
 
     // ===============================
     // CADASTRAR USUÁRIO COM ENTER NO CAMPO TELEFONE

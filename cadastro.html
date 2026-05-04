@@ -21,6 +21,7 @@
       --border: #475569;
       --danger: #ef4444;
       --success: #22c55e;
+      --warning: #f59e0b;
     }
 
     html {
@@ -161,6 +162,77 @@
       background: rgba(20, 83, 45, 0.45);
     }
 
+    .aviso.aviso-tipo {
+      border-color: rgba(245, 158, 11, 0.5);
+      background: rgba(113, 63, 18, 0.45);
+    }
+
+    /* ===============================
+       VALIDAÇÃO EM TEMPO REAL
+       Mostra idade e orientações sem depender de alertas.
+    =============================== */
+    .campo-ajuda {
+      min-height: 1.1rem;
+      margin-top: 0.45rem;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .campo-ajuda.erro {
+      color: #fecaca;
+    }
+
+    .campo-ajuda.sucesso {
+      color: #bbf7d0;
+    }
+
+    .campo-ajuda.aviso {
+      color: #fde68a;
+    }
+
+    input.campo-invalido {
+      border-color: rgba(239, 68, 68, 0.72);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+    }
+
+    /* ===============================
+       TOASTS VISUAIS
+       Mensagens rápidas de sucesso, erro e aviso.
+    =============================== */
+    .toast-container {
+      position: fixed;
+      top: 18px;
+      right: 18px;
+      z-index: 20;
+      display: grid;
+      gap: 10px;
+      width: min(340px, calc(100vw - 28px));
+    }
+
+    .toast {
+      padding: 0.9rem 1rem;
+      border-radius: 0.85rem;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      background: rgba(15, 23, 42, 0.96);
+      color: var(--text);
+      box-shadow: 0 18px 42px rgba(0,0,0,0.36);
+      line-height: 1.4;
+      animation: entrarSuave 0.22s ease both;
+    }
+
+    .toast.sucesso {
+      border-color: rgba(34, 197, 94, 0.48);
+    }
+
+    .toast.erro {
+      border-color: rgba(239, 68, 68, 0.52);
+    }
+
+    .toast.aviso-tipo {
+      border-color: rgba(245, 158, 11, 0.52);
+    }
+
     @keyframes entrarSuave {
       from {
         opacity: 0;
@@ -187,11 +259,20 @@
       h1 {
         font-size: 1.45rem;
       }
+
+      .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+      }
     }
   </style>
 </head>
 
 <body>
+  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
   <!-- ===============================
        FORMULÁRIO DE CADASTRO ONLINE
   =============================== -->
@@ -206,16 +287,19 @@
     <div class="form-group">
       <label for="nome">Nome completo</label>
       <input type="text" id="nome" placeholder="Digite seu nome completo">
+      <div id="ajudaNome" class="campo-ajuda"></div>
     </div>
 
     <div class="form-group">
       <label for="telefone">WhatsApp</label>
       <input type="text" id="telefone" placeholder="Ex: 27999999999">
+      <div id="ajudaTelefone" class="campo-ajuda"></div>
     </div>
 
     <div class="form-group">
       <label for="dataNascimento">Data de nascimento</label>
       <input type="date" id="dataNascimento">
+      <div id="ajudaDataNascimento" class="campo-ajuda"></div>
     </div>
 
     <button id="btnEnviar">Enviar cadastro</button>
@@ -227,14 +311,42 @@
     const inputDataNascimento = document.getElementById("dataNascimento");
     const btnEnviar = document.getElementById("btnEnviar");
     const aviso = document.getElementById("aviso");
+    const toastContainer = document.getElementById("toastContainer");
+    const ajudaNome = document.getElementById("ajudaNome");
+    const ajudaTelefone = document.getElementById("ajudaTelefone");
+    const ajudaDataNascimento = document.getElementById("ajudaDataNascimento");
 
     // ===============================
     // FUNÇÃO: MOSTRAR AVISO VISUAL
     // ===============================
     function mostrarAviso(mensagem, tipo = "erro") {
       aviso.innerText = mensagem;
-      aviso.className = `aviso ${tipo}`;
+      aviso.className = `aviso ${tipo === "aviso" ? "aviso-tipo" : tipo}`;
       aviso.style.display = "block";
+    }
+
+    // ===============================
+    // FUNÇÃO: MOSTRAR TOAST
+    // Exibe notificações rápidas sem bloquear a interação.
+    // ===============================
+    function mostrarToast(mensagem, tipo = "erro") {
+      const toast = document.createElement("div");
+      toast.className = `toast ${tipo === "aviso" ? "aviso-tipo" : tipo}`;
+      toast.textContent = mensagem;
+      toastContainer.appendChild(toast);
+
+      setTimeout(() => {
+        toast.remove();
+      }, 4200);
+    }
+
+    // ===============================
+    // FUNÇÃO: ESTADO DE LOADING DO BOTÃO
+    // Desabilita o botão enquanto o cadastro é enviado.
+    // ===============================
+    function definirLoadingBotao(botao, carregando, textoCarregando, textoNormal) {
+      botao.disabled = carregando;
+      botao.innerText = carregando ? textoCarregando : textoNormal;
     }
 
     // ===============================
@@ -327,6 +439,77 @@
     }
 
     // ===============================
+    // FUNÇÕES: VALIDAÇÃO EM TEMPO REAL
+    // Guiam o jovem e mostram a idade calculada antes do envio.
+    // ===============================
+    function atualizarAjuda(campo, elementoAjuda, mensagem, tipo = "") {
+      elementoAjuda.textContent = mensagem;
+      elementoAjuda.className = `campo-ajuda ${tipo}`;
+      campo.classList.toggle("campo-invalido", tipo === "erro");
+    }
+
+    function validarNomeTempoReal() {
+      const nome = inputNome.value.trim();
+
+      if (!nome) {
+        atualizarAjuda(inputNome, ajudaNome, "Informe seu nome completo.", "erro");
+        return false;
+      }
+
+      if (nome.split(/\s+/).length < 2) {
+        atualizarAjuda(inputNome, ajudaNome, "Digite nome e sobrenome.", "erro");
+        return false;
+      }
+
+      atualizarAjuda(inputNome, ajudaNome, "Nome completo preenchido.", "sucesso");
+      return true;
+    }
+
+    function validarTelefoneTempoReal() {
+      const telefone = limparTelefone(inputTelefone.value);
+
+      if (!telefone) {
+        atualizarAjuda(inputTelefone, ajudaTelefone, "Informe um WhatsApp com DDD.", "erro");
+        return false;
+      }
+
+      if (telefone.length < 10) {
+        atualizarAjuda(inputTelefone, ajudaTelefone, "Telefone incompleto. Use DDD + número.", "erro");
+        return false;
+      }
+
+      atualizarAjuda(inputTelefone, ajudaTelefone, "WhatsApp preenchido.", "sucesso");
+      return true;
+    }
+
+    function validarDataNascimentoTempoReal() {
+      const dataNascimento = inputDataNascimento.value;
+      const idade = calcularIdade(dataNascimento);
+
+      if (!dataNascimento || idade === null) {
+        atualizarAjuda(inputDataNascimento, ajudaDataNascimento, "Informe uma data de nascimento válida.", "erro");
+        return false;
+      }
+
+      if (!idadePermitida(dataNascimento)) {
+        atualizarAjuda(inputDataNascimento, ajudaDataNascimento, `Idade calculada: ${idade} anos. O CRJ atende jovens de 15 a 29 anos.`, "erro");
+        mostrarAviso("O CRJ atende jovens de 15 a 29 anos.", "aviso");
+        return false;
+      }
+
+      atualizarAjuda(inputDataNascimento, ajudaDataNascimento, `Idade calculada: ${idade} anos.`, "sucesso");
+      return true;
+    }
+
+    function formularioCadastroValido() {
+      const nomeValido = validarNomeTempoReal();
+      const telefoneValido = validarTelefoneTempoReal();
+      const dataValida = validarDataNascimentoTempoReal();
+
+      return nomeValido && telefoneValido && dataValida;
+    }
+
+    // ===============================
     // EVENTO: ENVIAR CADASTRO ONLINE
     // Valida dados e envia para a API segura do servidor.
     // ===============================
@@ -335,18 +518,19 @@
       const telefoneLimpo = limparTelefone(inputTelefone.value);
       const dataNascimento = inputDataNascimento.value;
 
-      if (!nome || !telefoneLimpo || !dataNascimento) {
+      if (!formularioCadastroValido() || !nome || !telefoneLimpo || !dataNascimento) {
         mostrarAviso("Preencha nome completo, WhatsApp e data de nascimento.");
+        mostrarToast("Preencha os campos destacados para enviar o cadastro.", "aviso");
         return;
       }
 
       if (!idadePermitida(dataNascimento)) {
-        mostrarAviso("O CRJ atende jovens de 15 a 29 anos.");
+        mostrarAviso("O CRJ atende jovens de 15 a 29 anos.", "aviso");
+        mostrarToast("O CRJ atende jovens de 15 a 29 anos.", "aviso");
         return;
       }
 
-      btnEnviar.disabled = true;
-      btnEnviar.innerText = "Enviando...";
+      definirLoadingBotao(btnEnviar, true, "Enviando...", "Enviar cadastro");
 
       try {
         // ===============================
@@ -367,25 +551,36 @@
 
         if (!resposta.ok || !resultado.ok) {
           mostrarAviso(resultado.mensagem || "Erro ao enviar cadastro.");
+          mostrarToast(resultado.mensagem || "Erro ao enviar cadastro.", "erro");
           return;
         }
 
-        mostrarAviso(
-          resultado.mensagem || "Cadastro enviado com sucesso! A equipe do CRJ irá analisar seus dados. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp.",
-          "sucesso"
-        );
+        const mensagemSucesso = resultado.mensagem || "Cadastro enviado com sucesso! A equipe do CRJ irá analisar seus dados. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp.";
+
+        mostrarAviso(mensagemSucesso, "sucesso");
+        mostrarToast(mensagemSucesso, "sucesso");
 
         inputNome.value = "";
         inputTelefone.value = "";
         inputDataNascimento.value = "";
+        ajudaNome.textContent = "";
+        ajudaTelefone.textContent = "";
+        ajudaDataNascimento.textContent = "";
+        inputNome.classList.remove("campo-invalido");
+        inputTelefone.classList.remove("campo-invalido");
+        inputDataNascimento.classList.remove("campo-invalido");
 
       } catch (err) {
         mostrarAviso("Erro ao enviar cadastro: " + err.message);
+        mostrarToast("Erro ao enviar cadastro: " + err.message, "erro");
       } finally {
-        btnEnviar.disabled = false;
-        btnEnviar.innerText = "Enviar cadastro";
+        definirLoadingBotao(btnEnviar, false, "Enviando...", "Enviar cadastro");
       }
     });
+
+    inputNome.addEventListener("input", validarNomeTempoReal);
+    inputTelefone.addEventListener("input", validarTelefoneTempoReal);
+    inputDataNascimento.addEventListener("change", validarDataNascimentoTempoReal);
   </script>
 </body>
 </html>
