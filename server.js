@@ -122,11 +122,13 @@ const DATAS_BLOQUEADAS = [
 
 // ===============================
 // CONFIGURAÇÃO DO CLIENTE WHATSAPP
-// LocalAuth salva a sessão do WhatsApp no seu PC
-// Assim você não precisa escanear QR toda hora
+// LocalAuth salva a sessão do WhatsApp
+// No Railway, usamos uma pasta persistente para não perder o login
 // ===============================
 const client = new Client({
-  authStrategy: new LocalAuth(),
+  authStrategy: new LocalAuth({
+    dataPath: process.env.WWEBJS_AUTH_PATH || ".wwebjs_auth"
+  }),
   puppeteer: {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
     headless: true
