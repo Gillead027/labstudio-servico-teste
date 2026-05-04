@@ -573,11 +573,16 @@
   <div id="loginOverlay" class="login-overlay">
     <div class="login-card">
       <h1>LabStudio Admin</h1>
-      <p>Digite a senha para acessar o painel administrativo.</p>
+      <p>Entre com o email e senha autorizados pela equipe administrativa.</p>
+
+      <div class="grupo">
+        <label for="emailAdmin">Email</label>
+        <input type="email" id="emailAdmin" placeholder="admin@exemplo.com" autocomplete="username">
+      </div>
 
       <div class="grupo">
         <label for="senhaAdmin">Senha</label>
-        <input type="password" id="senhaAdmin" placeholder="Digite a senha">
+        <input type="password" id="senhaAdmin" placeholder="Digite a senha" autocomplete="current-password">
       </div>
 
       <button id="btnEntrar" style="width: 100%; margin-top: 16px;">
@@ -585,7 +590,7 @@
       </button>
 
       <div id="loginErro" class="login-erro">
-        Senha incorreta.
+        Email ou senha invÃ¡lidos.
       </div>
     </div>
   </div>
@@ -800,30 +805,10 @@
 
   <script>
     // ===============================
-    // CONFIGURAÇÃO DA SENHA DO ADMIN
-    //
-    // Senha atual: crjflexal2026
-    //
-    // Por segurança básica, o código guarda o HASH da senha,
-    // e não a senha escrita diretamente.
+    // AUTENTICAÇÃO DO ADMIN
+    // O acesso ao painel agora usa Supabase Auth com email e senha.
+    // A permissão administrativa é confirmada na tabela admin_users.
     // ===============================
-    const ADMIN_PASSWORD_HASH = "be24992d1206060b1646ddb866058f089c088e36dcd264e0729e4166631afd27";
-    const ADMIN_SESSION_KEY = "labstudio_admin_logado";
-
-    // ===============================
-    // FUNÇÃO: GERAR HASH SHA-256
-    // Usada para comparar a senha digitada com o hash salvo acima.
-    // ===============================
-    async function gerarHash(texto) {
-      const encoder = new TextEncoder();
-      const dados = encoder.encode(texto);
-      const hashBuffer = await crypto.subtle.digest("SHA-256", dados);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-
-      return hashArray
-        .map(byte => byte.toString(16).padStart(2, "0"))
-        .join("");
-    }
 
     // ===============================
     // CONEXÃO COM SUPABASE
@@ -838,6 +823,7 @@
     // ===============================
     const loginOverlay = document.getElementById("loginOverlay");
     const painelAdmin = document.getElementById("painelAdmin");
+    const emailAdmin = document.getElementById("emailAdmin");
     const senhaAdmin = document.getElementById("senhaAdmin");
     const btnEntrar = document.getElementById("btnEntrar");
     const loginErro = document.getElementById("loginErro");
@@ -872,12 +858,108 @@
     const novoStatus = document.getElementById("novoStatus");
     const novoCadastrado = document.getElementById("novoCadastrado");
     const btnSalvarUsuario = document.getElementById("btnSalvarUsuario");
+    let adminValidado = false;
+
+    // ===============================
+    // FUNÇÃO: MOSTRAR ERRO DE LOGIN
+    // Centraliza as mensagens da autenticação administrativa.
+    // ===============================
+    function mostrarErroLogin(mensagem) {
+      loginErro.innerText = mensagem;
+      loginErro.style.display = "block";
+    }
+
+    // ===============================
+    // FUNÇÃO: LIMPAR ERRO DE LOGIN
+    // Remove alertas antigos antes de uma nova tentativa de entrada.
+    // ===============================
+    function limparErroLogin() {
+      loginErro.innerText = "";
+      loginErro.style.display = "none";
+    }
+
+    // ===============================
+    // FUNÇÃO: VERIFICAR PERMISSÃO ADMIN
+    // Confirma se o usuário autenticado está ativo e autorizado no painel.
+    // ===============================
+    async function verificarPermissaoAdmin(usuarioAuth) {
+      if (!usuarioAuth || !usuarioAuth.id) {
+        return false;
+      }
+
+      const { data, error } = await client
+        .from("admin_users")
+        .select("id, user_id, nome, role, ativo")
+        .eq("user_id", usuarioAuth.id)
+        .eq("ativo", true)
+        .eq("role", "admin")
+        .maybeSingle();
+
+      if (error) {
+        console.error("Erro ao verificar permissão administrativa:", error.message);
+        return false;
+      }
+
+      return Boolean(data);
+    }
+
+    // ===============================
+    // FUNÇÃO: LIBERAR PAINEL COM AUTORIZAÇÃO
+    // Só carrega dados depois que a sessão e a permissão forem validadas.
+    // ===============================
+    async function liberarPainelComUsuario(usuarioAuth) {
+      limparErroLogin();
+
+      const adminAutorizado = await verificarPermissaoAdmin(usuarioAuth);
+
+      if (!adminAutorizado) {
+        adminValidado = false;
+        await client.auth.signOut();
+        painelAdmin.style.display = "none";
+        loginOverlay.style.display = "flex";
+        mostrarErroLogin("Usuário sem permissão administrativa.");
+        emailAdmin.focus();
+        return;
+      }
+
+      adminValidado = true;
+      liberarPainel();
+    }
+
+    // ===============================
+    // FUNÇÃO: VERIFICAR SESSÃO ADMIN
+    // Reabre o painel quando a sessão do Supabase Auth ainda está válida.
+    // ===============================
+    async function verificarSessaoAdmin() {
+      const { data, error } = await client.auth.getSession();
+
+      if (error) {
+        console.error("Erro ao verificar sessão administrativa:", error.message);
+      }
+
+      const usuarioAuth = data && data.session ? data.session.user : null;
+
+      if (usuarioAuth) {
+        await liberarPainelComUsuario(usuarioAuth);
+        return;
+      }
+
+      painelAdmin.style.display = "none";
+      loginOverlay.style.display = "flex";
+      adminValidado = false;
+      emailAdmin.focus();
+    }
 
     // ===============================
     // FUNÇÃO: LIBERAR PAINEL
     // Esconde login, mostra painel e carrega os dados.
     // ===============================
     function liberarPainel() {
+      if (!adminValidado) {
+        console.warn("Painel bloqueado: permissão administrativa ainda não validada.");
+        return;
+      }
+
       loginOverlay.style.display = "none";
       painelAdmin.style.display = "block";
       mostrarAba(localStorage.getItem("labstudio_admin_aba") || "dashboard");
@@ -905,36 +987,58 @@
 
     // ===============================
     // FUNÇÃO: VERIFICAR LOGIN
-    // Compara a senha digitada com o hash configurado.
+    // Autentica email e senha pelo Supabase Auth.
     // ===============================
     async function verificarLogin() {
+      const emailDigitado = emailAdmin.value.trim();
       const senhaDigitada = senhaAdmin.value.trim();
 
-      if (!senhaDigitada) {
-        loginErro.innerText = "Digite a senha.";
-        loginErro.style.display = "block";
+      limparErroLogin();
+
+      if (!emailDigitado || !senhaDigitada) {
+        mostrarErroLogin("Digite email e senha.");
         return;
       }
 
-      const hashDigitado = await gerarHash(senhaDigitada);
+      btnEntrar.disabled = true;
+      btnEntrar.innerText = "Entrando...";
 
-      if (hashDigitado === ADMIN_PASSWORD_HASH) {
-        sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
-        liberarPainel();
-      } else {
-        loginErro.innerText = "Senha incorreta.";
-        loginErro.style.display = "block";
-        senhaAdmin.value = "";
-        senhaAdmin.focus();
+      try {
+        const { data, error } = await client.auth.signInWithPassword({
+          email: emailDigitado,
+          password: senhaDigitada
+        });
+
+        if (error || !data.user) {
+          mostrarErroLogin("Email ou senha inválidos.");
+          senhaAdmin.value = "";
+          senhaAdmin.focus();
+          return;
+        }
+
+        await liberarPainelComUsuario(data.user);
+      } catch (err) {
+        console.error("Erro inesperado ao fazer login administrativo:", err);
+        mostrarErroLogin("Email ou senha inválidos.");
+      } finally {
+        btnEntrar.disabled = false;
+        btnEntrar.innerText = "Entrar";
       }
     }
 
     // ===============================
     // FUNÇÃO: SAIR DO PAINEL
-    // Remove a sessão local e volta para tela de login.
+    // Encerra a sessão do Supabase Auth e volta para tela de login.
     // ===============================
-    function sairPainel() {
-      sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    async function sairPainel() {
+      adminValidado = false;
+
+      const { error } = await client.auth.signOut();
+
+      if (error) {
+        console.error("Erro ao sair do painel:", error.message);
+      }
+
       location.reload();
     }
 
@@ -2446,6 +2550,11 @@
     // Atualiza resumo, pendências, bloqueados, usuários e lista.
     // ===============================
     function recarregarPainel() {
+      if (!adminValidado) {
+        console.warn("Carregamento bloqueado: admin ainda não autenticado.");
+        return;
+      }
+
       carregarResumoRanking();
       carregarPendencias();
       carregarUsuariosBloqueados();
@@ -2728,6 +2837,12 @@
     // ===============================
     btnEntrar.addEventListener("click", verificarLogin);
 
+    emailAdmin.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        verificarLogin();
+      }
+    });
+
     senhaAdmin.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         verificarLogin();
@@ -2796,14 +2911,10 @@
     });
 
     // ===============================
-    // VERIFICA SE JÁ ESTÁ LOGADO NA SESSÃO
-    // sessionStorage dura enquanto a aba estiver aberta.
+    // VERIFICA SESSÃO AUTENTICADA
+    // Mantém o painel aberto quando o Supabase Auth ainda reconhece o admin.
     // ===============================
-    if (sessionStorage.getItem(ADMIN_SESSION_KEY) === "true") {
-      liberarPainel();
-    } else {
-      senhaAdmin.focus();
-    }
+    verificarSessaoAdmin();
   </script>
 </body>
 </html>
