@@ -419,6 +419,15 @@
     ];
 
     // ===============================
+    // URL BASE DA API
+    // Deixe em branco para chamadas locais.
+    // Quando o frontend estiver no Vercel e o backend no Railway,
+    // configure aqui o endereço completo do backend.
+    // Exemplo: const API_BASE_URL = "https://labstudio-backend.up.railway.app";
+    // ===============================
+    const API_BASE_URL = "https://labstudio-sistema-production.up.railway.app";
+
+    // ===============================
     // ELEMENTOS DO HTML
     // Pegamos os campos para usar no JavaScript
     // ===============================
@@ -484,6 +493,39 @@
       setTimeout(() => {
         toast.remove();
       }, 4200);
+    }
+
+    async function fetchApiJson(url, options = {}) {
+      const requestUrl = url.startsWith("http") ? url : `${API_BASE_URL.replace(/\/$/, "")}${url}`;
+      const resposta = await fetch(requestUrl, options);
+      const texto = await resposta.text();
+      const contentType = (resposta.headers.get("content-type") || "").toLowerCase();
+
+      if (!resposta.ok) {
+        let mensagemDetalhe = texto.trim().slice(0, 200);
+        if (!mensagemDetalhe) {
+          mensagemDetalhe = `${resposta.status} ${resposta.statusText}`;
+        }
+
+        try {
+          const json = JSON.parse(texto);
+          throw new Error(json.mensagem || mensagemDetalhe);
+        } catch (_err) {
+          throw new Error(`Erro ${resposta.status}: ${mensagemDetalhe}`);
+        }
+      }
+
+      if (!contentType.includes("application/json")) {
+        throw new Error(
+          "Resposta inesperada do servidor. Verifique se o backend está ativo e se você abriu o site via servidor HTTP."
+        );
+      }
+
+      try {
+        return JSON.parse(texto);
+      } catch (err) {
+        throw new Error(`Resposta JSON inválida do servidor: ${texto.slice(0, 160)}`);
+      }
     }
 
     // ===============================
@@ -708,10 +750,9 @@
         // BUSCAR HORÁRIOS DISPONÍVEIS
         // A consulta passa pelo servidor para funcionar com RLS ativo.
         // ===============================
-        const resposta = await fetch(`/api/horarios?data=${encodeURIComponent(dataSelecionada)}`);
-        const resultado = await resposta.json();
+        const resultado = await fetchApiJson(`/api/horarios?data=${encodeURIComponent(dataSelecionada)}`);
 
-        if (!resposta.ok || !resultado.ok) {
+        if (!resultado.ok) {
           throw new Error(resultado.mensagem || "Erro ao consultar agenda.");
         }
 
@@ -732,7 +773,6 @@
         if (selectHorario.options.length === 1) {
           selectHorario.innerHTML = '<option value="">Lotado para este dia</option>';
         }
-
       } catch (err) {
         mostrarAviso("Erro ao buscar horários: " + err.message);
         mostrarToast("Erro ao buscar horários: " + err.message, "erro");
@@ -774,7 +814,7 @@
         // O servidor faz as consultas no Supabase usando service role,
         // preparando o frontend público para RLS ativo.
         // ===============================
-        const respostaAgendamento = await fetch("/api/agendar", {
+        const resultadoAgendamento = await fetchApiJson("/api/agendar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -785,9 +825,7 @@
           })
         });
 
-        const resultadoAgendamento = await respostaAgendamento.json();
-
-        if (!respostaAgendamento.ok || !resultadoAgendamento.ok) {
+        if (!resultadoAgendamento.ok) {
           throw new Error(resultadoAgendamento.mensagem || "Erro ao salvar agendamento.");
         }
 
@@ -831,7 +869,18 @@
       }
     });
 
+    function verificarProtocoloLocal() {
+      if (window.location.protocol === "file:") {
+        mostrarAviso(
+          "Abra a página via servidor HTTP (por exemplo, http://localhost:3001/) em vez de usar o arquivo local.",
+          "aviso"
+        );
+        mostrarToast("Não abra index.html diretamente. Use o servidor Node.js.", "aviso");
+      }
+    }
+
     carregarTemaSalvo();
+    verificarProtocoloLocal();
     btnTema.addEventListener("click", alternarTema);
     inputNome.addEventListener("input", validarNomeTempoReal);
     inputTelefone.addEventListener("input", validarTelefoneTempoReal);
