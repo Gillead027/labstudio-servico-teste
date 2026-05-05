@@ -1424,10 +1424,7 @@ client.on("message", async (msg) => {
       "horário",
       "marcar",
       "reservar",
-      "reserva",
-      "oi",
-      "olá",
-      "ola"
+      "reserva"
     ];
 
     const encontrouGatilho = gatilhos.some((palavra) =>
