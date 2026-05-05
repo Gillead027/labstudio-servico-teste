@@ -1317,9 +1317,35 @@ app.post("/api/cadastro-online", async (req, res) => {
       return responderErroApi(res, 500, "Erro ao enviar cadastro.", error);
     }
 
+    let whatsappConfirmacaoEnviado = false;
+
+    try {
+      const destinoConfirmacao = normalizarNumeroWhatsApp(telefoneLimpo);
+
+      if (botPronto && destinoConfirmacao) {
+        const mensagemConfirmacao = `Olá, ${nome}!
+
+Recebemos seu cadastro online no LabStudio CRJ FLEXAL.
+
+Agora a equipe do CRJ vai analisar seus dados. Quando o cadastro for aprovado, você receberá uma nova mensagem com o link para solicitar o agendamento.
+
+Obrigado pelo cadastro!`;
+
+        await client.sendMessage(destinoConfirmacao, mensagemConfirmacao);
+        whatsappConfirmacaoEnviado = true;
+
+        console.log(`✅ Confirmação de cadastro enviada para ${mascararNumeroWhatsApp(destinoConfirmacao)}.`);
+      } else {
+        console.warn("⚠️ Cadastro salvo, mas o WhatsApp não estava pronto para enviar confirmação.");
+      }
+    } catch (zapError) {
+      console.error("❌ Cadastro salvo, mas falhou ao enviar confirmação pelo WhatsApp:", zapError);
+    }
+
     return res.json({
       ok: true,
-      mensagem: "Cadastro enviado com sucesso! A equipe do CRJ irá analisar seus dados. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp."
+      mensagem: "Cadastro enviado com sucesso! A equipe do CRJ irá analisar seus dados. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp.",
+      whatsappConfirmacaoEnviado
     });
   } catch (err) {
     return responderErroApi(res, 500, "Erro ao processar cadastro online.", err);
