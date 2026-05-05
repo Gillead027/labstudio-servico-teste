@@ -152,10 +152,10 @@ const DATAS_BLOQUEADAS = [
 const client = new Client({
   authStrategy: new LocalAuth({
     clientId: "bot-crj",
-    dataPath: WWEBJS_AUTH_PATH
+    dataPath: process.env.WWEBJS_AUTH_PATH || ".wwebjs_auth"
   }),
   puppeteer: {
-    executablePath: CHROME_EXECUTABLE_PATH,
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/google-chrome-stable",
     headless: true,
     timeout: 0,
     protocolTimeout: 120000,
@@ -188,6 +188,8 @@ let botPronto = false;
 let qrAtualTexto = null;
 let qrAtualDataUrl = null;
 let qrGeradoEm = null;
+let codigoPareamentoAtual = null;
+let codigoPareamentoGeradoEm = null;
 
 // ===============================
 // FUNÇÃO: OBTER URL BASE DO BOT
@@ -463,6 +465,225 @@ app.get("/qr.png", async (req, res) => {
 });
 
 // ===============================
+// ROTA: CODIGO DE PAREAMENTO
+// Alternativa ao QR Code para vincular o WhatsApp pelo telefone.
+// Acesse assim:
+// https://SEU-BOT.up.railway.app/pairing-code?token=SEU_TOKEN&phone=5527999999999
+// ===============================
+app.get("/pairing-code", async (req, res) => {
+  if (!verificarTokenQr(req, res)) return;
+
+  const phone = req.query.phone;
+
+  if (!phone) {
+    return res.status(400).send(`
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Telefone obrigatorio</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; padding: 32px;">
+          <h2>Telefone obrigatorio</h2>
+          <p>Informe o telefone na URL usando o parametro <strong>phone</strong>.</p>
+          <p>Exemplo: <code>/pairing-code?token=SEU_TOKEN&amp;phone=5527999999999</code></p>
+        </body>
+      </html>
+    `);
+  }
+
+  const phoneNumber = limparTelefone(phone);
+
+  if (!phoneNumber) {
+    return res.status(400).send(`
+      <html>
+        <head>
+          <meta charset="UTF-8" />
+          <title>Telefone invalido</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; padding: 32px;">
+          <h2>Telefone invalido</h2>
+          <p>Informe um telefone com numeros, incluindo DDI e DDD.</p>
+          <p>Exemplo: <code>5527999999999</code></p>
+        </body>
+      </html>
+    `);
+  }
+
+  try {
+    const code = await client.requestPairingCode(phoneNumber);
+
+    codigoPareamentoAtual = code;
+    codigoPareamentoGeradoEm = new Date().toISOString();
+
+    console.log("🔐 Código de pareamento gerado:", code);
+
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <title>Codigo de Pareamento WhatsApp - LabStudio</title>
+
+          <style>
+            * {
+              box-sizing: border-box;
+            }
+
+            body {
+              margin: 0;
+              min-height: 100vh;
+              font-family: Arial, sans-serif;
+              background: #111827;
+              color: #f9fafb;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 24px;
+            }
+
+            .card {
+              width: 100%;
+              max-width: 520px;
+              background: #1f2937;
+              border: 1px solid #374151;
+              border-radius: 18px;
+              padding: 28px;
+              text-align: center;
+              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+            }
+
+            h1 {
+              font-size: 24px;
+              margin: 0 0 8px;
+            }
+
+            p {
+              color: #d1d5db;
+              line-height: 1.5;
+            }
+
+            .code {
+              margin: 24px 0;
+              padding: 22px;
+              border-radius: 16px;
+              background: #ffffff;
+              color: #111827;
+              font-size: 42px;
+              line-height: 1;
+              font-weight: 800;
+              letter-spacing: 4px;
+              word-break: break-word;
+            }
+
+            .instructions {
+              text-align: left;
+              background: #111827;
+              border: 1px solid #374151;
+              border-radius: 12px;
+              padding: 16px 18px;
+              margin-top: 18px;
+            }
+
+            .instructions ol {
+              margin: 0;
+              padding-left: 22px;
+              color: #d1d5db;
+              line-height: 1.6;
+            }
+
+            .small {
+              font-size: 13px;
+              color: #9ca3af;
+              margin-top: 18px;
+            }
+
+            code {
+              background: #111827;
+              border: 1px solid #374151;
+              border-radius: 8px;
+              color: #f9fafb;
+              padding: 2px 6px;
+            }
+          </style>
+        </head>
+
+        <body>
+          <main class="card">
+            <h1>Codigo de Pareamento</h1>
+            <p>Use este codigo no WhatsApp do celular do CRJ para vincular o bot do LabStudio.</p>
+
+            <div class="code">${code}</div>
+
+            <div class="instructions">
+              <ol>
+                <li>Abra o WhatsApp no celular.</li>
+                <li>Va em <strong>Aparelhos conectados</strong>.</li>
+                <li>Toque em <strong>Conectar aparelho</strong>.</li>
+                <li>Escolha a opcao para conectar com numero de telefone e informe o codigo acima.</li>
+              </ol>
+            </div>
+
+            <p class="small">Telefone: <code>${phoneNumber}</code></p>
+            <p class="small">Gerado em: ${new Date(codigoPareamentoGeradoEm).toLocaleString("pt-BR")}</p>
+          </main>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    console.error("❌ Erro ao gerar código de pareamento:", err);
+    res.status(500).send("Erro ao gerar codigo de pareamento.");
+  }
+});
+
+// ===============================
+// ROTA: CODIGO DE PAREAMENTO EM JSON
+// ===============================
+app.get("/pairing-code.json", async (req, res) => {
+  if (!verificarTokenQr(req, res)) return;
+
+  const phone = req.query.phone;
+
+  if (!phone) {
+    return res.status(400).json({
+      ok: false,
+      erro: "Informe o parametro phone."
+    });
+  }
+
+  const phoneNumber = limparTelefone(phone);
+
+  if (!phoneNumber) {
+    return res.status(400).json({
+      ok: false,
+      erro: "Telefone invalido."
+    });
+  }
+
+  try {
+    const code = await client.requestPairingCode(phoneNumber);
+
+    codigoPareamentoAtual = code;
+    codigoPareamentoGeradoEm = new Date().toISOString();
+
+    console.log("🔐 Código de pareamento gerado:", code);
+
+    res.json({
+      ok: true,
+      code,
+      phone: phoneNumber,
+      generatedAt: codigoPareamentoGeradoEm
+    });
+  } catch (err) {
+    console.error("❌ Erro ao gerar código de pareamento:", err);
+    res.status(500).json({
+      ok: false,
+      erro: "Erro ao gerar codigo de pareamento."
+    });
+  }
+});
+
+// ===============================
 // ROTA: STATUS DO BOT
 // Útil para testar no navegador.
 // ===============================
@@ -472,6 +693,8 @@ app.get("/status", (req, res) => {
     botPronto,
     temQrDisponivel: Boolean(qrAtualTexto),
     qrGeradoEm,
+    temCodigoPareamentoDisponivel: Boolean(codigoPareamentoAtual),
+    codigoPareamentoGeradoEm,
     publicSiteUrl: PUBLIC_SITE_URL,
     publicBotUrl: PUBLIC_BOT_URL || null
   });
@@ -521,6 +744,8 @@ client.on("ready", () => {
   qrAtualTexto = null;
   qrAtualDataUrl = null;
   qrGeradoEm = null;
+  codigoPareamentoAtual = null;
+  codigoPareamentoGeradoEm = null;
 
   console.log("✅ NOVO MOTOR CONECTADO COM SUCESSO!");
 });
@@ -543,6 +768,8 @@ client.on("auth_failure", (msg) => {
   qrAtualTexto = null;
   qrAtualDataUrl = null;
   qrGeradoEm = null;
+  codigoPareamentoAtual = null;
+  codigoPareamentoGeradoEm = null;
 
   console.log("❌ Falha de autenticação:", msg);
 });
