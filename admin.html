@@ -1016,6 +1016,12 @@
     );
 
     // ===============================
+    // URL BASE DA API
+    // Use a URL publica do backend que roda o Express/WhatsApp.
+    // ===============================
+    const API_BASE_URL = "https://labstudio-sistema-production.up.railway.app";
+
+    // ===============================
     // ELEMENTOS DO LOGIN
     // ===============================
     const loginOverlay = document.getElementById("loginOverlay");
@@ -2387,7 +2393,7 @@
         // NOTIFICAR APROVAÇÃO PELO WHATSAPP
         // O servidor local usa o bot conectado para enviar o link de agendamento.
         // ===============================
-        const resposta = await fetch("/notificar-aprovacao", {
+        const resposta = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/notificar-aprovacao`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

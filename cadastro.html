@@ -403,6 +403,12 @@
     const ajudaDataNascimento = document.getElementById("ajudaDataNascimento");
 
     // ===============================
+    // URL BASE DA API
+    // Use a URL publica do backend que roda o Express/WhatsApp.
+    // ===============================
+    const API_BASE_URL = "https://labstudio-sistema-production.up.railway.app";
+
+    // ===============================
     // FUNÇÕES DE TEMA
     // Aplicam o tema salvo e preservam a escolha no localStorage.
     // ===============================
@@ -452,6 +458,33 @@
       setTimeout(() => {
         toast.remove();
       }, 4200);
+    }
+
+    async function fetchApiJson(url, options = {}) {
+      const requestUrl = url.startsWith("http") ? url : `${API_BASE_URL.replace(/\/$/, "")}${url}`;
+      const resposta = await fetch(requestUrl, options);
+      const texto = await resposta.text();
+      const contentType = (resposta.headers.get("content-type") || "").toLowerCase();
+
+      if (!contentType.includes("application/json")) {
+        throw new Error(
+          "Resposta inesperada do servidor. Verifique se o backend esta ativo e se a URL da API esta correta."
+        );
+      }
+
+      let resultado;
+
+      try {
+        resultado = JSON.parse(texto);
+      } catch (err) {
+        throw new Error(`Resposta JSON invalida do servidor: ${texto.slice(0, 160)}`);
+      }
+
+      if (!resposta.ok) {
+        throw new Error(resultado.mensagem || `Erro ${resposta.status}: ${resposta.statusText}`);
+      }
+
+      return resultado;
     }
 
     // ===============================
@@ -651,7 +684,7 @@
         // ENVIAR CADASTRO PARA O SERVIDOR
         // O servidor verifica duplicidade e salva no Supabase com service role.
         // ===============================
-        const resposta = await fetch("/api/cadastro-online", {
+        const resultado = await fetchApiJson("/api/cadastro-online", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -661,9 +694,7 @@
           })
         });
 
-        const resultado = await resposta.json();
-
-        if (!resposta.ok || !resultado.ok) {
+        if (!resultado.ok) {
           mostrarAviso(resultado.mensagem || "Erro ao enviar cadastro.");
           mostrarToast(resultado.mensagem || "Erro ao enviar cadastro.", "erro");
           return;
