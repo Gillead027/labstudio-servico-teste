@@ -1381,6 +1381,7 @@
         "2024-05-01",
         "2024-05-30"
       ],
+      datas_bloqueadas_detalhes: {},
       mensagem_funcionamento: "O LabStudio funciona às terças e quintas-feiras, mediante disponibilidade de horário.",
       versao_config: "fallback-admin-local"
     };
@@ -1574,6 +1575,12 @@
         datas_bloqueadas: Array.isArray(configRecebida.datas_bloqueadas)
           ? configRecebida.datas_bloqueadas
           : CONFIG_ADMIN_FALLBACK.datas_bloqueadas,
+        datas_bloqueadas_detalhes:
+          configRecebida.datas_bloqueadas_detalhes &&
+          typeof configRecebida.datas_bloqueadas_detalhes === "object" &&
+          !Array.isArray(configRecebida.datas_bloqueadas_detalhes)
+            ? configRecebida.datas_bloqueadas_detalhes
+            : CONFIG_ADMIN_FALLBACK.datas_bloqueadas_detalhes,
         mensagem_funcionamento: configRecebida.mensagem_funcionamento || CONFIG_ADMIN_FALLBACK.mensagem_funcionamento,
         versao_config: configRecebida.versao_config || CONFIG_ADMIN_FALLBACK.versao_config
       };
@@ -2056,6 +2063,32 @@
       return datasBloqueadas.includes(dataIso);
     }
 
+    function dataIsoValidaCalendario(dataIso) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dataIso || ""))) {
+        return false;
+      }
+
+      const dataObjeto = dataLocalPorIso(dataIso);
+      return Boolean(dataObjeto) && dataIsoLocal(dataObjeto) === dataIso;
+    }
+
+    function detalhesBloqueiosCalendario() {
+      return configLabStudio.datas_bloqueadas_detalhes &&
+        typeof configLabStudio.datas_bloqueadas_detalhes === "object" &&
+        !Array.isArray(configLabStudio.datas_bloqueadas_detalhes)
+        ? configLabStudio.datas_bloqueadas_detalhes
+        : {};
+    }
+
+    function detalheBloqueioCalendario(dataIso) {
+      const detalhes = detalhesBloqueiosCalendario();
+      const detalhe = detalhes[dataIso];
+
+      return detalhe && typeof detalhe === "object" && !Array.isArray(detalhe)
+        ? detalhe
+        : null;
+    }
+
     function dataEmFuncionamentoCalendario(dataIso) {
       const dataObjeto = dataLocalPorIso(dataIso);
       if (!dataObjeto) return false;
@@ -2271,6 +2304,18 @@
     function ativarAcoesCalendarioDetalhe() {
       if (!calendarioDetalhe) return;
 
+      calendarioDetalhe.querySelectorAll("[data-calendario-bloqueio]").forEach(botao => {
+        botao.addEventListener("click", () => {
+          const dataIso = botao.dataset.calendarioBloqueio;
+          if (dataBloqueadaCalendario(dataIso)) {
+            desbloquearDataCalendario(dataIso, botao);
+            return;
+          }
+
+          bloquearDataCalendario(dataIso, botao);
+        });
+      });
+
       calendarioDetalhe.querySelectorAll("[data-calendario-acao]").forEach(botao => {
         botao.addEventListener("click", () => {
           const agendamentoId = botao.dataset.agendamentoId;
@@ -2308,12 +2353,20 @@
       const statusDia = calcularStatusDiaCalendario(dataIso, agendamentosDia);
       const horarios = horariosConfiguradosCalendario();
       const horariosConfigSet = new Set(horarios);
+      const bloqueada = dataBloqueadaCalendario(dataIso);
+      const detalheBloqueio = detalheBloqueioCalendario(dataIso);
       const agendamentosForaDaGrade = agendamentosDia.filter(agendamento =>
         !horariosConfigSet.has(agendamento.horario)
       );
       const avisoFuncionamento = statusDia.chave === "fora-funcionamento"
         ? `<div class="form-ajuda">${escaparHtml(configLabStudio.mensagem_funcionamento || CONFIG_ADMIN_FALLBACK.mensagem_funcionamento)}</div>`
         : "";
+      const textoBloqueio = bloqueada ? "Data bloqueada" : "Data liberada";
+      const textoBotaoBloqueio = bloqueada ? "Desbloquear data" : "Bloquear data";
+      const classeBotaoBloqueio = bloqueada ? "btn-desbloquear" : "btn-cancelar";
+      const motivoBloqueio = detalheBloqueio && detalheBloqueio.motivo
+        ? detalheBloqueio.motivo
+        : "Sem motivo registrado.";
 
       calendarioDetalhe.innerHTML = `
         <div class="calendario-detalhe-topo">
@@ -2328,6 +2381,34 @@
         </div>
 
         <div class="calendario-detalhe-grid">
+          <div class="usuario-card">
+            <div class="linha-topo">
+              <div class="nome">${escaparHtml(textoBloqueio)}</div>
+              <div class="${bloqueada ? "status status-cancelado" : "status status-ativo"}">
+                ${bloqueada ? "Bloqueada" : "Liberada"}
+              </div>
+            </div>
+            <div class="usuario-info">
+              ${
+                bloqueada
+                  ? `
+                    <strong>Motivo:</strong> ${escaparHtml(motivoBloqueio)}<br>
+                    <strong>Bloqueada em:</strong> ${escaparHtml(formatarDataHora(detalheBloqueio ? detalheBloqueio.bloqueado_em : null))}<br>
+                    <strong>Bloqueada por:</strong> ${escaparHtml(detalheBloqueio && detalheBloqueio.bloqueado_por ? detalheBloqueio.bloqueado_por : "Não informado")}
+                  `
+                  : "Esta data não está na lista de datas bloqueadas."
+              }
+            </div>
+            <div class="acoes">
+              <button
+                class="${classeBotaoBloqueio}"
+                data-calendario-bloqueio="${escaparHtml(dataIso)}"
+              >
+                ${escaparHtml(textoBotaoBloqueio)}
+              </button>
+            </div>
+          </div>
+
           ${
             horarios.length === 0
               ? mensagemVazio("Nenhum horário configurado.", "Revise a aba Configurações para habilitar horários.")
@@ -2422,6 +2503,220 @@
       calendarioMesAtual.setDate(1);
       calendarioDataSelecionada = dataIsoLocal(new Date());
       carregarCalendario();
+    }
+
+    async function obterUsuarioAuthAtual() {
+      const { data, error } = await client.auth.getUser();
+
+      if (error) {
+        throw error;
+      }
+
+      return data && data.user ? data.user : null;
+    }
+
+    function montarPayloadConfiguracaoBanco(configEditada) {
+      const detalhesOriginais = configEditada.datas_bloqueadas_detalhes &&
+        typeof configEditada.datas_bloqueadas_detalhes === "object" &&
+        !Array.isArray(configEditada.datas_bloqueadas_detalhes)
+        ? configEditada.datas_bloqueadas_detalhes
+        : {};
+      const detalhesValidos = {};
+
+      (Array.isArray(configEditada.datas_bloqueadas) ? configEditada.datas_bloqueadas : []).forEach(dataIso => {
+        if (detalhesOriginais[dataIso]) {
+          detalhesValidos[dataIso] = detalhesOriginais[dataIso];
+        }
+      });
+
+      return {
+        dias_funcionamento: configEditada.dias_funcionamento,
+        dias_funcionamento_label: configEditada.dias_funcionamento_label,
+        horarios_disponiveis: configEditada.horarios_disponiveis,
+        datas_bloqueadas: configEditada.datas_bloqueadas,
+        datas_bloqueadas_detalhes: detalhesValidos,
+        idade_minima: configEditada.idade_minima,
+        idade_maxima: configEditada.idade_maxima,
+        limite_faltas_bloqueio: configEditada.limite_faltas_bloqueio,
+        link_publico: configEditada.link_publico,
+        mensagem_funcionamento: configEditada.mensagem_funcionamento,
+        observacao_interna: configEditada.observacao_interna,
+        versao_config: configEditada.versao_config || "v2-local-admin"
+      };
+    }
+
+    async function salvarConfiguracaoLabStudioNoSupabase(configEditada, usuarioAuth = null) {
+      if (!adminValidado) {
+        throw new Error("Sessão administrativa não validada. Faça login novamente.");
+      }
+
+      if (ambienteConfigLabStudio !== LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL) {
+        throw new Error("Por segurança, somente o ambiente v2-local pode ser editado por este painel.");
+      }
+
+      const usuarioFinal = usuarioAuth || await obterUsuarioAuthAtual();
+      const configPayload = montarPayloadConfiguracaoBanco(configEditada);
+      const payloadBanco = {
+        config: configPayload,
+        observacao: configPayload.observacao_interna || null,
+        atualizado_em: new Date().toISOString()
+      };
+
+      if (usuarioFinal && usuarioFinal.id) {
+        payloadBanco.atualizado_por = usuarioFinal.id;
+      }
+
+      const { data, error } = await client
+        .from("labstudio_configuracoes")
+        .update(payloadBanco)
+        .eq("ambiente", LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL)
+        .eq("ativo", true)
+        .select("id, ambiente")
+        .maybeSingle();
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data) {
+        throw new Error("Nenhuma configuração ativa v2-local foi atualizada.");
+      }
+
+      return data;
+    }
+
+    async function recarregarCalendarioAposBloqueio(dataIso) {
+      await carregarConfiguracoesPublicas();
+      calendarioDataSelecionada = dataIso;
+      await carregarCalendario();
+
+      if (!editandoConfiguracoes) {
+        carregarConfiguracoesLabStudio();
+      }
+    }
+
+    async function bloquearDataCalendario(dataIso, botao = null) {
+      if (!dataIsoValidaCalendario(dataIso)) {
+        mostrarToast("Data inválida para bloqueio.", "erro");
+        return;
+      }
+
+      if (dataBloqueadaCalendario(dataIso)) {
+        mostrarToast("Esta data já está bloqueada.", "aviso");
+        return;
+      }
+
+      const motivo = prompt(
+        `Informe o motivo do bloqueio para ${formatarData(dataIso)}:\n\nPara testes, use prefixo [TESTE].`
+      );
+
+      if (motivo === null) return;
+
+      const motivoLimpo = motivo.trim();
+
+      if (!motivoLimpo) {
+        mostrarToast("Informe um motivo para bloquear a data.", "aviso");
+        return;
+      }
+
+      const confirmar = confirm(
+        `Bloquear a data ${formatarData(dataIso)} no ambiente v2-local?\n\nMotivo: ${motivoLimpo}`
+      );
+
+      if (!confirmar) return;
+
+      definirLoadingBotao(botao, true, "Bloqueando...", "Bloquear data");
+
+      try {
+        const usuarioAuth = await obterUsuarioAuthAtual();
+        const datasAtuais = Array.isArray(configLabStudio.datas_bloqueadas)
+          ? configLabStudio.datas_bloqueadas
+          : [];
+        const datasBloqueadas = Array.from(new Set([...datasAtuais, dataIso])).sort();
+        const detalhes = {
+          ...detalhesBloqueiosCalendario(),
+          [dataIso]: {
+            motivo: motivoLimpo,
+            bloqueado_em: new Date().toISOString(),
+            bloqueado_por: usuarioAuth && usuarioAuth.email ? usuarioAuth.email : "admin"
+          }
+        };
+        const configEditada = normalizarConfiguracaoPublica({
+          ...configLabStudio,
+          datas_bloqueadas: datasBloqueadas,
+          datas_bloqueadas_detalhes: detalhes
+        });
+
+        await salvarConfiguracaoLabStudioNoSupabase(configEditada, usuarioAuth);
+
+        await registrarLogAdmin(
+          "bloquear_data_labstudio",
+          "labstudio_configuracoes",
+          LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL,
+          `Data ${dataIso} bloqueada pelo calendário. Motivo: ${motivoLimpo}`
+        );
+
+        await recarregarCalendarioAposBloqueio(dataIso);
+        mostrarToast(`Data ${formatarData(dataIso)} bloqueada com sucesso.`, "sucesso");
+      } catch (err) {
+        console.error("Erro ao bloquear data pelo calendário:", err);
+        mostrarToast("Erro ao bloquear data: " + err.message, "erro");
+      } finally {
+        definirLoadingBotao(botao, false, "Bloqueando...", "Bloquear data");
+      }
+    }
+
+    async function desbloquearDataCalendario(dataIso, botao = null) {
+      if (!dataIsoValidaCalendario(dataIso)) {
+        mostrarToast("Data inválida para desbloqueio.", "erro");
+        return;
+      }
+
+      if (!dataBloqueadaCalendario(dataIso)) {
+        mostrarToast("Esta data já está liberada.", "aviso");
+        return;
+      }
+
+      const confirmar = confirm(
+        `Desbloquear a data ${formatarData(dataIso)} no ambiente v2-local?`
+      );
+
+      if (!confirmar) return;
+
+      definirLoadingBotao(botao, true, "Desbloqueando...", "Desbloquear data");
+
+      try {
+        const usuarioAuth = await obterUsuarioAuthAtual();
+        const datasBloqueadas = (Array.isArray(configLabStudio.datas_bloqueadas)
+          ? configLabStudio.datas_bloqueadas
+          : []
+        ).filter(data => data !== dataIso);
+        const detalhes = { ...detalhesBloqueiosCalendario() };
+        delete detalhes[dataIso];
+
+        const configEditada = normalizarConfiguracaoPublica({
+          ...configLabStudio,
+          datas_bloqueadas: datasBloqueadas,
+          datas_bloqueadas_detalhes: detalhes
+        });
+
+        await salvarConfiguracaoLabStudioNoSupabase(configEditada, usuarioAuth);
+
+        await registrarLogAdmin(
+          "desbloquear_data_labstudio",
+          "labstudio_configuracoes",
+          LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL,
+          `Data ${dataIso} desbloqueada pelo calendário.`
+        );
+
+        await recarregarCalendarioAposBloqueio(dataIso);
+        mostrarToast(`Data ${formatarData(dataIso)} desbloqueada com sucesso.`, "sucesso");
+      } catch (err) {
+        console.error("Erro ao desbloquear data pelo calendário:", err);
+        mostrarToast("Erro ao desbloquear data: " + err.message, "erro");
+      } finally {
+        definirLoadingBotao(botao, false, "Desbloqueando...", "Desbloquear data");
+      }
     }
 
     // ===============================
@@ -3474,48 +3769,8 @@
       definirLoadingBotao(btnSalvar, true, "Salvando...", "Salvar configurações");
 
       try {
-        const configPayload = {
-          dias_funcionamento: configEditada.dias_funcionamento,
-          dias_funcionamento_label: configEditada.dias_funcionamento_label,
-          horarios_disponiveis: configEditada.horarios_disponiveis,
-          datas_bloqueadas: configEditada.datas_bloqueadas,
-          idade_minima: configEditada.idade_minima,
-          idade_maxima: configEditada.idade_maxima,
-          limite_faltas_bloqueio: configEditada.limite_faltas_bloqueio,
-          link_publico: configEditada.link_publico,
-          mensagem_funcionamento: configEditada.mensagem_funcionamento,
-          observacao_interna: configEditada.observacao_interna,
-          versao_config: configEditada.versao_config || "v2-local-admin"
-        };
-
-        const { data: dadosAuth } = await client.auth.getUser();
-        const usuarioAuth = dadosAuth && dadosAuth.user ? dadosAuth.user : null;
-
-        const payloadBanco = {
-          config: configPayload,
-          observacao: configPayload.observacao_interna || null,
-          atualizado_em: new Date().toISOString()
-        };
-
-        if (usuarioAuth && usuarioAuth.id) {
-          payloadBanco.atualizado_por = usuarioAuth.id;
-        }
-
-        const { data, error } = await client
-          .from("labstudio_configuracoes")
-          .update(payloadBanco)
-          .eq("ambiente", LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL)
-          .eq("ativo", true)
-          .select("id, ambiente")
-          .maybeSingle();
-
-        if (error) {
-          throw error;
-        }
-
-        if (!data) {
-          throw new Error("Nenhuma configuração ativa v2-local foi atualizada.");
-        }
+        const usuarioAuth = await obterUsuarioAuthAtual();
+        const data = await salvarConfiguracaoLabStudioNoSupabase(configEditada, usuarioAuth);
 
         await registrarLogAdmin(
           "editar_configuracoes_labstudio",
