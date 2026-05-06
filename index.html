@@ -401,22 +401,24 @@
 
   <script>
     // ===============================
-    // CONFIGURAÇÃO DE FUNCIONAMENTO
-    // O LabStudio funciona somente terça e quinta
-    // Horários disponíveis nesses dias:
+    // CONFIGURAÇÃO PÚBLICA DO LABSTUDIO
+    // O fallback mantém o comportamento atual da v1.0 caso a rota falhe.
     // ===============================
-    const horariosTerQui = ["18:00", "18:30"];
+    const CONFIG_LABSTUDIO_FALLBACK = {
+      dias_funcionamento: [2, 4],
+      horarios_disponiveis: ["18:00", "18:30"],
+      datas_bloqueadas: [
+        "2024-07-19",
+        "2024-05-01",
+        "2024-05-30"
+      ],
+      idade_minima: 15,
+      idade_maxima: 29,
+      limite_faltas_bloqueio: 2,
+      mensagem_funcionamento: "O LabStudio funciona apenas às terças e quintas-feiras."
+    };
 
-    // ===============================
-    // DATAS BLOQUEADAS MANUALMENTE
-    // Use para feriados, eventos internos ou impossibilidades
-    // Formato: ANO-MÊS-DIA
-    // ===============================
-    const datasBloqueadas = [
-      "2024-07-19",
-      "2024-05-01",
-      "2024-05-30"
-    ];
+    let configuracaoLabStudio = { ...CONFIG_LABSTUDIO_FALLBACK };
 
     // ===============================
     // URL BASE DA API
@@ -527,6 +529,59 @@
     }
 
     // ===============================
+    // FUNÇÃO: VALIDAR CONFIGURAÇÃO PÚBLICA
+    // Garante que valores incompletos da rota não quebrem a página.
+    // ===============================
+    function normalizarConfiguracaoPublica(config) {
+      const configRecebida = config && typeof config === "object" ? config : {};
+
+      return {
+        ...CONFIG_LABSTUDIO_FALLBACK,
+        ...configRecebida,
+        dias_funcionamento: Array.isArray(configRecebida.dias_funcionamento) && configRecebida.dias_funcionamento.length > 0
+          ? configRecebida.dias_funcionamento
+          : CONFIG_LABSTUDIO_FALLBACK.dias_funcionamento,
+        horarios_disponiveis: Array.isArray(configRecebida.horarios_disponiveis) && configRecebida.horarios_disponiveis.length > 0
+          ? configRecebida.horarios_disponiveis
+          : CONFIG_LABSTUDIO_FALLBACK.horarios_disponiveis,
+        datas_bloqueadas: Array.isArray(configRecebida.datas_bloqueadas)
+          ? configRecebida.datas_bloqueadas
+          : CONFIG_LABSTUDIO_FALLBACK.datas_bloqueadas,
+        idade_minima: Number.isFinite(Number(configRecebida.idade_minima))
+          ? Number(configRecebida.idade_minima)
+          : CONFIG_LABSTUDIO_FALLBACK.idade_minima,
+        idade_maxima: Number.isFinite(Number(configRecebida.idade_maxima))
+          ? Number(configRecebida.idade_maxima)
+          : CONFIG_LABSTUDIO_FALLBACK.idade_maxima,
+        limite_faltas_bloqueio: Number.isFinite(Number(configRecebida.limite_faltas_bloqueio))
+          ? Number(configRecebida.limite_faltas_bloqueio)
+          : CONFIG_LABSTUDIO_FALLBACK.limite_faltas_bloqueio,
+        mensagem_funcionamento: configRecebida.mensagem_funcionamento || CONFIG_LABSTUDIO_FALLBACK.mensagem_funcionamento
+      };
+    }
+
+    // ===============================
+    // FUNÇÃO: CARREGAR CONFIGURAÇÕES PÚBLICAS
+    // Usa a rota do backend e mantém fallback local se algo falhar.
+    // ===============================
+    async function carregarConfiguracoesPublicas() {
+      try {
+        const resultado = await fetchApiJson("/api/configuracoes-publicas");
+
+        if (!resultado.ok || !resultado.config) {
+          throw new Error(resultado.mensagem || "Configuração pública indisponível.");
+        }
+
+        configuracaoLabStudio = normalizarConfiguracaoPublica(resultado.config);
+      } catch (err) {
+        console.warn("Usando configuração local de fallback do LabStudio:", err);
+        configuracaoLabStudio = { ...CONFIG_LABSTUDIO_FALLBACK };
+      }
+
+      return configuracaoLabStudio;
+    }
+
+    // ===============================
     // FUNÇÃO: ESTADO DE LOADING DO BOTÃO
     // Desabilita o botão e troca o texto enquanto a ação está em andamento.
     // ===============================
@@ -572,11 +627,13 @@
 
     // ===============================
     // FUNÇÃO: VERIFICAR IDADE PERMITIDA
-    // O CRJ atende jovens de 15 a 29 anos.
+    // Usa a faixa etária configurada, com fallback igual à v1.0.
     // ===============================
     function idadePermitida(dataNascimento) {
       const idade = calcularIdade(dataNascimento);
-      return idade !== null && idade >= 15 && idade <= 29;
+      return idade !== null &&
+        idade >= configuracaoLabStudio.idade_minima &&
+        idade <= configuracaoLabStudio.idade_maxima;
     }
 
     // ===============================
@@ -722,9 +779,9 @@
       // 5 = sexta
       // 6 = sábado
       // ===============================
-      if (![2, 4].includes(diaSemana)) {
-        mostrarAviso("O LabStudio funciona apenas às terças e quintas-feiras.");
-        mostrarToast("O LabStudio funciona apenas às terças e quintas-feiras.", "aviso");
+      if (!configuracaoLabStudio.dias_funcionamento.includes(diaSemana)) {
+        mostrarAviso(configuracaoLabStudio.mensagem_funcionamento);
+        mostrarToast(configuracaoLabStudio.mensagem_funcionamento, "aviso");
         inputData.value = "";
         selectHorario.innerHTML = '<option value="">Dia indisponível</option>';
         return;
@@ -733,7 +790,7 @@
       // ===============================
       // BLOQUEIO DE DATAS ESPECÍFICAS
       // ===============================
-      if (datasBloqueadas.includes(dataSelecionada)) {
+      if (configuracaoLabStudio.datas_bloqueadas.includes(dataSelecionada)) {
         mostrarAviso("Esta data está reservada para evento interno ou feriado.");
         mostrarToast("Esta data está reservada para evento interno ou feriado.", "aviso");
         inputData.value = "";
@@ -754,7 +811,11 @@
           throw new Error(resultado.mensagem || "Erro ao consultar agenda.");
         }
 
-        const horariosDisponiveis = resultado.horarios || resultado.horariosDisponiveis || [];
+        const horariosRetornados = resultado.horarios || resultado.horariosDisponiveis || [];
+        const horariosConfigurados = configuracaoLabStudio.horarios_disponiveis;
+        const horariosDisponiveis = horariosRetornados.filter(hora =>
+          horariosConfigurados.includes(hora)
+        );
 
         selectHorario.innerHTML = '<option value="">Escolha o horário</option>';
 
@@ -886,6 +947,7 @@
 
     carregarTemaSalvo();
     verificarProtocoloLocal();
+    carregarConfiguracoesPublicas();
     btnTema.addEventListener("click", alternarTema);
     inputNome.addEventListener("input", validarNomeTempoReal);
     inputTelefone.addEventListener("input", validarTelefoneTempoReal);
