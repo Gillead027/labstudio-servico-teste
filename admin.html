@@ -2284,6 +2284,7 @@
       const desabilitarPresenca = status === "compareceu" || status === "cancelado";
       const desabilitarFalta = status === "faltou" || status === "cancelado";
       const desabilitarCancelar = status !== "agendado";
+      const desabilitarReagendar = status === "cancelado";
 
       return `
         <div class="calendario-horario ocupado">
@@ -2329,6 +2330,15 @@
               ${desabilitarCancelar ? "disabled" : ""}
             >
               Cancelar
+            </button>
+
+            <button
+              class="btn-editar"
+              data-calendario-acao="reagendar"
+              data-agendamento-id="${escaparHtml(agendamento.id)}"
+              ${desabilitarReagendar ? "disabled" : ""}
+            >
+              Reagendar
             </button>
           </div>
         </div>
@@ -2385,6 +2395,11 @@
 
           if (acao === "cancelar") {
             cancelarAgendamento(agendamentoId, botao);
+            return;
+          }
+
+          if (acao === "reagendar") {
+            reagendarAgendamento(agendamentoId, botao);
           }
         });
       });
@@ -4889,6 +4904,7 @@
         const desabilitarPresenca = status === "compareceu" || status === "cancelado";
         const desabilitarFalta = status === "faltou" || status === "cancelado";
         const desabilitarCancelar = status !== "agendado";
+        const desabilitarReagendar = status === "cancelado";
 
         card.innerHTML = `
           <div class="linha-topo">
@@ -4920,12 +4936,17 @@
             <button class="btn-cancelar" ${desabilitarCancelar ? "disabled" : ""}>
               Cancelar
             </button>
+
+            <button class="btn-editar" ${desabilitarReagendar ? "disabled" : ""}>
+              Reagendar
+            </button>
           </div>
         `;
 
         const btnPresenca = card.querySelector(".btn-presenca");
         const btnFalta = card.querySelector(".btn-falta");
         const btnCancelar = card.querySelector(".btn-cancelar");
+        const btnReagendar = card.querySelector(".btn-editar");
 
         btnPresenca.addEventListener("click", () => {
           confirmarPresenca(agendamento.id, btnPresenca);
@@ -4937,6 +4958,10 @@
 
         btnCancelar.addEventListener("click", () => {
           cancelarAgendamento(agendamento.id, btnCancelar);
+        });
+
+        btnReagendar.addEventListener("click", () => {
+          reagendarAgendamento(agendamento.id, btnReagendar);
         });
 
         lista.appendChild(card);
@@ -5020,6 +5045,217 @@
       carregarCalendario();
       carregarLogsAdmin();
       carregarConfiguracoesLabStudio();
+    }
+
+    // ===============================
+    // FUNÇÕES DE REAGENDAMENTO
+    // Alteram somente data/horário do agendamento e preservam o histórico em observação.
+    // ===============================
+    function normalizarHorarioAgendamento(valor) {
+      return normalizarHorarioConfiguracao(valor);
+    }
+
+    function montarMensagemReagendamento(agendamento, novaData, novoHorario, motivo) {
+      const dataAntiga = String(agendamento.data || "").split("T")[0];
+      const horarioAntigo = normalizarHorarioAgendamento(agendamento.horario || "-");
+
+      return `Reagendado de ${formatarData(dataAntiga)} às ${horarioAntigo || "-"} para ${formatarData(novaData)} às ${novoHorario}. Motivo: ${motivo}.`;
+    }
+
+    function validarNovaDataHorarioReagendamento(agendamento, novaData, novoHorario) {
+      const erros = [];
+      const dataAntiga = String(agendamento.data || "").split("T")[0];
+      const horarioAntigo = normalizarHorarioAgendamento(agendamento.horario || "");
+      const horariosDisponiveis = horariosConfiguradosCalendario();
+
+      if (!dataIsoValidaCalendario(novaData)) {
+        erros.push("Nova data inválida. Use o formato YYYY-MM-DD.");
+      } else {
+        if (!dataEmFuncionamentoCalendario(novaData)) {
+          erros.push(configLabStudio.mensagem_funcionamento || CONFIG_ADMIN_FALLBACK.mensagem_funcionamento);
+        }
+
+        if (dataBloqueadaCalendario(novaData)) {
+          erros.push("A nova data está bloqueada nas configurações.");
+        }
+      }
+
+      if (!horarioConfiguracaoValido(novoHorario)) {
+        erros.push("Novo horário inválido. Use o formato HH:MM.");
+      } else if (!horariosDisponiveis.includes(novoHorario)) {
+        erros.push(`O horário ${novoHorario} não está disponível na configuração atual.`);
+      }
+
+      if (dataAntiga === novaData && horarioAntigo === novoHorario) {
+        erros.push("Escolha uma nova data ou um novo horário diferente do agendamento atual.");
+      }
+
+      return erros;
+    }
+
+    async function buscarConflitoReagendamento(agendamentoId, novaData, novoHorario) {
+      const horariosConsulta = Array.from(new Set([novoHorario, `${novoHorario}:00`]));
+
+      const { data, error } = await client
+        .from("agendamentos")
+        .select("id, nome, telefone, data, horario, status")
+        .eq("data", novaData)
+        .in("horario", horariosConsulta);
+
+      if (error) {
+        throw error;
+      }
+
+      return (data || []).find(item =>
+        String(item.id) !== String(agendamentoId) &&
+        agendamentoOcupaHorario(item)
+      ) || null;
+    }
+
+    async function atualizarAgendamentoReagendado(agendamento, novaData, novoHorario, novaObservacao) {
+      const dataAntiga = String(agendamento.data || "").split("T")[0];
+      const horarioAntigo = normalizarHorarioAgendamento(agendamento.horario || "");
+      const payloadBase = {
+        data: novaData,
+        horario: novoHorario,
+        status: "agendado",
+        observacao: novaObservacao
+      };
+      const payloadComHistorico = {
+        ...payloadBase,
+        reagendado_em: new Date().toISOString(),
+        reagendado_de_data: dataAntiga,
+        reagendado_de_horario: horarioAntigo
+      };
+
+      const { error } = await client
+        .from("agendamentos")
+        .update(payloadComHistorico)
+        .eq("id", agendamento.id);
+
+      if (!error) return;
+
+      const erroPareceColunaAusente =
+        error.code === "PGRST204" ||
+        /reagendado|schema cache|column/i.test(error.message || "");
+
+      if (!erroPareceColunaAusente) {
+        throw error;
+      }
+
+      console.warn("Colunas opcionais de reagendamento não encontradas. Salvando somente observação:", error.message);
+
+      const { error: erroFallback } = await client
+        .from("agendamentos")
+        .update(payloadBase)
+        .eq("id", agendamento.id);
+
+      if (erroFallback) {
+        throw erroFallback;
+      }
+    }
+
+    async function reagendarAgendamento(agendamentoId, botao = null) {
+      try {
+        await carregarConfiguracoesPublicas();
+
+        const agendamento = await buscarAgendamentoPorId(agendamentoId);
+
+        if (!agendamento) {
+          mostrarToast("Agendamento não encontrado.", "erro");
+          return;
+        }
+
+        const statusAtual = String(agendamento.status || "agendado").toLowerCase();
+
+        if (statusAtual === "cancelado") {
+          mostrarToast("Agendamentos cancelados não podem ser reagendados.", "aviso");
+          return;
+        }
+
+        if (["compareceu", "faltou"].includes(statusAtual)) {
+          const confirmarStatus = confirm(
+            `Este agendamento está como "${statusAtual}". Reagendar vai voltar o status do agendamento para "agendado", sem alterar faltas ou presenças do usuário. Deseja continuar?`
+          );
+
+          if (!confirmarStatus) return;
+        }
+
+        const dataAtual = String(agendamento.data || "").split("T")[0];
+        const horarioAtual = normalizarHorarioAgendamento(agendamento.horario || "");
+        const novaDataPrompt = prompt("Nova data do agendamento (YYYY-MM-DD):", dataAtual);
+
+        if (novaDataPrompt === null) return;
+
+        const novaData = novaDataPrompt.trim();
+        const horariosDisponiveis = horariosConfiguradosCalendario();
+        const novoHorarioPrompt = prompt(
+          `Novo horário (HH:MM):\n\nHorários disponíveis: ${horariosDisponiveis.join(", ")}`,
+          horarioAtual
+        );
+
+        if (novoHorarioPrompt === null) return;
+
+        const novoHorario = normalizarHorarioAgendamento(novoHorarioPrompt);
+        const motivoPrompt = prompt("Motivo do reagendamento:");
+
+        if (motivoPrompt === null) return;
+
+        const motivo = motivoPrompt.trim();
+
+        if (!motivo) {
+          mostrarToast("Informe o motivo do reagendamento.", "aviso");
+          return;
+        }
+
+        const errosValidacao = validarNovaDataHorarioReagendamento(agendamento, novaData, novoHorario);
+
+        if (errosValidacao.length > 0) {
+          mostrarToast(errosValidacao[0], "aviso");
+          return;
+        }
+
+        definirLoadingBotao(botao, true, "Validando...", "Reagendar");
+
+        const conflito = await buscarConflitoReagendamento(agendamento.id, novaData, novoHorario);
+
+        if (conflito) {
+          mostrarToast(
+            `Horário ocupado por ${conflito.nome || "outro agendamento"} em ${formatarData(novaData)} às ${normalizarHorarioAgendamento(conflito.horario)}.`,
+            "erro"
+          );
+          return;
+        }
+
+        const resumoReagendamento = montarMensagemReagendamento(agendamento, novaData, novoHorario, motivo);
+        const confirmar = confirm(`${resumoReagendamento}\n\nConfirmar reagendamento?`);
+
+        if (!confirmar) return;
+
+        definirLoadingBotao(botao, true, "Salvando...", "Reagendar");
+
+        const observacaoAnterior = agendamento.observacao
+          ? `${agendamento.observacao}\n`
+          : "";
+        const novaObservacao = `${observacaoAnterior}${resumoReagendamento}`;
+
+        await atualizarAgendamentoReagendado(agendamento, novaData, novoHorario, novaObservacao);
+
+        await registrarLogAdmin(
+          "reagendar_agendamento",
+          "agendamentos",
+          agendamento.id,
+          `${resumoReagendamento} Agendamento de ${agendamento.nome || "jovem sem nome"}.`
+        );
+
+        mostrarToast("Agendamento reagendado com sucesso!", "sucesso");
+        recarregarPainel();
+      } catch (err) {
+        console.error("Erro ao reagendar agendamento:", err);
+        mostrarToast("Erro ao reagendar: " + err.message, "erro");
+      } finally {
+        definirLoadingBotao(botao, false, "Salvando...", "Reagendar");
+      }
     }
 
     // ===============================
