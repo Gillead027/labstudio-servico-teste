@@ -1001,7 +1001,7 @@
     =============================== -->
     <section id="aba-configuracoes" class="aba-painel">
       <h2 class="titulo-aba">Configurações</h2>
-      <p class="descricao-aba">Visualize as regras atuais do LabStudio. A edição será liberada em uma etapa futura.</p>
+      <p class="descricao-aba">Consulte e ajuste as regras locais da v2.0, como dias de funcionamento, horários, faixa etária, faltas, link público e observações internas.</p>
 
       <div class="painel-usuarios">
         <div class="usuarios-topo">
@@ -1061,8 +1061,11 @@
       versao_config: "fallback-admin-local"
     };
 
+    const LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL = "v2-local";
     let configLabStudio = { ...CONFIG_ADMIN_FALLBACK };
     let origemConfigLabStudio = "fallback-local";
+    let ambienteConfigLabStudio = LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL;
+    let editandoConfiguracoes = false;
 
     // ===============================
     // ELEMENTOS DO LOGIN
@@ -1258,10 +1261,12 @@
 
         configLabStudio = normalizarConfiguracaoPublica(resultado.config);
         origemConfigLabStudio = resultado.origem || "fallback-local";
+        ambienteConfigLabStudio = resultado.ambiente || LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL;
       } catch (err) {
         console.warn("Usando configuração local de fallback do admin:", err);
         configLabStudio = { ...CONFIG_ADMIN_FALLBACK };
         origemConfigLabStudio = "fallback-local";
+        ambienteConfigLabStudio = LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL;
       }
 
       return configLabStudio;
@@ -2323,9 +2328,325 @@
       return valor.join(", ");
     }
 
+    function formatarListaLinhasConfiguracao(valor) {
+      if (!Array.isArray(valor)) return "";
+      return valor.join("\n");
+    }
+
+    function parseListaNumerosConfiguracao(valor) {
+      return String(valor || "")
+        .split(/[\n,;]+/)
+        .map(item => item.trim())
+        .filter(Boolean)
+        .map(Number);
+    }
+
+    function parseListaTextoConfiguracao(valor) {
+      return String(valor || "")
+        .split(/[\n,;]+/)
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+
+    function validarConfiguracoesEditadas(config) {
+      const erros = [];
+
+      if (!Array.isArray(config.dias_funcionamento) || config.dias_funcionamento.length === 0) {
+        erros.push("Informe ao menos um dia de funcionamento.");
+      } else if (config.dias_funcionamento.some(dia => !Number.isInteger(dia) || dia < 0 || dia > 6)) {
+        erros.push("Dias de funcionamento devem ser números inteiros entre 0 e 6.");
+      }
+
+      if (!Array.isArray(config.horarios_disponiveis) || config.horarios_disponiveis.length === 0) {
+        erros.push("Informe ao menos um horário disponível.");
+      } else if (config.horarios_disponiveis.some(horario => !/^\d{2}:\d{2}$/.test(horario))) {
+        erros.push("Horários disponíveis devem usar o formato HH:MM.");
+      }
+
+      if (!Array.isArray(config.datas_bloqueadas)) {
+        erros.push("Datas bloqueadas devem ser uma lista, podendo ficar vazia.");
+      } else if (config.datas_bloqueadas.some(data => !/^\d{4}-\d{2}-\d{2}$/.test(data))) {
+        erros.push("Datas bloqueadas devem usar o formato YYYY-MM-DD.");
+      }
+
+      if (!Number.isInteger(config.idade_minima) || config.idade_minima < 0) {
+        erros.push("Idade mínima deve ser um número inteiro maior ou igual a 0.");
+      }
+
+      if (!Number.isInteger(config.idade_maxima) || config.idade_maxima <= config.idade_minima) {
+        erros.push("Idade máxima deve ser um número inteiro maior que a idade mínima.");
+      }
+
+      if (!Number.isInteger(config.limite_faltas_bloqueio) || config.limite_faltas_bloqueio < 1) {
+        erros.push("Limite de faltas deve ser um número inteiro maior ou igual a 1.");
+      }
+
+      if (!/^https?:\/\/.+/i.test(config.link_publico || "")) {
+        erros.push("Link público deve começar com http:// ou https://.");
+      }
+
+      if (!String(config.mensagem_funcionamento || "").trim()) {
+        erros.push("Mensagem de funcionamento não pode ficar vazia.");
+      }
+
+      return erros;
+    }
+
+    function montarConfigEditadaDoFormulario() {
+      return normalizarConfiguracaoPublica({
+        ...configLabStudio,
+        dias_funcionamento: parseListaNumerosConfiguracao(document.getElementById("configDiasFuncionamento").value),
+        dias_funcionamento_label: parseListaTextoConfiguracao(document.getElementById("configDiasFuncionamentoLabel").value),
+        horarios_disponiveis: parseListaTextoConfiguracao(document.getElementById("configHorariosDisponiveis").value),
+        datas_bloqueadas: parseListaTextoConfiguracao(document.getElementById("configDatasBloqueadas").value),
+        idade_minima: Number(document.getElementById("configIdadeMinima").value),
+        idade_maxima: Number(document.getElementById("configIdadeMaxima").value),
+        limite_faltas_bloqueio: Number(document.getElementById("configLimiteFaltas").value),
+        link_publico: document.getElementById("configLinkPublico").value.trim(),
+        mensagem_funcionamento: document.getElementById("configMensagemFuncionamento").value.trim(),
+        observacao_interna: document.getElementById("configObservacaoInterna").value.trim(),
+        versao_config: configLabStudio.versao_config || "v2-local-admin"
+      });
+    }
+
+    function renderizarConfiguracoesVisualizacao(config, origem) {
+      conteudoConfiguracoes.innerHTML = `
+        <div class="form-ajuda">
+          Estas configurações afetam o agendamento local da v2.0.
+        </div>
+
+        <div class="painel-resumo">
+          <div class="bloco-resumo">
+            <h3>Dias de funcionamento</h3>
+            <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.dias_funcionamento_label))}</div>
+            <div class="item-ranking">Códigos: ${escaparHtml(formatarListaConfiguracao(config.dias_funcionamento))}</div>
+          </div>
+
+          <div class="bloco-resumo">
+            <h3>Horários disponíveis</h3>
+            <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.horarios_disponiveis))}</div>
+          </div>
+
+          <div class="bloco-resumo">
+            <h3>Datas bloqueadas</h3>
+            <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.datas_bloqueadas))}</div>
+          </div>
+
+          <div class="bloco-resumo">
+            <h3>Faixa etária</h3>
+            <div class="item-ranking">Idade mínima: ${escaparHtml(config.idade_minima)}</div>
+            <div class="item-ranking">Idade máxima: ${escaparHtml(config.idade_maxima)}</div>
+          </div>
+
+          <div class="bloco-resumo">
+            <h3>Bloqueio por faltas</h3>
+            <div class="item-ranking">Limite de faltas: ${escaparHtml(config.limite_faltas_bloqueio)}</div>
+          </div>
+
+          <div class="bloco-resumo">
+            <h3>Link público</h3>
+            <div class="item-ranking">${escaparHtml(config.link_publico || "Não informado")}</div>
+          </div>
+
+          <div class="bloco-resumo">
+            <h3>Mensagem de funcionamento</h3>
+            <div class="item-ranking">${escaparHtml(config.mensagem_funcionamento || "Não informada")}</div>
+          </div>
+
+          <div class="bloco-resumo">
+            <h3>Observação interna</h3>
+            <div class="item-ranking">${escaparHtml(config.observacao_interna || "Sem observação")}</div>
+          </div>
+
+          <div class="bloco-resumo">
+            <h3>Origem e versão</h3>
+            <div class="item-ranking">Ambiente: ${escaparHtml(ambienteConfigLabStudio)}</div>
+            <div class="item-ranking">Origem: ${escaparHtml(origem)}</div>
+            <div class="item-ranking">Versão: ${escaparHtml(config.versao_config || "Não informada")}</div>
+          </div>
+        </div>
+
+        <button id="btnEditarConfiguracoes" class="btn-salvar">Editar configurações</button>
+      `;
+
+      document.getElementById("btnEditarConfiguracoes").addEventListener("click", () => {
+        editandoConfiguracoes = true;
+        renderizarConfiguracoesEdicao(configLabStudio);
+      });
+    }
+
+    function renderizarConfiguracoesEdicao(config) {
+      conteudoConfiguracoes.innerHTML = `
+        <div class="form-ajuda">
+          Estas configurações afetam o agendamento local da v2.0. Somente o ambiente v2-local pode ser editado aqui.
+        </div>
+
+        <div id="avisoConfiguracoes" class="vazio" style="display:none;"></div>
+
+        <div class="form-cadastro">
+          <div class="grupo">
+            <label for="configDiasFuncionamento">Dias de funcionamento (0 a 6, separados por linha)</label>
+            <textarea id="configDiasFuncionamento">${escaparHtml(formatarListaLinhasConfiguracao(config.dias_funcionamento))}</textarea>
+          </div>
+
+          <div class="grupo">
+            <label for="configDiasFuncionamentoLabel">Nomes dos dias</label>
+            <textarea id="configDiasFuncionamentoLabel">${escaparHtml(formatarListaLinhasConfiguracao(config.dias_funcionamento_label))}</textarea>
+          </div>
+
+          <div class="grupo">
+            <label for="configHorariosDisponiveis">Horários disponíveis (HH:MM)</label>
+            <textarea id="configHorariosDisponiveis">${escaparHtml(formatarListaLinhasConfiguracao(config.horarios_disponiveis))}</textarea>
+          </div>
+
+          <div class="grupo">
+            <label for="configDatasBloqueadas">Datas bloqueadas (YYYY-MM-DD, uma por linha)</label>
+            <textarea id="configDatasBloqueadas">${escaparHtml(formatarListaLinhasConfiguracao(config.datas_bloqueadas))}</textarea>
+          </div>
+
+          <div class="grupo">
+            <label for="configIdadeMinima">Idade mínima</label>
+            <input type="number" id="configIdadeMinima" min="0" value="${escaparHtml(config.idade_minima)}">
+          </div>
+
+          <div class="grupo">
+            <label for="configIdadeMaxima">Idade máxima</label>
+            <input type="number" id="configIdadeMaxima" min="1" value="${escaparHtml(config.idade_maxima)}">
+          </div>
+
+          <div class="grupo">
+            <label for="configLimiteFaltas">Limite de faltas para bloqueio</label>
+            <input type="number" id="configLimiteFaltas" min="1" value="${escaparHtml(config.limite_faltas_bloqueio)}">
+          </div>
+
+          <div class="grupo">
+            <label for="configLinkPublico">Link público</label>
+            <input type="url" id="configLinkPublico" value="${escaparHtml(config.link_publico || "")}">
+          </div>
+
+          <div class="grupo">
+            <label for="configMensagemFuncionamento">Mensagem de funcionamento</label>
+            <textarea id="configMensagemFuncionamento">${escaparHtml(config.mensagem_funcionamento || "")}</textarea>
+          </div>
+
+          <div class="grupo">
+            <label for="configObservacaoInterna">Observação interna</label>
+            <textarea id="configObservacaoInterna">${escaparHtml(config.observacao_interna || "")}</textarea>
+          </div>
+
+          <button id="btnSalvarConfiguracoes" class="btn-salvar">Salvar configurações</button>
+          <button id="btnCancelarConfiguracoes" class="btn-secundario">Cancelar</button>
+        </div>
+      `;
+
+      document.getElementById("btnSalvarConfiguracoes").addEventListener("click", salvarConfiguracoesLabStudio);
+      document.getElementById("btnCancelarConfiguracoes").addEventListener("click", () => {
+        editandoConfiguracoes = false;
+        renderizarConfiguracoesVisualizacao(configLabStudio, origemConfigLabStudio || "não informada");
+      });
+    }
+
+    function mostrarErroConfiguracoes(mensagem) {
+      const avisoConfiguracoes = document.getElementById("avisoConfiguracoes");
+      if (!avisoConfiguracoes) return;
+      avisoConfiguracoes.style.display = "block";
+      avisoConfiguracoes.style.whiteSpace = "pre-line";
+      avisoConfiguracoes.textContent = mensagem;
+    }
+
+    async function salvarConfiguracoesLabStudio() {
+      if (!adminValidado) {
+        mostrarErroConfiguracoes("Sessão administrativa não validada. Faça login novamente.");
+        return;
+      }
+
+      if (ambienteConfigLabStudio !== LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL) {
+        mostrarErroConfiguracoes("Por segurança, somente o ambiente v2-local pode ser editado por este painel.");
+        return;
+      }
+
+      const configEditada = montarConfigEditadaDoFormulario();
+      const erros = validarConfiguracoesEditadas(configEditada);
+
+      if (erros.length > 0) {
+        mostrarErroConfiguracoes(erros.join("\n"));
+        mostrarToast("Corrija os campos destacados antes de salvar.", "aviso");
+        return;
+      }
+
+      const confirmar = confirm("Tem certeza que deseja alterar as configurações do LabStudio?");
+      if (!confirmar) return;
+
+      const btnSalvar = document.getElementById("btnSalvarConfiguracoes");
+      definirLoadingBotao(btnSalvar, true, "Salvando...", "Salvar configurações");
+
+      try {
+        const configPayload = {
+          dias_funcionamento: configEditada.dias_funcionamento,
+          dias_funcionamento_label: configEditada.dias_funcionamento_label,
+          horarios_disponiveis: configEditada.horarios_disponiveis,
+          datas_bloqueadas: configEditada.datas_bloqueadas,
+          idade_minima: configEditada.idade_minima,
+          idade_maxima: configEditada.idade_maxima,
+          limite_faltas_bloqueio: configEditada.limite_faltas_bloqueio,
+          link_publico: configEditada.link_publico,
+          mensagem_funcionamento: configEditada.mensagem_funcionamento,
+          observacao_interna: configEditada.observacao_interna,
+          versao_config: configEditada.versao_config || "v2-local-admin"
+        };
+
+        const { data: dadosAuth } = await client.auth.getUser();
+        const usuarioAuth = dadosAuth && dadosAuth.user ? dadosAuth.user : null;
+
+        const payloadBanco = {
+          config: configPayload,
+          observacao: configPayload.observacao_interna || null,
+          atualizado_em: new Date().toISOString()
+        };
+
+        if (usuarioAuth && usuarioAuth.id) {
+          payloadBanco.atualizado_por = usuarioAuth.id;
+        }
+
+        const { data, error } = await client
+          .from("labstudio_configuracoes")
+          .update(payloadBanco)
+          .eq("ambiente", LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL)
+          .eq("ativo", true)
+          .select("id, ambiente")
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        if (!data) {
+          throw new Error("Nenhuma configuração ativa v2-local foi atualizada.");
+        }
+
+        await registrarLogAdmin(
+          "editar_configuracoes_labstudio",
+          "labstudio_configuracoes",
+          data.id || data.ambiente || LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL,
+          "Configurações do LabStudio v2-local atualizadas pelo painel admin"
+        );
+
+        await carregarConfiguracoesPublicas();
+        editandoConfiguracoes = false;
+        renderizarConfiguracoesVisualizacao(configLabStudio, origemConfigLabStudio || "supabase");
+        mostrarToast("Configurações salvas com sucesso!", "sucesso");
+      } catch (err) {
+        console.error("Erro ao salvar configurações:", err);
+        mostrarErroConfiguracoes("Erro ao salvar configurações: " + err.message);
+        mostrarToast("Erro ao salvar configurações.", "erro");
+      } finally {
+        definirLoadingBotao(btnSalvar, false, "Salvando...", "Salvar configurações");
+      }
+    }
+
     // ===============================
     // FUNÇÃO: CARREGAR CONFIGURAÇÕES
-    // Busca somente leitura no backend. Não altera Supabase nem regras atuais.
+    // Busca a configuração e renderiza visualização ou edição.
     // ===============================
     async function carregarConfiguracoesLabStudio() {
       conteudoConfiguracoes.innerHTML = '<div class="vazio">Carregando configurações...</div>';
@@ -2335,52 +2656,11 @@
         const config = configLabStudio;
         const origem = origemConfigLabStudio || "não informada";
 
-        conteudoConfiguracoes.innerHTML = `
-          <div class="painel-resumo">
-            <div class="bloco-resumo">
-              <h3>Dias de funcionamento</h3>
-              <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.dias_funcionamento_label))}</div>
-              <div class="item-ranking">Códigos: ${escaparHtml(formatarListaConfiguracao(config.dias_funcionamento))}</div>
-            </div>
-
-            <div class="bloco-resumo">
-              <h3>Horários disponíveis</h3>
-              <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.horarios_disponiveis))}</div>
-            </div>
-
-            <div class="bloco-resumo">
-              <h3>Datas bloqueadas</h3>
-              <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.datas_bloqueadas))}</div>
-            </div>
-
-            <div class="bloco-resumo">
-              <h3>Faixa etária</h3>
-              <div class="item-ranking">Idade mínima: ${escaparHtml(config.idade_minima)}</div>
-              <div class="item-ranking">Idade máxima: ${escaparHtml(config.idade_maxima)}</div>
-            </div>
-
-            <div class="bloco-resumo">
-              <h3>Bloqueio por faltas</h3>
-              <div class="item-ranking">Limite de faltas: ${escaparHtml(config.limite_faltas_bloqueio)}</div>
-            </div>
-
-            <div class="bloco-resumo">
-              <h3>Link público</h3>
-              <div class="item-ranking">${escaparHtml(config.link_publico || "Não informado")}</div>
-            </div>
-
-            <div class="bloco-resumo">
-              <h3>Mensagem de funcionamento</h3>
-              <div class="item-ranking">${escaparHtml(config.mensagem_funcionamento || "Não informada")}</div>
-            </div>
-
-            <div class="bloco-resumo">
-              <h3>Origem e versão</h3>
-              <div class="item-ranking">Origem: ${escaparHtml(origem)}</div>
-              <div class="item-ranking">Versão: ${escaparHtml(config.versao_config || "Não informada")}</div>
-            </div>
-          </div>
-        `;
+        if (editandoConfiguracoes) {
+          renderizarConfiguracoesEdicao(config);
+        } else {
+          renderizarConfiguracoesVisualizacao(config, origem);
+        }
       } catch (err) {
         console.error("Erro ao carregar configurações:", err);
         const config = configLabStudio || CONFIG_ADMIN_FALLBACK;
