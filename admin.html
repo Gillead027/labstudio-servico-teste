@@ -2392,6 +2392,58 @@
       return erros;
     }
 
+    function camposConfiguracaoParaComparar() {
+      return [
+        ["dias_funcionamento", "Dias de funcionamento"],
+        ["horarios_disponiveis", "Horários disponíveis"],
+        ["datas_bloqueadas", "Datas bloqueadas"],
+        ["idade_minima", "Idade mínima"],
+        ["idade_maxima", "Idade máxima"],
+        ["limite_faltas_bloqueio", "Limite de faltas"],
+        ["link_publico", "Link público"],
+        ["mensagem_funcionamento", "Mensagem de funcionamento"],
+        ["observacao_interna", "Observação interna"]
+      ];
+    }
+
+    function valorComparacaoConfiguracao(valor) {
+      if (Array.isArray(valor)) return valor.join(", ") || "-";
+      return String(valor || "-");
+    }
+
+    function obterCamposAlteradosConfiguracao(configAntes, configDepois) {
+      return camposConfiguracaoParaComparar()
+        .filter(([campo]) =>
+          valorComparacaoConfiguracao(configAntes[campo]) !== valorComparacaoConfiguracao(configDepois[campo])
+        )
+        .map(([campo]) => campo);
+    }
+
+    function montarPreviewConfiguracoes(configAntes, configDepois) {
+      return camposConfiguracaoParaComparar().map(([campo, label]) => {
+        const antes = valorComparacaoConfiguracao(configAntes[campo]);
+        const depois = valorComparacaoConfiguracao(configDepois[campo]);
+        const alterado = antes !== depois;
+
+        if (!alterado) return "";
+
+        return `
+          <div class="usuario-card">
+            <div class="linha-topo">
+              <div class="nome">${escaparHtml(label)}</div>
+              <div class="${alterado ? "status status-pendente" : "status status-ativo"}">
+                ${alterado ? "Alterado" : "Sem mudança"}
+              </div>
+            </div>
+            <div class="usuario-info">
+              <strong>Antes:</strong> ${escaparHtml(antes)}<br>
+              <strong>Depois:</strong> ${escaparHtml(depois)}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
     function montarConfigEditadaDoFormulario() {
       return normalizarConfiguracaoPublica({
         ...configLabStudio,
@@ -2535,15 +2587,38 @@
           </div>
 
           <button id="btnSalvarConfiguracoes" class="btn-salvar">Salvar configurações</button>
+          <button id="btnRestaurarConfiguracoes" class="btn-falta">Restaurar padrão local</button>
           <button id="btnCancelarConfiguracoes" class="btn-secundario">Cancelar</button>
         </div>
       `;
 
       document.getElementById("btnSalvarConfiguracoes").addEventListener("click", salvarConfiguracoesLabStudio);
+      document.getElementById("btnRestaurarConfiguracoes").addEventListener("click", restaurarPadraoLocalConfiguracoes);
       document.getElementById("btnCancelarConfiguracoes").addEventListener("click", () => {
         editandoConfiguracoes = false;
         renderizarConfiguracoesVisualizacao(configLabStudio, origemConfigLabStudio || "não informada");
       });
+    }
+
+    function preencherFormularioConfiguracoes(config) {
+      document.getElementById("configDiasFuncionamento").value = formatarListaLinhasConfiguracao(config.dias_funcionamento);
+      document.getElementById("configDiasFuncionamentoLabel").value = formatarListaLinhasConfiguracao(config.dias_funcionamento_label);
+      document.getElementById("configHorariosDisponiveis").value = formatarListaLinhasConfiguracao(config.horarios_disponiveis);
+      document.getElementById("configDatasBloqueadas").value = formatarListaLinhasConfiguracao(config.datas_bloqueadas);
+      document.getElementById("configIdadeMinima").value = config.idade_minima;
+      document.getElementById("configIdadeMaxima").value = config.idade_maxima;
+      document.getElementById("configLimiteFaltas").value = config.limite_faltas_bloqueio;
+      document.getElementById("configLinkPublico").value = config.link_publico || "";
+      document.getElementById("configMensagemFuncionamento").value = config.mensagem_funcionamento || "";
+      document.getElementById("configObservacaoInterna").value = config.observacao_interna || "";
+    }
+
+    function restaurarPadraoLocalConfiguracoes() {
+      preencherFormularioConfiguracoes({
+        ...CONFIG_ADMIN_FALLBACK,
+        observacao_interna: configLabStudio.observacao_interna || ""
+      });
+      mostrarToast("Padrão local preenchido. Revise e salve para aplicar.", "aviso");
     }
 
     function mostrarErroConfiguracoes(mensagem) {
@@ -2554,7 +2629,49 @@
       avisoConfiguracoes.textContent = mensagem;
     }
 
-    async function salvarConfiguracoesLabStudio() {
+    function mostrarResumoConfiguracoesAntesDeSalvar(configEditada, camposAlterados) {
+      const previewExistente = document.getElementById("previewConfiguracoes");
+      if (previewExistente) previewExistente.remove();
+
+      const alertaLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/i.test(configEditada.link_publico || "")
+        ? `<div class="form-ajuda">Atenção: este link é local e não deve ser usado em produção.</div>`
+        : "";
+
+      const wrapper = document.createElement("div");
+      wrapper.id = "previewConfiguracoes";
+      wrapper.innerHTML = `
+        <div class="painel-usuarios">
+          <div class="usuarios-topo">
+            <h2>Resumo das alterações</h2>
+          </div>
+          <div class="form-ajuda">
+            Revise apenas o que foi alterado. Confirme para aplicar no ambiente v2-local.
+          </div>
+          ${alertaLocalhost}
+          ${camposAlterados.length === 0
+            ? mensagemVazio("Nenhuma alteração detectada.", "Os campos estão iguais à configuração atual.")
+            : montarPreviewConfiguracoes(configLabStudio, configEditada)
+          }
+          <div class="form-cadastro">
+            <button id="btnConfirmarSalvarConfiguracoes" class="btn-salvar">Confirmar alterações</button>
+            <button id="btnVoltarEditarConfiguracoes" class="btn-secundario">Voltar e revisar</button>
+          </div>
+        </div>
+      `;
+
+      conteudoConfiguracoes.appendChild(wrapper);
+      wrapper.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      document.getElementById("btnConfirmarSalvarConfiguracoes").addEventListener("click", () => {
+        aplicarSalvamentoConfiguracoes(configEditada, camposAlterados);
+      });
+
+      document.getElementById("btnVoltarEditarConfiguracoes").addEventListener("click", () => {
+        wrapper.remove();
+      });
+    }
+
+    function salvarConfiguracoesLabStudio() {
       if (!adminValidado) {
         mostrarErroConfiguracoes("Sessão administrativa não validada. Faça login novamente.");
         return;
@@ -2574,9 +2691,18 @@
         return;
       }
 
-      const confirmar = confirm("Tem certeza que deseja alterar as configurações do LabStudio?");
-      if (!confirmar) return;
+      const camposAlterados = obterCamposAlteradosConfiguracao(configLabStudio, configEditada);
 
+      if (camposAlterados.length === 0) {
+        mostrarErroConfiguracoes("Nenhuma alteração detectada para salvar.");
+        mostrarToast("Nenhuma alteração detectada.", "aviso");
+        return;
+      }
+
+      mostrarResumoConfiguracoesAntesDeSalvar(configEditada, camposAlterados);
+    }
+
+    async function aplicarSalvamentoConfiguracoes(configEditada, camposAlterados) {
       const btnSalvar = document.getElementById("btnSalvarConfiguracoes");
       definirLoadingBotao(btnSalvar, true, "Salvando...", "Salvar configurações");
 
@@ -2628,7 +2754,7 @@
           "editar_configuracoes_labstudio",
           "labstudio_configuracoes",
           data.id || data.ambiente || LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL,
-          "Configurações do LabStudio v2-local atualizadas pelo painel admin"
+          `Configurações alteradas. Campos modificados: ${camposAlterados.join(", ")}`
         );
 
         await carregarConfiguracoesPublicas();
