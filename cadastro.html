@@ -409,6 +409,19 @@
     const API_BASE_URL = "";
 
     // ===============================
+    // CONFIGURAÇÃO PÚBLICA DO LABSTUDIO
+    // O fallback mantém a regra atual da v1.0 caso a rota falhe.
+    // ===============================
+    const CONFIG_CADASTRO_FALLBACK = {
+      idade_minima: 15,
+      idade_maxima: 29,
+      mensagem_funcionamento: "O LabStudio funciona apenas às terças e quintas-feiras.",
+      versao_config: "fallback-cadastro-local"
+    };
+
+    let configuracaoLabStudio = { ...CONFIG_CADASTRO_FALLBACK };
+
+    // ===============================
     // FUNÇÕES DE TEMA
     // Aplicam o tema salvo e preservam a escolha no localStorage.
     // ===============================
@@ -485,6 +498,56 @@
       }
 
       return resultado;
+    }
+
+    // ===============================
+    // FUNÇÃO: MENSAGEM DA FAIXA ETÁRIA
+    // Centraliza o texto para refletir a configuração carregada.
+    // ===============================
+    function mensagemFaixaEtaria() {
+      return `O CRJ atende jovens de ${configuracaoLabStudio.idade_minima} a ${configuracaoLabStudio.idade_maxima} anos.`;
+    }
+
+    // ===============================
+    // FUNÇÃO: NORMALIZAR CONFIGURAÇÃO PÚBLICA
+    // Evita que valores ausentes da rota quebrem a validação do cadastro.
+    // ===============================
+    function normalizarConfiguracaoPublica(config) {
+      const configRecebida = config && typeof config === "object" ? config : {};
+
+      return {
+        ...CONFIG_CADASTRO_FALLBACK,
+        ...configRecebida,
+        idade_minima: Number.isFinite(Number(configRecebida.idade_minima))
+          ? Number(configRecebida.idade_minima)
+          : CONFIG_CADASTRO_FALLBACK.idade_minima,
+        idade_maxima: Number.isFinite(Number(configRecebida.idade_maxima))
+          ? Number(configRecebida.idade_maxima)
+          : CONFIG_CADASTRO_FALLBACK.idade_maxima,
+        mensagem_funcionamento: configRecebida.mensagem_funcionamento || CONFIG_CADASTRO_FALLBACK.mensagem_funcionamento,
+        versao_config: configRecebida.versao_config || CONFIG_CADASTRO_FALLBACK.versao_config
+      };
+    }
+
+    // ===============================
+    // FUNÇÃO: CARREGAR CONFIGURAÇÕES PÚBLICAS
+    // Usa a rota do backend e mantém fallback local se algo falhar.
+    // ===============================
+    async function carregarConfiguracoesPublicas() {
+      try {
+        const resultado = await fetchApiJson("/api/configuracoes-publicas");
+
+        if (!resultado.ok || !resultado.config) {
+          throw new Error(resultado.mensagem || "Configuração pública indisponível.");
+        }
+
+        configuracaoLabStudio = normalizarConfiguracaoPublica(resultado.config);
+      } catch (err) {
+        console.warn("Usando configuração local de fallback do cadastro:", err);
+        configuracaoLabStudio = { ...CONFIG_CADASTRO_FALLBACK };
+      }
+
+      return configuracaoLabStudio;
     }
 
     // ===============================
@@ -579,10 +642,13 @@
 
     // ===============================
     // FUNÇÃO: VALIDAR FAIXA ETÁRIA DO CRJ
+    // Usa a faixa etária configurada, com fallback igual à v1.0.
     // ===============================
     function idadePermitida(dataNascimento) {
       const idade = calcularIdade(dataNascimento);
-      return idade !== null && idade >= 15 && idade <= 29;
+      return idade !== null &&
+        idade >= configuracaoLabStudio.idade_minima &&
+        idade <= configuracaoLabStudio.idade_maxima;
     }
 
     // ===============================
@@ -639,8 +705,8 @@
       }
 
       if (!idadePermitida(dataNascimento)) {
-        atualizarAjuda(inputDataNascimento, ajudaDataNascimento, `Idade calculada: ${idade} anos. O CRJ atende jovens de 15 a 29 anos.`, "erro");
-        mostrarAviso("O CRJ atende jovens de 15 a 29 anos.", "aviso");
+        atualizarAjuda(inputDataNascimento, ajudaDataNascimento, `Idade calculada: ${idade} anos. ${mensagemFaixaEtaria()}`, "erro");
+        mostrarAviso(mensagemFaixaEtaria(), "aviso");
         return false;
       }
 
@@ -672,8 +738,8 @@
       }
 
       if (!idadePermitida(dataNascimento)) {
-        mostrarAviso("O CRJ atende jovens de 15 a 29 anos.", "aviso");
-        mostrarToast("O CRJ atende jovens de 15 a 29 anos.", "aviso");
+        mostrarAviso(mensagemFaixaEtaria(), "aviso");
+        mostrarToast(mensagemFaixaEtaria(), "aviso");
         return;
       }
 
@@ -724,6 +790,7 @@
     });
 
     carregarTemaSalvo();
+    carregarConfiguracoesPublicas();
     btnTema.addEventListener("click", alternarTema);
     inputNome.addEventListener("input", validarNomeTempoReal);
     inputTelefone.addEventListener("input", validarTelefoneTempoReal);
