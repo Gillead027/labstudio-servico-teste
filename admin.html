@@ -798,6 +798,7 @@
       <button class="aba-botao" data-tab="agendamentos">Agendamentos</button>
       <button class="aba-botao" data-tab="usuarios">Usuários</button>
       <button class="aba-botao" data-tab="relatorios">Relatórios</button>
+      <button class="aba-botao" data-tab="configuracoes">Configurações</button>
     </div>
 
     <!-- ===============================
@@ -993,6 +994,25 @@
         </div>
       </div>
     </section>
+
+    <!-- ===============================
+         ABA 5: CONFIGURAÇÕES
+         Nesta primeira etapa, mostra a configuração central em modo leitura.
+    =============================== -->
+    <section id="aba-configuracoes" class="aba-painel">
+      <h2 class="titulo-aba">Configurações</h2>
+      <p class="descricao-aba">Visualize as regras atuais do LabStudio. A edição será liberada em uma etapa futura.</p>
+
+      <div class="painel-usuarios">
+        <div class="usuarios-topo">
+          <h2>Configuração de funcionamento</h2>
+        </div>
+
+        <div id="conteudoConfiguracoes">
+          <div class="vazio">Carregando configurações...</div>
+        </div>
+      </div>
+    </section>
   </div>
 
   <!-- ===============================
@@ -1045,6 +1065,7 @@
     const conteudoCadastrosOnline = document.getElementById("conteudoCadastrosOnline");
     const conteudoUsuarios = document.getElementById("conteudoUsuarios");
     const conteudoLogsAdmin = document.getElementById("conteudoLogsAdmin");
+    const conteudoConfiguracoes = document.getElementById("conteudoConfiguracoes");
     const dashboardAgendamentos = document.getElementById("dashboardAgendamentos");
     const filtroBusca = document.getElementById("filtroBusca");
     const filtroData = document.getElementById("filtroData");
@@ -2196,6 +2217,99 @@
     }
 
     // ===============================
+    // FUNÇÃO: FORMATAR LISTAS DE CONFIGURAÇÃO
+    // Mantém a aba de configurações legível em modo somente leitura.
+    // ===============================
+    function formatarListaConfiguracao(valor, vazio = "Nenhum item configurado") {
+      if (!Array.isArray(valor) || valor.length === 0) {
+        return vazio;
+      }
+
+      return valor.join(", ");
+    }
+
+    // ===============================
+    // FUNÇÃO: CARREGAR CONFIGURAÇÕES
+    // Busca somente leitura no backend. Não altera Supabase nem regras atuais.
+    // ===============================
+    async function carregarConfiguracoesLabStudio() {
+      conteudoConfiguracoes.innerHTML = '<div class="vazio">Carregando configurações...</div>';
+
+      try {
+        const resposta = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/configuracoes-publicas`);
+        const texto = await resposta.text();
+
+        let resultado = null;
+
+        try {
+          resultado = JSON.parse(texto);
+        } catch (_err) {
+          throw new Error("Resposta inválida da rota de configurações.");
+        }
+
+        if (!resposta.ok || !resultado.config) {
+          throw new Error(resultado.mensagem || "Não foi possível carregar as configurações.");
+        }
+
+        const config = resultado.config;
+        const origem = resultado.origem || "não informada";
+
+        conteudoConfiguracoes.innerHTML = `
+          <div class="painel-resumo">
+            <div class="bloco-resumo">
+              <h3>Dias de funcionamento</h3>
+              <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.dias_funcionamento_label))}</div>
+              <div class="item-ranking">Códigos: ${escaparHtml(formatarListaConfiguracao(config.dias_funcionamento))}</div>
+            </div>
+
+            <div class="bloco-resumo">
+              <h3>Horários disponíveis</h3>
+              <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.horarios_disponiveis))}</div>
+            </div>
+
+            <div class="bloco-resumo">
+              <h3>Datas bloqueadas</h3>
+              <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.datas_bloqueadas))}</div>
+            </div>
+
+            <div class="bloco-resumo">
+              <h3>Faixa etária</h3>
+              <div class="item-ranking">Idade mínima: ${escaparHtml(config.idade_minima)}</div>
+              <div class="item-ranking">Idade máxima: ${escaparHtml(config.idade_maxima)}</div>
+            </div>
+
+            <div class="bloco-resumo">
+              <h3>Bloqueio por faltas</h3>
+              <div class="item-ranking">Limite de faltas: ${escaparHtml(config.limite_faltas_bloqueio)}</div>
+            </div>
+
+            <div class="bloco-resumo">
+              <h3>Link público</h3>
+              <div class="item-ranking">${escaparHtml(config.link_publico || "Não informado")}</div>
+            </div>
+
+            <div class="bloco-resumo">
+              <h3>Mensagem de funcionamento</h3>
+              <div class="item-ranking">${escaparHtml(config.mensagem_funcionamento || "Não informada")}</div>
+            </div>
+
+            <div class="bloco-resumo">
+              <h3>Origem e versão</h3>
+              <div class="item-ranking">Origem: ${escaparHtml(origem)}</div>
+              <div class="item-ranking">Versão: ${escaparHtml(config.versao_config || "Não informada")}</div>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        console.error("Erro ao carregar configurações:", err);
+        conteudoConfiguracoes.innerHTML = mensagemVazio(
+          "Não foi possível carregar as configurações.",
+          err.message || "A aba de configurações falhou, mas as outras áreas do painel continuam disponíveis."
+        );
+      }
+    }
+
+    // ===============================
     // FUNÇÃO: CARREGAR USUÁRIOS BLOQUEADOS
     // Mostra área específica para desbloquear usuários manualmente.
     // ===============================
@@ -3140,6 +3254,7 @@
       carregarAgendamentos();
       carregarAgendamentosDashboard();
       carregarLogsAdmin();
+      carregarConfiguracoesLabStudio();
     }
 
     // ===============================

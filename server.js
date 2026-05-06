@@ -141,6 +141,44 @@ const DATAS_BLOQUEADAS = [
 ];
 
 // ===============================
+// CONFIGURAÇÃO CENTRAL DO LABSTUDIO
+// Nesta etapa v2.0, a configuração é somente fallback local.
+// Futuramente, obterConfiguracaoLabStudio poderá ler do Supabase sem mudar
+// a lógica atual de agendamento da v1.0.
+// ===============================
+const DEFAULT_LABSTUDIO_CONFIG = {
+  dias_funcionamento: [2, 4],
+  dias_funcionamento_label: ["terça-feira", "quinta-feira"],
+  horarios_disponiveis: [...HORARIOS_TERCA_QUINTA],
+  datas_bloqueadas: [...DATAS_BLOQUEADAS],
+  idade_minima: 15,
+  idade_maxima: 29,
+  limite_faltas_bloqueio: 2,
+  link_publico: PUBLIC_SITE_URL,
+  mensagem_funcionamento: "O LabStudio funciona às terças e quintas-feiras, mediante disponibilidade de horário.",
+  versao_config: "v2-local-fallback"
+};
+
+async function obterConfiguracaoLabStudio() {
+  try {
+    // Futuro ponto de leitura do Supabase.
+    // Nesta etapa, não buscamos nem escrevemos dados externos.
+    return {
+      origem: "fallback-local",
+      config: DEFAULT_LABSTUDIO_CONFIG
+    };
+  } catch (err) {
+    console.error("❌ Erro ao obter configuração do LabStudio:", err);
+
+    return {
+      origem: "fallback-local",
+      erro: err,
+      config: DEFAULT_LABSTUDIO_CONFIG
+    };
+  }
+}
+
+// ===============================
 // CONFIGURAÇÃO DO CLIENTE WHATSAPP
 // LocalAuth salva a sessão do WhatsApp.
 // Em localhost, a sessão fica em .wwebjs_auth por padrão.
@@ -693,6 +731,41 @@ app.get("/status", (req, res) => {
     publicSiteUrl: PUBLIC_SITE_URL,
     publicBotUrl: PUBLIC_BOT_URL || null
   });
+});
+
+// ===============================
+// ROTA: CONFIGURAÇÕES PÚBLICAS DO LABSTUDIO
+// Leitura pública e segura para o painel e, futuramente, para as telas públicas.
+// Nesta etapa, não consulta nem altera dados no Supabase.
+// ===============================
+app.get("/api/configuracoes-publicas", async (req, res) => {
+  try {
+    const resultado = await obterConfiguracaoLabStudio();
+
+    if (resultado.erro) {
+      return res.status(500).json({
+        ok: false,
+        origem: "fallback-local",
+        mensagem: "Usando configuração padrão local.",
+        config: DEFAULT_LABSTUDIO_CONFIG
+      });
+    }
+
+    return res.json({
+      ok: true,
+      origem: resultado.origem || "fallback-local",
+      config: resultado.config || DEFAULT_LABSTUDIO_CONFIG
+    });
+  } catch (err) {
+    console.error("❌ Falha na rota /api/configuracoes-publicas:", err);
+
+    return res.status(500).json({
+      ok: false,
+      origem: "fallback-local",
+      mensagem: "Usando configuração padrão local.",
+      config: DEFAULT_LABSTUDIO_CONFIG
+    });
+  }
 });
 
 // ===============================
