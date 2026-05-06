@@ -519,6 +519,50 @@
       font-size: 0.95rem;
     }
 
+    .config-horarios-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 42px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--soft-border);
+      border-radius: 10px;
+      background: var(--item-bg);
+    }
+
+    .config-horario-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(99, 102, 241, 0.32);
+      border-radius: 8px;
+      padding: 6px 8px;
+      background: var(--card-strong);
+      color: var(--text);
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .config-horario-chip button {
+      min-width: 30px;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      background: var(--danger);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .config-horarios-form {
+      display: grid;
+      grid-template-columns: minmax(130px, 180px) auto;
+      gap: 8px;
+      align-items: end;
+      margin-top: 8px;
+    }
+
     /* ===============================
        CARDS DE AGENDAMENTO
     =============================== */
@@ -955,6 +999,14 @@
       button {
         box-sizing: border-box;
         width: 100%;
+      }
+
+      .config-horarios-form {
+        grid-template-columns: 1fr;
+      }
+
+      .config-horario-chip button {
+        width: 30px;
       }
 
       .login-card,
@@ -3410,6 +3462,152 @@
         .filter(Boolean);
     }
 
+    function horarioConfiguracaoValido(horario) {
+      return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(horario || ""));
+    }
+
+    function normalizarHorarioConfiguracao(valor) {
+      return String(valor || "").trim().slice(0, 5);
+    }
+
+    function ordenarHorariosConfiguracao(horarios) {
+      return Array.from(new Set((Array.isArray(horarios) ? horarios : [])
+        .map(normalizarHorarioConfiguracao)
+        .filter(Boolean)))
+        .sort((a, b) => a.localeCompare(b));
+    }
+
+    function obterHorariosFormularioConfiguracao() {
+      const campoHorarios = document.getElementById("configHorariosDisponiveis");
+      if (!campoHorarios) return [];
+
+      return ordenarHorariosConfiguracao(parseListaTextoConfiguracao(campoHorarios.value));
+    }
+
+    function atualizarAjudaHorariosConfiguracao(mensagem, tipo = "") {
+      const ajuda = document.getElementById("configHorariosAjuda");
+      if (!ajuda) return;
+
+      ajuda.textContent = mensagem;
+      ajuda.className = `campo-ajuda ${tipo}`;
+    }
+
+    function atualizarHorariosConfiguracaoUI(horarios) {
+      const campoHorarios = document.getElementById("configHorariosDisponiveis");
+      const listaHorarios = document.getElementById("configHorariosLista");
+      if (!campoHorarios || !listaHorarios) return;
+
+      const horariosOrdenados = ordenarHorariosConfiguracao(horarios);
+      campoHorarios.value = formatarListaLinhasConfiguracao(horariosOrdenados);
+
+      if (horariosOrdenados.length === 0) {
+        listaHorarios.innerHTML = '<span class="item-ranking">Nenhum horário configurado.</span>';
+        atualizarAjudaHorariosConfiguracao("Adicione ao menos um horário antes de salvar.", "erro");
+        return;
+      }
+
+      listaHorarios.innerHTML = horariosOrdenados.map(horario => `
+        <span class="config-horario-chip">
+          <span>${escaparHtml(horario)}</span>
+          <button
+            type="button"
+            data-remover-horario="${escaparHtml(horario)}"
+            title="Remover horário ${escaparHtml(horario)}"
+          >
+            x
+          </button>
+        </span>
+      `).join("");
+
+      atualizarAjudaHorariosConfiguracao("Horários serão salvos em ordem crescente após a confirmação.", "sucesso");
+
+      listaHorarios.querySelectorAll("[data-remover-horario]").forEach(botao => {
+        botao.addEventListener("click", () => {
+          removerHorarioConfiguracao(botao.dataset.removerHorario, botao);
+        });
+      });
+    }
+
+    function adicionarHorarioConfiguracao() {
+      const campoNovoHorario = document.getElementById("configNovoHorario");
+      if (!campoNovoHorario) return;
+
+      const horario = normalizarHorarioConfiguracao(campoNovoHorario.value);
+
+      if (!horarioConfiguracaoValido(horario)) {
+        atualizarAjudaHorariosConfiguracao("Informe um horário válido no formato HH:MM.", "erro");
+        mostrarToast("Horário inválido. Use o formato HH:MM.", "aviso");
+        campoNovoHorario.focus();
+        return;
+      }
+
+      const horariosAtuais = obterHorariosFormularioConfiguracao();
+
+      if (horariosAtuais.includes(horario)) {
+        atualizarAjudaHorariosConfiguracao("Este horário já está na lista.", "erro");
+        mostrarToast("Este horário já está configurado.", "aviso");
+        campoNovoHorario.focus();
+        return;
+      }
+
+      atualizarHorariosConfiguracaoUI([...horariosAtuais, horario]);
+      campoNovoHorario.value = "";
+      campoNovoHorario.focus();
+      mostrarToast("Horário adicionado. Revise e salve para aplicar.", "sucesso");
+    }
+
+    async function contarAgendamentosPorHorario(horario) {
+      const { count, error } = await client
+        .from("agendamentos")
+        .select("id", { count: "exact", head: true })
+        .in("horario", [horario, `${horario}:00`]);
+
+      if (error) {
+        throw error;
+      }
+
+      return Number(count || 0);
+    }
+
+    async function removerHorarioConfiguracao(horario, botao = null) {
+      const horarioLimpo = normalizarHorarioConfiguracao(horario);
+      const horariosAtuais = obterHorariosFormularioConfiguracao();
+
+      if (!horariosAtuais.includes(horarioLimpo)) {
+        mostrarToast("Horário não encontrado na lista atual.", "aviso");
+        return;
+      }
+
+      if (horariosAtuais.length <= 1) {
+        atualizarAjudaHorariosConfiguracao("Mantenha ao menos um horário disponível.", "erro");
+        mostrarToast("Não é possível remover o último horário.", "aviso");
+        return;
+      }
+
+      definirLoadingBotao(botao, true, "...", "x");
+
+      try {
+        const totalAgendamentos = await contarAgendamentosPorHorario(horarioLimpo);
+        const avisoAgendamentos = totalAgendamentos > 0
+          ? `\n\nExistem ${totalAgendamentos} agendamento(s) neste horário. Remover pode ocultar este horário da agenda futura, mas não apaga agendamentos existentes.`
+          : "";
+        const confirmar = confirm(
+          `Remover o horário ${horarioLimpo} da configuração v2-local?${avisoAgendamentos}`
+        );
+
+        if (!confirmar) return;
+
+        const horariosAtualizados = horariosAtuais.filter(item => item !== horarioLimpo);
+        atualizarHorariosConfiguracaoUI(horariosAtualizados);
+        mostrarToast("Horário removido. Revise o preview e salve para aplicar.", "aviso");
+      } catch (err) {
+        console.error("Erro ao verificar agendamentos do horário:", err);
+        mostrarToast("Não foi possível verificar agendamentos deste horário: " + err.message, "erro");
+      } finally {
+        definirLoadingBotao(botao, false, "...", "x");
+      }
+    }
+
     function validarConfiguracoesEditadas(config) {
       const erros = [];
 
@@ -3421,8 +3619,10 @@
 
       if (!Array.isArray(config.horarios_disponiveis) || config.horarios_disponiveis.length === 0) {
         erros.push("Informe ao menos um horário disponível.");
-      } else if (config.horarios_disponiveis.some(horario => !/^\d{2}:\d{2}$/.test(horario))) {
+      } else if (config.horarios_disponiveis.some(horario => !horarioConfiguracaoValido(horario))) {
         erros.push("Horários disponíveis devem usar o formato HH:MM.");
+      } else if (new Set(config.horarios_disponiveis).size !== config.horarios_disponiveis.length) {
+        erros.push("Horários disponíveis não podem ter itens duplicados.");
       }
 
       if (!Array.isArray(config.datas_bloqueadas)) {
@@ -3481,6 +3681,18 @@
         .map(([campo]) => campo);
     }
 
+    function montarDescricaoDetalhadaAlteracoesConfiguracao(camposAlterados, configAntes, configDepois) {
+      const detalhes = [];
+
+      if (camposAlterados.includes("horarios_disponiveis")) {
+        detalhes.push(
+          `Horários antes: ${valorComparacaoConfiguracao(configAntes.horarios_disponiveis)}; horários depois: ${valorComparacaoConfiguracao(configDepois.horarios_disponiveis)}.`
+        );
+      }
+
+      return detalhes.length > 0 ? ` ${detalhes.join(" ")}` : "";
+    }
+
     function montarPreviewConfiguracoes(configAntes, configDepois) {
       return camposConfiguracaoParaComparar().map(([campo, label]) => {
         const antes = valorComparacaoConfiguracao(configAntes[campo]);
@@ -3507,12 +3719,17 @@
     }
 
     function montarConfigEditadaDoFormulario() {
-      return normalizarConfiguracaoPublica({
+      const diasFuncionamento = parseListaNumerosConfiguracao(document.getElementById("configDiasFuncionamento").value);
+      const diasFuncionamentoLabel = parseListaTextoConfiguracao(document.getElementById("configDiasFuncionamentoLabel").value);
+      const horariosDisponiveis = obterHorariosFormularioConfiguracao();
+      const datasBloqueadas = parseListaTextoConfiguracao(document.getElementById("configDatasBloqueadas").value);
+
+      const configNormalizada = normalizarConfiguracaoPublica({
         ...configLabStudio,
-        dias_funcionamento: parseListaNumerosConfiguracao(document.getElementById("configDiasFuncionamento").value),
-        dias_funcionamento_label: parseListaTextoConfiguracao(document.getElementById("configDiasFuncionamentoLabel").value),
-        horarios_disponiveis: parseListaTextoConfiguracao(document.getElementById("configHorariosDisponiveis").value),
-        datas_bloqueadas: parseListaTextoConfiguracao(document.getElementById("configDatasBloqueadas").value),
+        dias_funcionamento: diasFuncionamento,
+        dias_funcionamento_label: diasFuncionamentoLabel,
+        horarios_disponiveis: horariosDisponiveis,
+        datas_bloqueadas: datasBloqueadas,
         idade_minima: Number(document.getElementById("configIdadeMinima").value),
         idade_maxima: Number(document.getElementById("configIdadeMaxima").value),
         limite_faltas_bloqueio: Number(document.getElementById("configLimiteFaltas").value),
@@ -3521,6 +3738,14 @@
         observacao_interna: document.getElementById("configObservacaoInterna").value.trim(),
         versao_config: configLabStudio.versao_config || "v2-local-admin"
       });
+
+      return {
+        ...configNormalizada,
+        dias_funcionamento: diasFuncionamento,
+        dias_funcionamento_label: diasFuncionamentoLabel,
+        horarios_disponiveis: horariosDisponiveis,
+        datas_bloqueadas: datasBloqueadas
+      };
     }
 
     function renderizarConfiguracoesVisualizacao(config, origem) {
@@ -3609,8 +3834,14 @@
           </div>
 
           <div class="grupo">
-            <label for="configHorariosDisponiveis">Horários disponíveis (HH:MM)</label>
-            <textarea id="configHorariosDisponiveis">${escaparHtml(formatarListaLinhasConfiguracao(config.horarios_disponiveis))}</textarea>
+            <label for="configNovoHorario">Horários disponíveis (HH:MM)</label>
+            <input type="hidden" id="configHorariosDisponiveis" value="${escaparHtml(formatarListaLinhasConfiguracao(ordenarHorariosConfiguracao(config.horarios_disponiveis)))}">
+            <div id="configHorariosLista" class="config-horarios-chips"></div>
+            <div class="config-horarios-form">
+              <input type="time" id="configNovoHorario" step="60" placeholder="HH:MM">
+              <button id="btnAdicionarHorario" type="button" class="btn-editar">Adicionar horário</button>
+            </div>
+            <div id="configHorariosAjuda" class="campo-ajuda"></div>
           </div>
 
           <div class="grupo">
@@ -3660,12 +3891,20 @@
         editandoConfiguracoes = false;
         renderizarConfiguracoesVisualizacao(configLabStudio, origemConfigLabStudio || "não informada");
       });
+      document.getElementById("btnAdicionarHorario").addEventListener("click", adicionarHorarioConfiguracao);
+      document.getElementById("configNovoHorario").addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          adicionarHorarioConfiguracao();
+        }
+      });
+      atualizarHorariosConfiguracaoUI(config.horarios_disponiveis);
     }
 
     function preencherFormularioConfiguracoes(config) {
       document.getElementById("configDiasFuncionamento").value = formatarListaLinhasConfiguracao(config.dias_funcionamento);
       document.getElementById("configDiasFuncionamentoLabel").value = formatarListaLinhasConfiguracao(config.dias_funcionamento_label);
-      document.getElementById("configHorariosDisponiveis").value = formatarListaLinhasConfiguracao(config.horarios_disponiveis);
+      atualizarHorariosConfiguracaoUI(config.horarios_disponiveis);
       document.getElementById("configDatasBloqueadas").value = formatarListaLinhasConfiguracao(config.datas_bloqueadas);
       document.getElementById("configIdadeMinima").value = config.idade_minima;
       document.getElementById("configIdadeMaxima").value = config.idade_maxima;
@@ -3776,7 +4015,7 @@
           "editar_configuracoes_labstudio",
           "labstudio_configuracoes",
           data.id || data.ambiente || LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL,
-          `Configurações alteradas. Campos modificados: ${camposAlterados.join(", ")}`
+          `Configurações alteradas. Campos modificados: ${camposAlterados.join(", ")}.${montarDescricaoDetalhadaAlteracoesConfiguracao(camposAlterados, configLabStudio, configEditada)}`
         );
 
         await carregarConfiguracoesPublicas();
