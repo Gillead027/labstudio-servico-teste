@@ -18,18 +18,18 @@ const PORT = Number(process.env.PORT || 3001);
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_NOTIFY_NUMBER = process.env.BOT_NOTIFY_NUMBER;
-const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || "").replace(/\/$/, "");
+const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
 
-// URL pública do bot no Railway.
+// URL base do bot. Em testes locais, deixe vazio para usar localhost.
 // Exemplo:
-// PUBLIC_BOT_URL=https://labstudio-sistema-production.up.railway.app
+// PUBLIC_BOT_URL=http://localhost:3001
 const PUBLIC_BOT_URL = String(process.env.PUBLIC_BOT_URL || "").replace(/\/$/, "");
 
 // Token para proteger a página do QR Code.
-// Crie no Railway:
+// Defina no .env local:
 // QR_PAGE_TOKEN=uma_senha_forte
 const QR_PAGE_TOKEN = process.env.QR_PAGE_TOKEN;
-const CHROME_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/google-chrome-stable";
+const CHROME_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
 const WWEBJS_AUTH_PATH = process.env.WWEBJS_AUTH_PATH || ".wwebjs_auth";
 
 const ALLOWED_ORIGINS = String(process.env.ALLOWED_ORIGINS || "")
@@ -59,7 +59,6 @@ function exigirVariavelAmbiente(nome, valor) {
 exigirVariavelAmbiente("SUPABASE_URL", SUPABASE_URL);
 exigirVariavelAmbiente("SUPABASE_SERVICE_ROLE_KEY", SUPABASE_SERVICE_ROLE_KEY);
 exigirVariavelAmbiente("BOT_NOTIFY_NUMBER", BOT_NOTIFY_NUMBER);
-exigirVariavelAmbiente("PUBLIC_SITE_URL", PUBLIC_SITE_URL);
 
 // QR_PAGE_TOKEN não derruba o servidor, mas a rota /qr fica bloqueada se ele não existir.
 if (!QR_PAGE_TOKEN) {
@@ -96,7 +95,6 @@ app.use(express.json());
 // ===============================
 // SERVIR ARQUIVOS DO SITE LOCALMENTE
 // Isso permite abrir index.html e admin.html pelo próprio servidor.
-// No Railway, seu site principal já está no Vercel, mas manter isso não atrapalha.
 // ===============================
 app.use(express.static(__dirname));
 
@@ -145,17 +143,15 @@ const DATAS_BLOQUEADAS = [
 // ===============================
 // CONFIGURAÇÃO DO CLIENTE WHATSAPP
 // LocalAuth salva a sessão do WhatsApp.
-// No Railway, usamos uma pasta persistente para não perder o login.
-// Exemplo recomendado no Railway:
-// WWEBJS_AUTH_PATH=/data
+// Em localhost, a sessão fica em .wwebjs_auth por padrão.
 // ===============================
 const client = new Client({
   authStrategy: new LocalAuth({
     clientId: "bot-crj",
-    dataPath: process.env.WWEBJS_AUTH_PATH || ".wwebjs_auth"
+    dataPath: WWEBJS_AUTH_PATH
   }),
   puppeteer: {
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/google-chrome-stable",
+    ...(CHROME_EXECUTABLE_PATH ? { executablePath: CHROME_EXECUTABLE_PATH } : {}),
     headless: true,
     timeout: 0,
     protocolTimeout: 120000,
@@ -193,15 +189,14 @@ let codigoPareamentoGeradoEm = null;
 
 // ===============================
 // FUNÇÃO: OBTER URL BASE DO BOT
-// Se PUBLIC_BOT_URL existir, usamos ela.
-// Se não existir, montamos com base na requisição.
+// Em localhost, usa a URL local por padrão.
 // ===============================
 function obterUrlBaseBot(req = null) {
   if (PUBLIC_BOT_URL) return PUBLIC_BOT_URL;
 
   if (req) {
-    const protocolo = req.headers["x-forwarded-proto"] || req.protocol || "https";
-    const host = req.headers["x-forwarded-host"] || req.headers.host;
+    const protocolo = req.protocol || "http";
+    const host = req.headers.host;
     return `${protocolo}://${host}`;
   }
 
@@ -223,7 +218,7 @@ function verificarTokenQr(req, res) {
         <body style="font-family: Arial, sans-serif; padding: 32px;">
           <h2>QR Code bloqueado</h2>
           <p>A variável <strong>QR_PAGE_TOKEN</strong> não está configurada no servidor.</p>
-          <p>Crie essa variável no Railway para liberar a página com segurança.</p>
+          <p>Crie essa variável no arquivo <strong>.env</strong> local para liberar a página com segurança.</p>
         </body>
       </html>
     `);
@@ -256,7 +251,7 @@ function verificarTokenQr(req, res) {
 // ===============================
 // ROTA: PÁGINA DO QR CODE
 // Acesse assim:
-// https://SEU-BOT.up.railway.app/qr?token=SEU_TOKEN
+// http://localhost:3001/qr?token=SEU_TOKEN
 // ===============================
 app.get("/qr", (req, res) => {
   if (!verificarTokenQr(req, res)) return;
@@ -468,7 +463,7 @@ app.get("/qr.png", async (req, res) => {
 // ROTA: CODIGO DE PAREAMENTO
 // Alternativa ao QR Code para vincular o WhatsApp pelo telefone.
 // Acesse assim:
-// https://SEU-BOT.up.railway.app/pairing-code?token=SEU_TOKEN&phone=5527999999999
+// http://localhost:3001/pairing-code?token=SEU_TOKEN&phone=5527999999999
 // ===============================
 app.get("/pairing-code", async (req, res) => {
   if (!verificarTokenQr(req, res)) return;
@@ -727,7 +722,7 @@ client.on("qr", async (qr) => {
     console.log(`🖼️ Imagem direta: ${qrImageUrl}`);
 
     if (!QR_PAGE_TOKEN) {
-      console.log("⚠️ Configure QR_PAGE_TOKEN no Railway para liberar a visualização do QR.");
+      console.log("⚠️ Configure QR_PAGE_TOKEN no .env local para liberar a visualização do QR.");
     }
   } catch (err) {
     console.error("❌ Erro ao preparar QR Code:", err);
@@ -1755,7 +1750,7 @@ inicializarWhatsAppComRetry();
 
 // ===============================
 // INICIALIZA O SERVIDOR
-// No Railway, a porta vem automaticamente pela variável PORT.
+// Em localhost, a porta vem do .env ou usa 3001 por padrão.
 // ===============================
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);
@@ -1766,7 +1761,7 @@ app.listen(PORT, "0.0.0.0", () => {
 
   console.log(`🧭 Chrome usado pelo Puppeteer: ${CHROME_EXECUTABLE_PATH}`);
   console.log(`💾 Sessão WhatsApp LocalAuth: ${WWEBJS_AUTH_PATH}`);
-  console.log(`🌐 URL pública do bot: ${baseUrl}`);
+  console.log(`🌐 URL local do bot: ${baseUrl}`);
   console.log(`🔎 Status do bot: ${baseUrl}/status`);
   console.log(`📲 Página do QR: ${qrPageUrl}`);
 });

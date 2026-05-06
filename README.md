@@ -1,62 +1,58 @@
-# LabStudio CRJ
+# LabStudio CRJ - Ambiente Local De Testes
 
-Sistema de agendamento e gestão do LabStudio CRJ FLEXAL.
+Esta pasta e exclusiva para testes locais e possiveis updates do sistema.
 
-O projeto possui:
-- site público de agendamento;
+Regra deste ambiente: nao fazer commit, nao fazer push e nao preparar deploy. O sistema deve rodar em localhost.
+
+## O Que Existe No Projeto
+
+- site publico de agendamento;
 - cadastro online para jovens;
 - painel administrativo;
 - bot WhatsApp com `whatsapp-web.js`;
-- integração com Supabase.
+- integracao com Supabase.
 
-## Instalar Dependências
+## Instalar Dependencias
 
 ```bash
 npm install
 ```
 
-## Configurar Variáveis De Ambiente
+## Configurar O `.env`
 
-Crie um arquivo `.env` a partir do exemplo:
-
-```bash
-cp .env.example .env
-```
-
-No Windows PowerShell, você também pode usar:
+Use `.env.example` como base e preencha o arquivo `.env` local.
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Preencha o `.env` com os valores reais:
+Valores esperados para localhost:
 
 ```env
 PORT=3001
-SUPABASE_URL=
-SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-BOT_NOTIFY_NUMBER=
-PUBLIC_SITE_URL=
-ALLOWED_ORIGINS=
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_ANON_KEY=sua_chave_publica_anon_do_supabase
+SUPABASE_SERVICE_ROLE_KEY=sua_service_role_key_apenas_no_servidor
+BOT_NOTIFY_NUMBER=5527999999999
+PUBLIC_SITE_URL=http://localhost:3001
+ALLOWED_ORIGINS=http://localhost:3001,http://127.0.0.1:3001
+QR_PAGE_TOKEN=troque-por-uma-senha-local
+PUPPETEER_EXECUTABLE_PATH=
+WWEBJS_AUTH_PATH=.wwebjs_auth
 ```
 
-Nunca suba o `.env` para o Git.
-
-### Service Role do Supabase
-
-A variável `SUPABASE_SERVICE_ROLE_KEY` é obrigatória no servidor para as rotas internas de API, como:
-
-- `GET /api/horarios`
-- `POST /api/agendar`
-- `POST /api/cadastro-online`
-
-Essa chave permite que o `server.js` execute operações internas mesmo com RLS ativo no Supabase. Ela nunca deve ser colocada em `index.html`, `admin.html`, `cadastro.html` ou qualquer arquivo enviado ao navegador.
+Nunca coloque a `SUPABASE_SERVICE_ROLE_KEY` em arquivos HTML. Ela deve ficar somente no `.env`, usada pelo `server.js`.
 
 ## Rodar Localmente
 
 ```bash
-node server.js
+npm start
+```
+
+ou:
+
+```bash
+npm run dev
 ```
 
 URLs locais:
@@ -65,39 +61,45 @@ URLs locais:
 - `http://localhost:3001/admin.html`
 - `http://localhost:3001/cadastro.html`
 - `http://localhost:3001/health`
+- `http://localhost:3001/status`
 
 ## WhatsApp
 
-Na primeira execução, o terminal pode mostrar um QR Code. Escaneie com o WhatsApp que será usado pelo bot.
+Na primeira execucao, abra a pagina do QR informada no terminal.
 
-A sessão local fica em `.wwebjs_auth/` e o cache em `.wwebjs_cache/`. Essas pastas não devem ser versionadas.
+Exemplo:
+
+```text
+http://localhost:3001/qr?token=SEU_TOKEN
+```
+
+A sessao local fica em `.wwebjs_auth/` e o cache em `.wwebjs_cache/`.
+
+## Banco De Dados
+
+O banco principal continua sendo Supabase. Para testes 100% locais, as melhores alternativas sao:
+
+1. Supabase local via Supabase CLI e Docker, mantendo a mesma ideia de Postgres/Auth/REST.
+2. SQLite local, mais simples para testes offline, mas exigiria adaptar as consultas do `server.js`.
+
+Como o sistema ja depende de Supabase Auth no painel e de tabelas no Supabase, a alternativa mais fiel e rodar Supabase local. SQLite so vale se a prioridade for simplicidade e se voce aceitar trocar parte da camada de dados.
 
 ## Git
 
-Fluxo básico:
+Neste ambiente local de testes:
 
-```bash
-git status
-git add arquivo.html server.js
-git commit -m "Mensagem do commit"
-git push origin main
-```
+- nao fazer commit;
+- nao fazer push;
+- nao adicionar credenciais ao Git;
+- conferir `git status --short` apenas para revisar alteracoes locais.
 
-Antes de commitar, confira se não existem arquivos sensíveis:
+## Arquivos Sensíveis
 
-```bash
-git status --short
-```
-
-## Segurança
-
-Não subir para o Git:
+Nao versionar:
 
 - `.env`
 - `node_modules/`
 - `.wwebjs_auth/`
 - `.wwebjs_cache/`
 - `tokens/`
-- chaves, sessões ou credenciais reais
-
-Use o `.env.example` apenas com exemplos sem dados sensíveis.
+- chaves, sessoes ou credenciais reais
