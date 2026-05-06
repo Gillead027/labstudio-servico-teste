@@ -638,6 +638,240 @@
     }
 
     /* ===============================
+       CALENDÁRIO DE AGENDAMENTOS
+       Mostra a ocupação mensal usando as regras dinâmicas do LabStudio.
+    =============================== */
+    .calendario-shell {
+      display: grid;
+      gap: 16px;
+    }
+
+    .calendario-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .calendario-toolbar h2 {
+      margin: 0;
+      color: var(--primary);
+      font-size: 1.25rem;
+      text-transform: capitalize;
+    }
+
+    .calendario-acoes {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .calendario-legenda {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .calendario-legenda-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.3;
+    }
+
+    .calendario-legenda-cor {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--border);
+      box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
+    }
+
+    .calendario-legenda-cor.livre,
+    .calendario-dia.livre {
+      border-color: rgba(34, 197, 94, 0.5);
+    }
+
+    .calendario-legenda-cor.livre {
+      background: var(--success);
+    }
+
+    .calendario-legenda-cor.parcial,
+    .calendario-dia.parcial {
+      border-color: rgba(245, 158, 11, 0.65);
+    }
+
+    .calendario-legenda-cor.parcial {
+      background: var(--warning);
+    }
+
+    .calendario-legenda-cor.lotado,
+    .calendario-dia.lotado {
+      border-color: rgba(239, 68, 68, 0.65);
+    }
+
+    .calendario-legenda-cor.lotado {
+      background: var(--danger);
+    }
+
+    .calendario-legenda-cor.bloqueado,
+    .calendario-dia.bloqueado {
+      border-color: rgba(148, 163, 184, 0.44);
+    }
+
+    .calendario-legenda-cor.bloqueado {
+      background: #64748b;
+    }
+
+    .calendario-legenda-cor.fora,
+    .calendario-dia.fora-funcionamento {
+      border-color: rgba(148, 163, 184, 0.18);
+    }
+
+    .calendario-legenda-cor.fora {
+      background: #334155;
+    }
+
+    .calendario-semana,
+    .calendario-grade {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .calendario-semana {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: bold;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      margin-bottom: 8px;
+    }
+
+    .calendario-dia {
+      min-height: 118px;
+      border: 1px solid var(--soft-border);
+      border-radius: 10px;
+      background: var(--item-bg);
+      color: var(--text);
+      padding: 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+      box-shadow: none;
+      transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+    }
+
+    .calendario-dia:hover {
+      transform: translateY(-1px);
+      background: var(--item-hover-bg);
+      box-shadow: none;
+    }
+
+    .calendario-dia.selecionado {
+      border-color: rgba(99, 102, 241, 0.72);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.16);
+    }
+
+    .calendario-dia.hoje .calendario-numero {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .calendario-dia.vazio {
+      min-height: 118px;
+      cursor: default;
+      opacity: 0.35;
+      background: transparent;
+    }
+
+    .calendario-dia.vazio:hover {
+      transform: none;
+      background: transparent;
+    }
+
+    .calendario-topo-dia {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .calendario-numero {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .calendario-contador {
+      color: var(--muted);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .calendario-status-dia {
+      color: var(--text);
+      font-size: 0.84rem;
+      font-weight: bold;
+      line-height: 1.25;
+    }
+
+    .calendario-mensagem-dia {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.35;
+      margin-top: auto;
+    }
+
+    .calendario-detalhe-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .calendario-detalhe-topo {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .calendario-horario {
+      border: 1px solid var(--soft-border);
+      border-radius: 10px;
+      padding: 14px;
+      background: var(--item-bg);
+    }
+
+    .calendario-horario.livre {
+      border-color: rgba(34, 197, 94, 0.36);
+    }
+
+    .calendario-horario.ocupado {
+      border-color: rgba(99, 102, 241, 0.34);
+    }
+
+    .calendario-slot-meta {
+      color: var(--muted);
+      font-size: 0.86rem;
+      line-height: 1.5;
+      margin-bottom: 10px;
+    }
+
+    /* ===============================
        TOASTS VISUAIS
        Notificações rápidas para sucesso, erro e aviso no painel.
     =============================== */
@@ -736,6 +970,46 @@
         left: 10px;
         width: auto;
       }
+
+      .calendario-toolbar,
+      .calendario-acoes,
+      .calendario-detalhe-topo {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .calendario-acoes button {
+        width: 100%;
+      }
+
+      .calendario-semana,
+      .calendario-grade {
+        gap: 4px;
+      }
+
+      .calendario-semana {
+        font-size: 0.68rem;
+      }
+
+      .calendario-dia,
+      .calendario-dia.vazio {
+        min-height: 86px;
+        padding: 7px;
+      }
+
+      .calendario-numero {
+        width: 24px;
+        height: 24px;
+      }
+
+      .calendario-contador,
+      .calendario-mensagem-dia {
+        font-size: 0.7rem;
+      }
+
+      .calendario-status-dia {
+        font-size: 0.76rem;
+      }
     }
   </style>
 </head>
@@ -796,6 +1070,7 @@
     <div class="nav-abas">
       <button class="aba-botao ativa" data-tab="dashboard">Dashboard</button>
       <button class="aba-botao" data-tab="agendamentos">Agendamentos</button>
+      <button class="aba-botao" data-tab="calendario">Calendário</button>
       <button class="aba-botao" data-tab="usuarios">Usuários</button>
       <button class="aba-botao" data-tab="relatorios">Relatórios</button>
       <button class="aba-botao" data-tab="configuracoes">Configurações</button>
@@ -886,7 +1161,56 @@
     </section>
 
     <!-- ===============================
-         ABA 3: USUÁRIOS
+         ABA 3: CALENDÁRIO
+         Visualiza a ocupação mensal usando a configuração dinâmica.
+    =============================== -->
+    <section id="aba-calendario" class="aba-painel">
+      <h2 class="titulo-aba">Calendário</h2>
+      <p class="descricao-aba">Acompanhe a agenda do mês, veja disponibilidade por dia e acesse os detalhes de cada horário.</p>
+
+      <div class="painel-usuarios calendario-shell">
+        <div class="calendario-toolbar">
+          <h2 id="calendarioTituloMes">Carregando mês...</h2>
+
+          <div class="calendario-acoes">
+            <button id="btnCalendarioAnterior" class="btn-secundario" type="button" title="Mês anterior">Mês anterior</button>
+            <button id="btnCalendarioHoje" class="btn-editar" type="button">Hoje</button>
+            <button id="btnCalendarioProximo" class="btn-secundario" type="button" title="Próximo mês">Próximo mês</button>
+          </div>
+        </div>
+
+        <div class="calendario-legenda" aria-label="Legenda do calendário">
+          <span class="calendario-legenda-item"><span class="calendario-legenda-cor livre"></span>Livre</span>
+          <span class="calendario-legenda-item"><span class="calendario-legenda-cor parcial"></span>Parcialmente ocupado</span>
+          <span class="calendario-legenda-item"><span class="calendario-legenda-cor lotado"></span>Lotado</span>
+          <span class="calendario-legenda-item"><span class="calendario-legenda-cor bloqueado"></span>Bloqueado</span>
+          <span class="calendario-legenda-item"><span class="calendario-legenda-cor fora"></span>Fora de funcionamento</span>
+        </div>
+
+        <div class="calendario-semana" aria-hidden="true">
+          <div>Dom</div>
+          <div>Seg</div>
+          <div>Ter</div>
+          <div>Qua</div>
+          <div>Qui</div>
+          <div>Sex</div>
+          <div>Sáb</div>
+        </div>
+
+        <div id="calendarioGrade" class="calendario-grade">
+          <div class="vazio">Carregando calendário...</div>
+        </div>
+      </div>
+
+      <div class="painel-usuarios">
+        <div id="calendarioDetalhe">
+          <div class="vazio">Selecione um dia no calendário para ver os horários.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===============================
+         ABA 4: USUÁRIOS
          Mantém cadastro, edição e ações de bloqueio.
     =============================== -->
     <section id="aba-usuarios" class="aba-painel">
@@ -969,7 +1293,7 @@
     </section>
 
     <!-- ===============================
-         ABA 4: RELATÓRIOS
+         ABA 5: RELATÓRIOS
          Consolida rankings e totais gerais.
     =============================== -->
     <section id="aba-relatorios" class="aba-painel">
@@ -996,7 +1320,7 @@
     </section>
 
     <!-- ===============================
-         ABA 5: CONFIGURAÇÕES
+         ABA 6: CONFIGURAÇÕES
          Nesta primeira etapa, mostra a configuração central em modo leitura.
     =============================== -->
     <section id="aba-configuracoes" class="aba-painel">
@@ -1066,6 +1390,10 @@
     let origemConfigLabStudio = "fallback-local";
     let ambienteConfigLabStudio = LABSTUDIO_CONFIG_AMBIENTE_EDITAVEL;
     let editandoConfiguracoes = false;
+    let calendarioMesAtual = new Date();
+    calendarioMesAtual.setDate(1);
+    let calendarioDataSelecionada = null;
+    let calendarioAgendamentosMes = [];
 
     // ===============================
     // ELEMENTOS DO LOGIN
@@ -1092,6 +1420,12 @@
     const conteudoUsuarios = document.getElementById("conteudoUsuarios");
     const conteudoLogsAdmin = document.getElementById("conteudoLogsAdmin");
     const conteudoConfiguracoes = document.getElementById("conteudoConfiguracoes");
+    const calendarioTituloMes = document.getElementById("calendarioTituloMes");
+    const calendarioGrade = document.getElementById("calendarioGrade");
+    const calendarioDetalhe = document.getElementById("calendarioDetalhe");
+    const btnCalendarioAnterior = document.getElementById("btnCalendarioAnterior");
+    const btnCalendarioHoje = document.getElementById("btnCalendarioHoje");
+    const btnCalendarioProximo = document.getElementById("btnCalendarioProximo");
     const dashboardAgendamentos = document.getElementById("dashboardAgendamentos");
     const filtroBusca = document.getElementById("filtroBusca");
     const filtroData = document.getElementById("filtroData");
@@ -1655,6 +1989,439 @@
       if (statusNormalizado === "bloqueado") return "status status-bloqueado";
       if (statusNormalizado === "pendente") return "status status-pendente";
       return "status status-ativo";
+    }
+
+    // ===============================
+    // FUNÇÕES DO CALENDÁRIO
+    // Usam a configuração pública carregada para pintar funcionamento, bloqueios e lotação.
+    // ===============================
+    function dataIsoLocal(dataObjeto) {
+      const ano = dataObjeto.getFullYear();
+      const mes = String(dataObjeto.getMonth() + 1).padStart(2, "0");
+      const dia = String(dataObjeto.getDate()).padStart(2, "0");
+      return `${ano}-${mes}-${dia}`;
+    }
+
+    function dataLocalPorIso(dataIso) {
+      const partes = String(dataIso || "").split("-");
+      if (partes.length !== 3) return null;
+
+      const [ano, mes, dia] = partes.map(Number);
+      const dataObjeto = new Date(ano, mes - 1, dia);
+
+      if (
+        Number.isNaN(dataObjeto.getTime()) ||
+        dataObjeto.getFullYear() !== ano ||
+        dataObjeto.getMonth() !== mes - 1 ||
+        dataObjeto.getDate() !== dia
+      ) {
+        return null;
+      }
+
+      return dataObjeto;
+    }
+
+    function dataNoMesAtualCalendario(dataIso) {
+      const dataObjeto = dataLocalPorIso(dataIso);
+      if (!dataObjeto) return false;
+
+      return dataObjeto.getFullYear() === calendarioMesAtual.getFullYear() &&
+        dataObjeto.getMonth() === calendarioMesAtual.getMonth();
+    }
+
+    function nomeMesCalendario(dataObjeto) {
+      return dataObjeto.toLocaleDateString("pt-BR", {
+        month: "long",
+        year: "numeric"
+      });
+    }
+
+    function horariosConfiguradosCalendario() {
+      return Array.isArray(configLabStudio.horarios_disponiveis)
+        ? configLabStudio.horarios_disponiveis
+        : CONFIG_ADMIN_FALLBACK.horarios_disponiveis;
+    }
+
+    function diasFuncionamentoCalendario() {
+      return Array.isArray(configLabStudio.dias_funcionamento)
+        ? configLabStudio.dias_funcionamento.map(Number)
+        : CONFIG_ADMIN_FALLBACK.dias_funcionamento;
+    }
+
+    function dataBloqueadaCalendario(dataIso) {
+      const datasBloqueadas = Array.isArray(configLabStudio.datas_bloqueadas)
+        ? configLabStudio.datas_bloqueadas
+        : CONFIG_ADMIN_FALLBACK.datas_bloqueadas;
+
+      return datasBloqueadas.includes(dataIso);
+    }
+
+    function dataEmFuncionamentoCalendario(dataIso) {
+      const dataObjeto = dataLocalPorIso(dataIso);
+      if (!dataObjeto) return false;
+
+      return diasFuncionamentoCalendario().includes(dataObjeto.getDay());
+    }
+
+    function agendamentoOcupaHorario(agendamento) {
+      return String(agendamento.status || "agendado").toLowerCase() !== "cancelado";
+    }
+
+    function agendamentosDoDiaCalendario(dataIso) {
+      return calendarioAgendamentosMes
+        .filter(agendamento => agendamento.data === dataIso)
+        .sort((a, b) => String(a.horario || "").localeCompare(String(b.horario || "")));
+    }
+
+    function calcularStatusDiaCalendario(dataIso, agendamentosDia) {
+      const totalHorarios = horariosConfiguradosCalendario().length;
+      const ocupados = agendamentosDia.filter(agendamentoOcupaHorario).length;
+
+      if (dataBloqueadaCalendario(dataIso)) {
+        return {
+          chave: "bloqueado",
+          rotulo: "Bloqueado",
+          contador: `${ocupados}/${totalHorarios}`,
+          mensagem: "Data bloqueada nas configurações."
+        };
+      }
+
+      if (!dataEmFuncionamentoCalendario(dataIso)) {
+        return {
+          chave: "fora-funcionamento",
+          rotulo: "Fora de funcionamento",
+          contador: `${ocupados}/${totalHorarios}`,
+          mensagem: "Dia fora da regra atual."
+        };
+      }
+
+      if (totalHorarios === 0) {
+        return {
+          chave: "fora-funcionamento",
+          rotulo: "Sem horários",
+          contador: "0/0",
+          mensagem: "Nenhum horário configurado."
+        };
+      }
+
+      if (ocupados >= totalHorarios) {
+        return {
+          chave: "lotado",
+          rotulo: "Lotado",
+          contador: `${ocupados}/${totalHorarios}`,
+          mensagem: "Todos os horários estão ocupados."
+        };
+      }
+
+      if (ocupados > 0) {
+        return {
+          chave: "parcial",
+          rotulo: "Parcialmente ocupado",
+          contador: `${ocupados}/${totalHorarios}`,
+          mensagem: "Ainda há horários livres."
+        };
+      }
+
+      return {
+        chave: "livre",
+        rotulo: "Livre",
+        contador: `0/${totalHorarios}`,
+        mensagem: "Todos os horários estão livres."
+      };
+    }
+
+    function classeStatusDiaCalendario(chave) {
+      if (chave === "livre") return "status status-ativo";
+      if (chave === "parcial") return "status status-pendente";
+      if (chave === "lotado") return "status status-bloqueado";
+      if (chave === "bloqueado") return "status status-cancelado";
+      return "status status-agendado";
+    }
+
+    function renderizarCalendarioGrade() {
+      if (!calendarioGrade || !calendarioTituloMes) return;
+
+      const ano = calendarioMesAtual.getFullYear();
+      const mes = calendarioMesAtual.getMonth();
+      const primeiroDia = new Date(ano, mes, 1);
+      const totalDias = new Date(ano, mes + 1, 0).getDate();
+      const deslocamentoInicial = primeiroDia.getDay();
+      const hojeIso = dataIsoLocal(new Date());
+      let html = "";
+
+      calendarioTituloMes.textContent = nomeMesCalendario(calendarioMesAtual);
+
+      for (let i = 0; i < deslocamentoInicial; i++) {
+        html += '<div class="calendario-dia vazio" aria-hidden="true"></div>';
+      }
+
+      for (let dia = 1; dia <= totalDias; dia++) {
+        const dataIso = dataIsoLocal(new Date(ano, mes, dia));
+        const agendamentosDia = agendamentosDoDiaCalendario(dataIso);
+        const statusDia = calcularStatusDiaCalendario(dataIso, agendamentosDia);
+        const selecionado = calendarioDataSelecionada === dataIso ? "selecionado" : "";
+        const hoje = hojeIso === dataIso ? "hoje" : "";
+
+        html += `
+          <button
+            type="button"
+            class="calendario-dia ${statusDia.chave} ${selecionado} ${hoje}"
+            data-calendario-data="${escaparHtml(dataIso)}"
+          >
+            <span class="calendario-topo-dia">
+              <span class="calendario-numero">${dia}</span>
+              <span class="calendario-contador">${escaparHtml(statusDia.contador)}</span>
+            </span>
+            <span class="calendario-status-dia">${escaparHtml(statusDia.rotulo)}</span>
+            <span class="calendario-mensagem-dia">${escaparHtml(statusDia.mensagem)}</span>
+          </button>
+        `;
+      }
+
+      const totalCelulas = deslocamentoInicial + totalDias;
+      const celulasFinais = (7 - (totalCelulas % 7)) % 7;
+
+      for (let i = 0; i < celulasFinais; i++) {
+        html += '<div class="calendario-dia vazio" aria-hidden="true"></div>';
+      }
+
+      calendarioGrade.innerHTML = html;
+
+      calendarioGrade.querySelectorAll("[data-calendario-data]").forEach(botao => {
+        botao.addEventListener("click", () => {
+          selecionarDiaCalendario(botao.dataset.calendarioData);
+        });
+      });
+    }
+
+    function renderizarAgendamentoCalendario(agendamento) {
+      const status = agendamento.status || "agendado";
+      const desabilitarPresenca = status === "compareceu" || status === "cancelado";
+      const desabilitarFalta = status === "faltou" || status === "cancelado";
+      const desabilitarCancelar = status !== "agendado";
+
+      return `
+        <div class="calendario-horario ocupado">
+          <div class="linha-topo">
+            <div class="nome">${escaparHtml(agendamento.horario || "-")} - ${escaparHtml(agendamento.nome || "Sem nome")}</div>
+            <div class="${classeStatus(status)}">${escaparHtml(status)}</div>
+          </div>
+
+          <div class="calendario-slot-meta">
+            Telefone: ${escaparHtml(agendamento.telefone || "Não informado")}<br>
+            Data: ${formatarData(agendamento.data)}
+          </div>
+
+          ${
+            agendamento.observacao
+              ? `<div class="observacao">${escaparHtml(agendamento.observacao)}</div>`
+              : ""
+          }
+
+          <div class="acoes">
+            <button
+              class="btn-presenca"
+              data-calendario-acao="presenca"
+              data-agendamento-id="${escaparHtml(agendamento.id)}"
+              ${desabilitarPresenca ? "disabled" : ""}
+            >
+              Confirmar presença
+            </button>
+
+            <button
+              class="btn-falta"
+              data-calendario-acao="falta"
+              data-agendamento-id="${escaparHtml(agendamento.id)}"
+              ${desabilitarFalta ? "disabled" : ""}
+            >
+              Marcar falta
+            </button>
+
+            <button
+              class="btn-cancelar"
+              data-calendario-acao="cancelar"
+              data-agendamento-id="${escaparHtml(agendamento.id)}"
+              ${desabilitarCancelar ? "disabled" : ""}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderizarHorarioCalendario(horario, agendamentosDia) {
+      const agendamentosHorario = agendamentosDia.filter(agendamento => agendamento.horario === horario);
+
+      if (agendamentosHorario.length === 0) {
+        return `
+          <div class="calendario-horario livre">
+            <div class="linha-topo">
+              <div class="nome">${escaparHtml(horario)}</div>
+              <div class="status status-ativo">Livre</div>
+            </div>
+            <div class="calendario-slot-meta">Nenhum agendamento neste horário.</div>
+          </div>
+        `;
+      }
+
+      return agendamentosHorario.map(renderizarAgendamentoCalendario).join("");
+    }
+
+    function ativarAcoesCalendarioDetalhe() {
+      if (!calendarioDetalhe) return;
+
+      calendarioDetalhe.querySelectorAll("[data-calendario-acao]").forEach(botao => {
+        botao.addEventListener("click", () => {
+          const agendamentoId = botao.dataset.agendamentoId;
+          const acao = botao.dataset.calendarioAcao;
+
+          if (acao === "presenca") {
+            confirmarPresenca(agendamentoId, botao);
+            return;
+          }
+
+          if (acao === "falta") {
+            marcarFalta(agendamentoId, botao);
+            return;
+          }
+
+          if (acao === "cancelar") {
+            cancelarAgendamento(agendamentoId, botao);
+          }
+        });
+      });
+    }
+
+    function renderizarDetalheCalendario(dataIso) {
+      if (!calendarioDetalhe) return;
+
+      if (!dataIso) {
+        calendarioDetalhe.innerHTML = mensagemVazio(
+          "Selecione um dia no calendário.",
+          "Os horários e agendamentos aparecerão aqui."
+        );
+        return;
+      }
+
+      const agendamentosDia = agendamentosDoDiaCalendario(dataIso);
+      const statusDia = calcularStatusDiaCalendario(dataIso, agendamentosDia);
+      const horarios = horariosConfiguradosCalendario();
+      const horariosConfigSet = new Set(horarios);
+      const agendamentosForaDaGrade = agendamentosDia.filter(agendamento =>
+        !horariosConfigSet.has(agendamento.horario)
+      );
+      const avisoFuncionamento = statusDia.chave === "fora-funcionamento"
+        ? `<div class="form-ajuda">${escaparHtml(configLabStudio.mensagem_funcionamento || CONFIG_ADMIN_FALLBACK.mensagem_funcionamento)}</div>`
+        : "";
+
+      calendarioDetalhe.innerHTML = `
+        <div class="calendario-detalhe-topo">
+          <div>
+            <h2 class="titulo-aba">${formatarData(dataIso)}</h2>
+            <div class="form-ajuda">
+              ${escaparHtml(statusDia.mensagem)} Capacidade configurada: ${escaparHtml(statusDia.contador)}.
+            </div>
+            ${avisoFuncionamento}
+          </div>
+          <div class="${classeStatusDiaCalendario(statusDia.chave)}">${escaparHtml(statusDia.rotulo)}</div>
+        </div>
+
+        <div class="calendario-detalhe-grid">
+          ${
+            horarios.length === 0
+              ? mensagemVazio("Nenhum horário configurado.", "Revise a aba Configurações para habilitar horários.")
+              : horarios.map(horario => renderizarHorarioCalendario(horario, agendamentosDia)).join("")
+          }
+
+          ${
+            agendamentosForaDaGrade.length > 0
+              ? `
+                <div class="vazio">
+                  <strong>Agendamentos fora dos horários configurados</strong>
+                  <span>Esses registros existem no Supabase, mas não batem com a grade atual.</span>
+                </div>
+                ${agendamentosForaDaGrade.map(renderizarAgendamentoCalendario).join("")}
+              `
+              : ""
+          }
+        </div>
+      `;
+
+      ativarAcoesCalendarioDetalhe();
+    }
+
+    function selecionarDiaCalendario(dataIso) {
+      calendarioDataSelecionada = dataIso;
+      renderizarCalendarioGrade();
+      renderizarDetalheCalendario(dataIso);
+    }
+
+    async function carregarCalendario() {
+      if (!calendarioGrade || !calendarioDetalhe || !calendarioTituloMes) return;
+
+      calendarioTituloMes.textContent = nomeMesCalendario(calendarioMesAtual);
+      calendarioGrade.innerHTML = '<div class="vazio" style="grid-column: 1 / -1;">Carregando calendário...</div>';
+      calendarioDetalhe.innerHTML = '<div class="vazio">Carregando detalhes do calendário...</div>';
+
+      try {
+        const ano = calendarioMesAtual.getFullYear();
+        const mes = calendarioMesAtual.getMonth();
+        const dataInicio = dataIsoLocal(new Date(ano, mes, 1));
+        const dataFim = dataIsoLocal(new Date(ano, mes + 1, 0));
+
+        const { data, error } = await client
+          .from("agendamentos")
+          .select("*")
+          .gte("data", dataInicio)
+          .lte("data", dataFim)
+          .order("data", { ascending: true })
+          .order("horario", { ascending: true });
+
+        if (error) {
+          throw error;
+        }
+
+        calendarioAgendamentosMes = data || [];
+
+        const hojeIso = dataIsoLocal(new Date());
+        if (!calendarioDataSelecionada || !dataNoMesAtualCalendario(calendarioDataSelecionada)) {
+          calendarioDataSelecionada = dataNoMesAtualCalendario(hojeIso) ? hojeIso : dataInicio;
+        }
+
+        renderizarCalendarioGrade();
+        renderizarDetalheCalendario(calendarioDataSelecionada);
+      } catch (err) {
+        console.error("Erro ao carregar calendário:", err);
+        calendarioAgendamentosMes = [];
+        calendarioGrade.innerHTML = `
+          <div class="vazio" style="grid-column: 1 / -1;">
+            <strong>Erro ao carregar calendário.</strong>
+            <span>${escaparHtml(err.message || "Não foi possível buscar agendamentos do mês.")}</span>
+          </div>
+        `;
+        calendarioDetalhe.innerHTML = mensagemVazio(
+          "Calendário indisponível.",
+          "As outras abas continuam funcionando normalmente."
+        );
+      }
+    }
+
+    function mudarMesCalendario(delta) {
+      calendarioMesAtual = new Date(
+        calendarioMesAtual.getFullYear(),
+        calendarioMesAtual.getMonth() + delta,
+        1
+      );
+      calendarioDataSelecionada = null;
+      carregarCalendario();
+    }
+
+    function irParaHojeCalendario() {
+      calendarioMesAtual = new Date();
+      calendarioMesAtual.setDate(1);
+      calendarioDataSelecionada = dataIsoLocal(new Date());
+      carregarCalendario();
     }
 
     // ===============================
@@ -2760,6 +3527,7 @@
         await carregarConfiguracoesPublicas();
         editandoConfiguracoes = false;
         renderizarConfiguracoesVisualizacao(configLabStudio, origemConfigLabStudio || "supabase");
+        carregarCalendario();
         mostrarToast("Configurações salvas com sucesso!", "sucesso");
       } catch (err) {
         console.error("Erro ao salvar configurações:", err);
@@ -3755,6 +4523,7 @@
       carregarUsuariosCadastrados();
       carregarAgendamentos();
       carregarAgendamentosDashboard();
+      carregarCalendario();
       carregarLogsAdmin();
       carregarConfiguracoesLabStudio();
     }
@@ -4126,6 +4895,22 @@
     // ===============================
     btnProcessarPendencias.addEventListener("click", () => {
       processarFaltasPendentes();
+    });
+
+    // ===============================
+    // BOTÕES DO CALENDÁRIO
+    // Navegam entre meses sem alterar dados no Supabase.
+    // ===============================
+    btnCalendarioAnterior.addEventListener("click", () => {
+      mudarMesCalendario(-1);
+    });
+
+    btnCalendarioHoje.addEventListener("click", () => {
+      irParaHojeCalendario();
+    });
+
+    btnCalendarioProximo.addEventListener("click", () => {
+      mudarMesCalendario(1);
     });
 
     // ===============================
