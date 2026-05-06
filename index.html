@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LabStudio CRJ FLEXAL - Agendamento</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23070a16'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='18'%20fill='%2322d3ee'/%3E%3Cpath%20d='M25%2041V20h18v6H31v15z'%20fill='white'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   
   <style>
     /* ===============================
@@ -357,47 +362,755 @@
         padding: 0.55rem 0.75rem;
       }
     }
+    /* ===============================
+       CAMADA VISUAL PREMIUM
+       Reorganiza a pagina publica como landing page sem alterar a logica.
+    =============================== */
+    :root {
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --accent: #22d3ee;
+      --accent-2: #34d399;
+      --bg: #070a16;
+      --page-bg:
+        linear-gradient(126deg, rgba(139, 92, 246, 0.24) 0%, rgba(139, 92, 246, 0) 28%),
+        linear-gradient(235deg, rgba(34, 211, 238, 0.16) 0%, rgba(34, 211, 238, 0) 34%),
+        linear-gradient(145deg, #050713 0%, #080d1f 48%, #111827 100%);
+      --card-bg: linear-gradient(180deg, rgba(19, 25, 47, 0.62), rgba(8, 13, 31, 0.54));
+      --surface: rgba(15, 23, 42, 0.42);
+      --surface-strong: rgba(15, 23, 42, 0.58);
+      --text: #f8fafc;
+      --muted: #b7c0d4;
+      --label: #d8def0;
+      --input-bg: rgba(15, 23, 42, 0.72);
+      --input-focus-bg: rgba(15, 23, 42, 0.92);
+      --border: rgba(226, 232, 240, 0.18);
+      --shadow-card: 0 28px 80px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      --shadow-button: 0 18px 34px rgba(124, 58, 237, 0.28);
+      --shadow-button-hover: 0 22px 42px rgba(34, 211, 238, 0.2);
+      --toast-bg: rgba(8, 13, 31, 0.94);
+    }
+
+    html[data-theme="light"] {
+      --primary: #6d28d9;
+      --primary-hover: #5b21b6;
+      --accent: #0891b2;
+      --accent-2: #059669;
+      --bg: #f6f8ff;
+      --page-bg:
+        linear-gradient(126deg, rgba(109, 40, 217, 0.16) 0%, rgba(109, 40, 217, 0) 30%),
+        linear-gradient(235deg, rgba(8, 145, 178, 0.14) 0%, rgba(8, 145, 178, 0) 34%),
+        linear-gradient(145deg, #ffffff 0%, #eef2ff 50%, #ecfeff 100%);
+      --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(248, 250, 252, 0.72));
+      --surface: rgba(255, 255, 255, 0.42);
+      --surface-strong: rgba(255, 255, 255, 0.62);
+      --text: #0f172a;
+      --muted: #526174;
+      --label: #243044;
+      --input-bg: rgba(255, 255, 255, 0.84);
+      --input-focus-bg: #ffffff;
+      --border: rgba(71, 85, 105, 0.2);
+      --shadow-card: 0 24px 64px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+      --shadow-button: 0 18px 34px rgba(109, 40, 217, 0.18);
+      --shadow-button-hover: 0 22px 42px rgba(8, 145, 178, 0.18);
+      --toast-bg: rgba(255, 255, 255, 0.96);
+    }
+
+    html {
+      min-height: 100%;
+      background: var(--page-bg);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
+    body {
+      display: block;
+      align-items: initial;
+      justify-content: initial;
+      min-height: 100vh;
+      padding: 0;
+      overflow-x: hidden;
+      font-family: "Poppins", "Segoe UI", Roboto, sans-serif;
+      background: var(--page-bg);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 82%);
+    }
+
+    .page-shell {
+      width: min(1160px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .page-shell,
+    .page-shell * {
+      box-sizing: border-box;
+    }
+
+    .hero {
+      min-height: calc(100vh - 72px);
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
+      gap: 42px;
+      align-items: center;
+      padding: 34px 0 26px;
+    }
+
+    .hero-content,
+    .booking-card,
+    .info-card {
+      animation: slideUpPremium 0.58s ease both;
+    }
+
+    .brand-kicker,
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 999px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    /* ===============================
+       ASSINATURA VISUAL
+       Cria uma marca simples para o LabStudio sem depender de imagens externas.
+    =============================== */
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0.7rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.28);
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 44px rgba(0,0,0,0.18);
+      backdrop-filter: blur(22px) saturate(150%);
+      -webkit-backdrop-filter: blur(22px) saturate(150%);
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      border-radius: 8px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,0.5), transparent 24px),
+        linear-gradient(135deg, var(--primary), var(--accent));
+      box-shadow: 0 16px 42px rgba(34, 211, 238, 0.22);
+    }
+
+    .brand-lockup strong,
+    .brand-lockup small {
+      display: block;
+      line-height: 1.05;
+    }
+
+    .brand-lockup strong {
+      font-size: 0.96rem;
+      font-weight: 800;
+    }
+
+    .brand-lockup small {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .brand-lockup + .brand-kicker {
+      margin-top: 16px;
+    }
+
+    .brand-kicker {
+      padding: 0.55rem 0.75rem;
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .brand-kicker i {
+      color: var(--accent);
+    }
+
+    .hero h1 {
+      margin: 24px 0 16px;
+      color: var(--text);
+      font-size: clamp(2.65rem, 8vw, 5.6rem);
+      line-height: 0.98;
+      letter-spacing: 0;
+      text-align: left;
+      text-shadow: 0 28px 80px rgba(34, 211, 238, 0.18);
+    }
+
+    .hero-copy {
+      max-width: 640px;
+      margin: 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 2vw, 1.18rem);
+      line-height: 1.72;
+    }
+
+    .hero-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 26px;
+    }
+
+    .hero-pill {
+      padding: 0.72rem 0.9rem;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .hero-pill i {
+      color: var(--accent-2);
+    }
+
+    .container.booking-card {
+      width: 100%;
+      max-width: 500px;
+      margin-left: auto;
+      padding: 28px;
+      box-sizing: border-box;
+      border-radius: 8px;
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(30px) saturate(145%);
+      -webkit-backdrop-filter: blur(30px) saturate(145%);
+    }
+
+    .form-card-header {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      margin-bottom: 22px;
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      border-radius: 8px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      box-shadow: 0 18px 42px rgba(124, 58, 237, 0.26);
+    }
+
+    .booking-card h2 {
+      margin: 0 0 6px;
+      color: var(--text);
+      font-size: 1.35rem;
+      line-height: 1.2;
+    }
+
+    .booking-card .card-subtitle {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.95rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.05rem;
+    }
+
+    label {
+      color: var(--label);
+      letter-spacing: 0;
+      text-transform: none;
+      font-size: 0.86rem;
+    }
+
+    .field-shell {
+      position: relative;
+    }
+
+    .field-shell i {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      transform: translateY(-50%);
+      color: var(--accent);
+      font-size: 0.95rem;
+      pointer-events: none;
+    }
+
+    .field-shell input,
+    .field-shell select {
+      min-height: 50px;
+      padding-left: 45px;
+      border-radius: 8px;
+      border-color: var(--border);
+      background: var(--input-bg);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .field-shell input:focus,
+    .field-shell select:focus {
+      background: var(--input-focus-bg);
+      box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+    }
+
+    #btn {
+      min-height: 54px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      box-shadow: var(--shadow-button);
+    }
+
+    #btn::before {
+      content: "\f274";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+    }
+
+    #btn:hover {
+      background: linear-gradient(135deg, var(--primary-hover), #06b6d4);
+      box-shadow: var(--shadow-button-hover);
+    }
+
+    .aviso,
+    .toast {
+      border-radius: 8px;
+      backdrop-filter: blur(24px) saturate(140%);
+      -webkit-backdrop-filter: blur(24px) saturate(140%);
+    }
+
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      background: var(--surface-strong);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      font-weight: 800;
+    }
+
+    .theme-toggle::before {
+      content: "\f186";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    html[data-theme="light"] .theme-toggle::before {
+      content: "\f185";
+    }
+
+    /* ===============================
+       SECOES INFORMATIVAS
+       Cards curtos reforcam orientacoes e proposta do LabStudio.
+    =============================== */
+    .landing-section {
+      padding: 18px 0 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0 0 14px;
+      color: var(--text);
+      font-size: 1.18rem;
+    }
+
+    .section-title i {
+      color: var(--accent);
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .info-card {
+      min-height: 140px;
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      line-height: 1.56;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.18);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .info-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(34, 211, 238, 0.36);
+      background: var(--surface-strong);
+    }
+
+    .info-card i {
+      width: 38px;
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 14px;
+      border-radius: 8px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+    }
+
+    .info-card strong {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    /* ===============================
+       SUCESSO DO AGENDAMENTO
+       Substitui o reload por uma tela clara de confirmação.
+    =============================== */
+    .success-panel {
+      width: 100%;
+      max-width: 500px;
+      margin-left: auto;
+      padding: 28px;
+      border: 1px solid rgba(34, 197, 94, 0.28);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(20, 83, 45, 0.34), rgba(8, 13, 31, 0.54));
+      color: var(--text);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
+      animation: slideUpPremium 0.42s ease both;
+    }
+
+    .success-panel[hidden] {
+      display: none;
+    }
+
+    .success-icon {
+      width: 58px;
+      height: 58px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: #052e16;
+      background: linear-gradient(135deg, #86efac, #22d3ee);
+      box-shadow: 0 18px 44px rgba(34, 197, 94, 0.22);
+    }
+
+    .success-panel h2 {
+      margin: 18px 0 10px;
+      color: var(--text);
+      font-size: 1.45rem;
+      line-height: 1.2;
+    }
+
+    .success-panel p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.58;
+      white-space: pre-line;
+    }
+
+    .success-details {
+      display: grid;
+      gap: 10px;
+      margin: 18px 0;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.26);
+    }
+
+    .success-details span {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .success-details i {
+      color: var(--accent);
+    }
+
+    .success-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .btn-ghost {
+      background: var(--surface-strong);
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    button.is-loading::after {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.45);
+      border-top-color: #fff;
+      border-radius: 999px;
+      animation: spinPremium 0.75s linear infinite;
+    }
+
+    @keyframes spinPremium {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes slideUpPremium {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .page-shell {
+        width: min(100% - 24px, 680px);
+        padding-top: 68px;
+      }
+
+      .hero {
+        min-height: auto;
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding-top: 18px;
+      }
+
+      .container.booking-card {
+        margin: 0;
+        max-width: none;
+      }
+
+      .hero h1 {
+        font-size: clamp(2.3rem, 12vw, 4rem);
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 0;
+      }
+
+      .page-shell {
+        width: calc(100% - 20px);
+      }
+
+      .container.booking-card {
+        padding: 20px;
+      }
+
+      .theme-toggle {
+        right: 8px;
+        max-width: calc(100vw - 16px);
+      }
+
+      .form-card-header {
+        flex-direction: column;
+      }
+
+      .hero-pills {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 
 <body>
-  <button id="btnTema" class="theme-toggle" type="button" aria-label="Alternar tema">🌙 Escuro</button>
+  <button id="btnTema" class="theme-toggle" type="button" aria-label="Alternar tema">Escuro</button>
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <main class="page-shell">
+    <section class="hero" aria-label="Agendamento LabStudio CRJ FLEXAL">
+      <div class="hero-content">
+        <div class="brand-lockup">
+          <span class="brand-mark"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
+          <span>
+            <strong>LabStudio</strong>
+            <small>CRJ FLEXAL</small>
+          </span>
+        </div>
+
+        <div class="brand-kicker">
+          <i class="fa-solid fa-record-vinyl" aria-hidden="true"></i>
+          <span>Estúdio musical do CRJ FLEXAL</span>
+        </div>
+
+        <h1>LabStudio CRJ FLEXAL</h1>
+        <p class="hero-copy">
+          Espaço de gravação e criação musical para jovens do CRJ FLEXAL, com agenda organizada, acompanhamento da equipe e foco em expressão artística.
+        </p>
+
+        <div class="hero-pills" aria-label="Pilares do LabStudio">
+          <span class="hero-pill"><i class="fa-solid fa-microphone-lines" aria-hidden="true"></i> Gravação</span>
+          <span class="hero-pill"><i class="fa-solid fa-headphones-simple" aria-hidden="true"></i> Criação</span>
+          <span class="hero-pill"><i class="fa-solid fa-bolt" aria-hidden="true"></i> Protagonismo jovem</span>
+        </div>
+      </div>
 
   <!-- ===============================
        FORMULÁRIO DE AGENDAMENTO
   =============================== -->
-  <div class="container">
-    <h1>LabStudio CRJ FLEXAL</h1>
+  <div class="container booking-card">
+    <div class="form-card-header">
+      <span class="card-icon"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i></span>
+      <div>
+        <h2>Agende seu horário</h2>
+        <p class="card-subtitle">Preencha seus dados, escolha a data disponível e confirme sua presença no estúdio.</p>
+      </div>
+    </div>
 
     <div id="aviso" class="aviso"></div>
 
     <div class="form-group">
       <label for="nome">Nome do Artista / Grupo</label>
-      <input type="text" id="nome" placeholder="Ex: MC Jovem">
+      <div class="field-shell">
+        <i class="fa-regular fa-user" aria-hidden="true"></i>
+        <input type="text" id="nome" placeholder="Ex: MC Jovem">
+      </div>
       <div id="ajudaNome" class="campo-ajuda"></div>
     </div>
 
     <div class="form-group">
       <label for="telefone">WhatsApp</label>
-      <input type="text" id="telefone" placeholder="Ex: 27999999999">
+      <div class="field-shell">
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+        <input type="text" id="telefone" placeholder="Ex: 27999999999">
+      </div>
       <div id="ajudaTelefone" class="campo-ajuda"></div>
     </div>
 
     <div class="form-group">
       <label for="data">Data do Set</label>
-      <input type="date" id="data">
+      <div class="field-shell">
+        <i class="fa-regular fa-calendar-days" aria-hidden="true"></i>
+        <input type="date" id="data">
+      </div>
     </div>
 
     <div class="form-group">
       <label for="horario">Horários Disponíveis</label>
-      <select id="horario">
-        <option value="">Selecione uma data primeiro</option>
-      </select>
+      <div class="field-shell">
+        <i class="fa-regular fa-clock" aria-hidden="true"></i>
+        <select id="horario">
+          <option value="">Selecione uma data primeiro</option>
+        </select>
+      </div>
     </div>
 
     <button id="btn">Confirmar Agendamento</button>
   </div>
+
+  <section id="sucessoAgendamento" class="success-panel" aria-live="polite" hidden>
+    <span class="success-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+    <h2>Agendamento confirmado</h2>
+    <p id="sucessoMensagemAgendamento"></p>
+    <div class="success-details">
+      <span><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> <strong id="sucessoDataAgendamento">Data confirmada</strong></span>
+      <span><i class="fa-regular fa-clock" aria-hidden="true"></i> <strong id="sucessoHorarioAgendamento">Horário confirmado</strong></span>
+      <span><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> <strong id="sucessoWhatsappAgendamento">WhatsApp notificado</strong></span>
+    </div>
+    <div class="success-actions">
+      <button id="btnNovoAgendamento" type="button" class="btn-ghost">Fazer outro agendamento</button>
+    </div>
+  </section>
+
+    </section>
+
+    <section class="landing-section" aria-label="Orientações do agendamento">
+      <h2 class="section-title"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Orientações</h2>
+      <div class="info-grid">
+        <article class="info-card">
+          <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+          <strong>Funcionamento por agendamento</strong>
+          Os horários são organizados pela agenda para garantir uso responsável do espaço.
+        </article>
+        <article class="info-card">
+          <i class="fa-solid fa-clock" aria-hidden="true"></i>
+          <strong>Compareça no horário</strong>
+          Chegar no horário ajuda a equipe e preserva a vaga de outros jovens.
+        </article>
+        <article class="info-card">
+          <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+          <strong>Cadastro aprovado</strong>
+          É obrigatório estar cadastrado e aprovado para usar o LabStudio.
+        </article>
+      </div>
+    </section>
+
+    <section class="landing-section" aria-label="Sobre o LabStudio">
+      <h2 class="section-title"><i class="fa-solid fa-music" aria-hidden="true"></i> Sobre o LabStudio</h2>
+      <div class="info-grid">
+        <article class="info-card">
+          <i class="fa-solid fa-wave-square" aria-hidden="true"></i>
+          <strong>Gravação</strong>
+          Um ambiente preparado para registrar ideias, vozes e projetos musicais.
+        </article>
+        <article class="info-card">
+          <i class="fa-solid fa-lightbulb" aria-hidden="true"></i>
+          <strong>Criação</strong>
+          Espaço para transformar referências, letras e beats em produção autoral.
+        </article>
+        <article class="info-card">
+          <i class="fa-solid fa-star" aria-hidden="true"></i>
+          <strong>Protagonismo jovem</strong>
+          A música como caminho de expressão, presença e construção de futuro.
+        </article>
+      </div>
+    </section>
+  </main>
 
   <script>
     // ===============================
@@ -440,6 +1153,13 @@
     const toastContainer = document.getElementById("toastContainer");
     const ajudaNome = document.getElementById("ajudaNome");
     const ajudaTelefone = document.getElementById("ajudaTelefone");
+    const bookingCard = document.querySelector(".booking-card");
+    const sucessoAgendamento = document.getElementById("sucessoAgendamento");
+    const sucessoMensagemAgendamento = document.getElementById("sucessoMensagemAgendamento");
+    const sucessoDataAgendamento = document.getElementById("sucessoDataAgendamento");
+    const sucessoHorarioAgendamento = document.getElementById("sucessoHorarioAgendamento");
+    const sucessoWhatsappAgendamento = document.getElementById("sucessoWhatsappAgendamento");
+    const btnNovoAgendamento = document.getElementById("btnNovoAgendamento");
 
     // ===============================
     // FUNÇÕES DE TEMA
@@ -449,7 +1169,7 @@
       const temaFinal = tema === "light" ? "light" : "dark";
 
       document.documentElement.dataset.theme = temaFinal;
-      btnTema.innerText = temaFinal === "light" ? "☀️ Claro" : "🌙 Escuro";
+      btnTema.innerText = temaFinal === "light" ? "Claro" : "Escuro";
       btnTema.setAttribute(
         "aria-label",
         temaFinal === "light" ? "Tema claro ativo. Alternar para escuro." : "Tema escuro ativo. Alternar para claro."
@@ -588,11 +1308,34 @@
     function definirLoadingBotao(botao, carregando, textoCarregando, textoNormal) {
       botao.disabled = carregando;
       botao.innerText = carregando ? textoCarregando : textoNormal;
+      botao.classList.toggle("is-loading", carregando);
+    }
+
+    // ===============================
+    // FUNÇÃO: TELA DE SUCESSO DO AGENDAMENTO
+    // Mantém a confirmação visível sem recarregar a página.
+    // ===============================
+    function mostrarTelaSucessoAgendamento(mensagem, data, horario, notificacaoOk) {
+      if (!sucessoAgendamento) return;
+
+      sucessoMensagemAgendamento.textContent = mensagem;
+      sucessoDataAgendamento.textContent = `Data: ${data}`;
+      sucessoHorarioAgendamento.textContent = `Horário: ${horario}`;
+      sucessoWhatsappAgendamento.textContent = notificacaoOk
+        ? "WhatsApp notificado"
+        : "Agendamento salvo; WhatsApp precisa ser conferido";
+
+      if (bookingCard) {
+        bookingCard.style.display = "none";
+      }
+
+      sucessoAgendamento.hidden = false;
+      sucessoAgendamento.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 
     // ===============================
     // FUNÇÃO: CALCULAR IDADE
-    // Usa a data de nascimento para validar a faixa etária do CRJ.
+    // Usa a data de nascimento para validar a faixa etária do CRJ FLEXAL.
     // ===============================
     function calcularIdade(dataNascimento) {
       if (!dataNascimento) return null;
@@ -923,10 +1666,8 @@
 
         mostrarAviso(mensagemSucesso, "sucesso");
         mostrarToast(mensagemSucesso, "sucesso");
-
-        setTimeout(() => {
-          location.reload();
-        }, 1300);
+        mostrarTelaSucessoAgendamento(mensagemSucesso, dataStr, horario, notificacaoOk);
+        definirLoadingBotao(btnAgendar, false, "Agendando...", "Confirmar Agendamento");
 
       } catch (err) {
         mostrarAviso("Erro ao salvar: " + err.message);
@@ -951,6 +1692,21 @@
     btnTema.addEventListener("click", alternarTema);
     inputNome.addEventListener("input", validarNomeTempoReal);
     inputTelefone.addEventListener("input", validarTelefoneTempoReal);
+    btnNovoAgendamento.addEventListener("click", () => {
+      sucessoAgendamento.hidden = true;
+      if (bookingCard) {
+        bookingCard.style.display = "";
+      }
+      inputNome.value = "";
+      inputTelefone.value = "";
+      inputData.value = "";
+      selectHorario.innerHTML = '<option value="">Selecione uma data primeiro</option>';
+      ajudaNome.textContent = "";
+      ajudaTelefone.textContent = "";
+      inputNome.classList.remove("campo-invalido");
+      inputTelefone.classList.remove("campo-invalido");
+      inputNome.focus();
+    });
   </script>
 </body>
 </html>

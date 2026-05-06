@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cadastro Online - LabStudio CRJ FLEXAL</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23070a16'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='18'%20fill='%2322d3ee'/%3E%3Cpath%20d='M25%2041V20h18v6H31v15z'%20fill='white'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <style>
     /* ===============================
@@ -351,44 +356,598 @@
         padding: 0.55rem 0.75rem;
       }
     }
+    /* ===============================
+       CAMADA VISUAL PREMIUM
+       Mantem o cadastro alinhado ao agendamento publico.
+    =============================== */
+    :root {
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --accent: #22d3ee;
+      --accent-2: #34d399;
+      --bg: #070a16;
+      --page-bg:
+        linear-gradient(126deg, rgba(139, 92, 246, 0.24) 0%, rgba(139, 92, 246, 0) 28%),
+        linear-gradient(235deg, rgba(34, 211, 238, 0.16) 0%, rgba(34, 211, 238, 0) 34%),
+        linear-gradient(145deg, #050713 0%, #080d1f 48%, #111827 100%);
+      --card-bg: linear-gradient(180deg, rgba(19, 25, 47, 0.62), rgba(8, 13, 31, 0.54));
+      --surface: rgba(15, 23, 42, 0.42);
+      --surface-strong: rgba(15, 23, 42, 0.58);
+      --text: #f8fafc;
+      --muted: #b7c0d4;
+      --label: #d8def0;
+      --input-bg: rgba(15, 23, 42, 0.72);
+      --input-focus-bg: rgba(15, 23, 42, 0.92);
+      --border: rgba(226, 232, 240, 0.18);
+      --shadow-card: 0 28px 80px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      --shadow-button: 0 18px 34px rgba(124, 58, 237, 0.28);
+      --shadow-button-hover: 0 22px 42px rgba(34, 211, 238, 0.2);
+      --toast-bg: rgba(8, 13, 31, 0.94);
+    }
+
+    html[data-theme="light"] {
+      --primary: #6d28d9;
+      --primary-hover: #5b21b6;
+      --accent: #0891b2;
+      --accent-2: #059669;
+      --bg: #f6f8ff;
+      --page-bg:
+        linear-gradient(126deg, rgba(109, 40, 217, 0.16) 0%, rgba(109, 40, 217, 0) 30%),
+        linear-gradient(235deg, rgba(8, 145, 178, 0.14) 0%, rgba(8, 145, 178, 0) 34%),
+        linear-gradient(145deg, #ffffff 0%, #eef2ff 50%, #ecfeff 100%);
+      --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(248, 250, 252, 0.72));
+      --surface: rgba(255, 255, 255, 0.42);
+      --surface-strong: rgba(255, 255, 255, 0.62);
+      --text: #0f172a;
+      --muted: #526174;
+      --label: #243044;
+      --input-bg: rgba(255, 255, 255, 0.84);
+      --input-focus-bg: #ffffff;
+      --border: rgba(71, 85, 105, 0.2);
+      --shadow-card: 0 24px 64px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+      --shadow-button: 0 18px 34px rgba(109, 40, 217, 0.18);
+      --shadow-button-hover: 0 22px 42px rgba(8, 145, 178, 0.18);
+      --toast-bg: rgba(255, 255, 255, 0.96);
+    }
+
+    body {
+      display: block;
+      align-items: initial;
+      justify-content: initial;
+      min-height: 100vh;
+      padding: 0;
+      overflow-x: hidden;
+      font-family: "Poppins", "Segoe UI", Roboto, sans-serif;
+      background: var(--page-bg);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 56px 56px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 82%);
+    }
+
+    .signup-shell {
+      width: min(1120px, calc(100% - 32px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 72px 0 44px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(360px, 470px);
+      align-items: center;
+      gap: 42px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .signup-shell,
+    .signup-shell * {
+      box-sizing: border-box;
+    }
+
+    .signup-intro,
+    .registration-card,
+    .support-card {
+      animation: slideUpPremium 0.58s ease both;
+    }
+
+    .brand-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    /* ===============================
+       ASSINATURA VISUAL
+       Mantém a mesma identidade do agendamento público.
+    =============================== */
+    .brand-lockup {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0.3rem 0.85rem;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.28);
+      color: var(--text);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 44px rgba(0,0,0,0.18);
+      backdrop-filter: blur(22px) saturate(150%);
+      -webkit-backdrop-filter: blur(22px) saturate(150%);
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      border-radius: 8px;
+      color: #fff;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,0.5), transparent 24px),
+        linear-gradient(135deg, var(--primary), var(--accent));
+      box-shadow: 0 16px 42px rgba(34, 211, 238, 0.22);
+    }
+
+    .brand-lockup strong,
+    .brand-lockup small {
+      display: block;
+      line-height: 1.05;
+    }
+
+    .brand-lockup strong {
+      font-size: 0.96rem;
+      font-weight: 800;
+    }
+
+    .brand-lockup small {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .brand-kicker i {
+      color: var(--accent);
+    }
+
+    .signup-intro h1 {
+      margin: 24px 0 16px;
+      color: var(--text);
+      font-size: clamp(2.2rem, 6vw, 4.5rem);
+      line-height: 1.02;
+      letter-spacing: 0;
+      text-align: left;
+    }
+
+    .signup-intro p {
+      max-width: 620px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.72;
+    }
+
+    .support-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .support-card {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      color: var(--muted);
+      line-height: 1.5;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+
+    .support-card i {
+      color: var(--accent-2);
+      margin-bottom: 10px;
+    }
+
+    .support-card strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .container.registration-card {
+      width: 100%;
+      max-width: none;
+      padding: 28px;
+      box-sizing: border-box;
+      border-radius: 8px;
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.11);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(30px) saturate(145%);
+      -webkit-backdrop-filter: blur(30px) saturate(145%);
+    }
+
+    .container.registration-card h1 {
+      margin: 0 0 10px;
+      color: var(--text);
+      font-size: 1.52rem;
+      line-height: 1.2;
+    }
+
+    .descricao {
+      text-align: left;
+      margin-bottom: 1rem;
+    }
+
+    .age-rule {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin: 0 0 1.35rem;
+      padding: 0.9rem;
+      border: 1px solid rgba(34, 211, 238, 0.24);
+      border-radius: 8px;
+      background: rgba(34, 211, 238, 0.08);
+      color: var(--text);
+      line-height: 1.48;
+      font-weight: 700;
+    }
+
+    .age-rule i {
+      color: var(--accent);
+      margin-top: 0.16rem;
+    }
+
+    label {
+      color: var(--label);
+      letter-spacing: 0;
+      text-transform: none;
+      font-size: 0.86rem;
+    }
+
+    .field-shell {
+      position: relative;
+    }
+
+    .field-shell i {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      transform: translateY(-50%);
+      color: var(--accent);
+      pointer-events: none;
+    }
+
+    .field-shell input {
+      min-height: 50px;
+      padding-left: 45px;
+      border-radius: 8px;
+      border-color: var(--border);
+      background: var(--input-bg);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .field-shell input:focus {
+      background: var(--input-focus-bg);
+      box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+    }
+
+    #btnEnviar {
+      min-height: 54px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      box-shadow: var(--shadow-button);
+    }
+
+    #btnEnviar::before {
+      content: "\f1d8";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+    }
+
+    #btnEnviar:hover {
+      background: linear-gradient(135deg, var(--primary-hover), #06b6d4);
+      box-shadow: var(--shadow-button-hover);
+    }
+
+    .aviso,
+    .toast {
+      border-radius: 8px;
+      backdrop-filter: blur(24px) saturate(140%);
+      -webkit-backdrop-filter: blur(24px) saturate(140%);
+    }
+
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      background: var(--surface-strong);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      font-weight: 800;
+    }
+
+    .theme-toggle::before {
+      content: "\f186";
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    html[data-theme="light"] .theme-toggle::before {
+      content: "\f185";
+    }
+
+    /* ===============================
+       SUCESSO DO CADASTRO
+       Dá um retorno permanente depois do envio.
+    =============================== */
+    .success-panel {
+      margin-top: 16px;
+      padding: 22px;
+      border: 1px solid rgba(34, 197, 94, 0.28);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(20, 83, 45, 0.34), rgba(8, 13, 31, 0.52));
+      color: var(--text);
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
+      animation: slideUpPremium 0.42s ease both;
+    }
+
+    .success-panel[hidden] {
+      display: none;
+    }
+
+    .success-icon {
+      width: 54px;
+      height: 54px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: #052e16;
+      background: linear-gradient(135deg, #86efac, #22d3ee);
+      box-shadow: 0 18px 44px rgba(34, 197, 94, 0.22);
+    }
+
+    .success-panel h2 {
+      margin: 16px 0 8px;
+      color: var(--text);
+      font-size: 1.35rem;
+      line-height: 1.2;
+    }
+
+    .success-panel p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.58;
+    }
+
+    .success-steps {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.26);
+    }
+
+    .success-steps span {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .success-steps i {
+      color: var(--accent);
+    }
+
+    .btn-ghost {
+      background: var(--surface-strong);
+      color: var(--text);
+      border: 1px solid var(--border);
+      box-shadow: none;
+    }
+
+    button.is-loading::after {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.45);
+      border-top-color: #fff;
+      border-radius: 999px;
+      animation: spinPremium 0.75s linear infinite;
+    }
+
+    @keyframes spinPremium {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes slideUpPremium {
+      from {
+        opacity: 0;
+        transform: translateY(18px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .signup-shell {
+        width: min(100% - 24px, 680px);
+        grid-template-columns: 1fr;
+        gap: 24px;
+        align-items: start;
+      }
+
+      .support-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding: 0;
+      }
+
+      .signup-shell {
+        width: calc(100% - 20px);
+        padding-top: 68px;
+      }
+
+      .container.registration-card {
+        padding: 20px;
+      }
+
+      .theme-toggle {
+        right: 8px;
+        max-width: calc(100vw - 16px);
+      }
+    }
   </style>
 </head>
 
 <body>
-  <button id="btnTema" class="theme-toggle" type="button" aria-label="Alternar tema">🌙 Escuro</button>
+  <button id="btnTema" class="theme-toggle" type="button" aria-label="Alternar tema">Escuro</button>
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <main class="signup-shell">
+    <section class="signup-intro" aria-label="Cadastro LabStudio CRJ FLEXAL">
+      <div class="brand-lockup">
+        <span class="brand-mark"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
+        <span>
+          <strong>LabStudio</strong>
+          <small>CRJ FLEXAL</small>
+        </span>
+      </div>
+
+      <div class="brand-kicker">
+        <i class="fa-solid fa-music" aria-hidden="true"></i>
+        <span>Entrada para o LabStudio</span>
+      </div>
+
+      <h1>Cadastro Online - LabStudio CRJ FLEXAL</h1>
+      <p>
+        Envie seus dados para análise da equipe. Depois da aprovação, você fica liberado para solicitar horários no espaço de gravação e criação musical do CRJ FLEXAL.
+      </p>
+
+      <div class="support-grid">
+        <article class="support-card">
+          <i class="fa-solid fa-user-check" aria-hidden="true"></i>
+          <strong>Análise da equipe</strong>
+          O cadastro passa por conferência antes da liberação.
+        </article>
+        <article class="support-card">
+          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+          <strong>Contato por WhatsApp</strong>
+          Use um número válido para receber retornos.
+        </article>
+        <article class="support-card">
+          <i class="fa-solid fa-headphones" aria-hidden="true"></i>
+          <strong>Acesso ao estúdio</strong>
+          A aprovação habilita o agendamento.
+        </article>
+      </div>
+    </section>
 
   <!-- ===============================
        FORMULÁRIO DE CADASTRO ONLINE
   =============================== -->
-  <div class="container">
+  <div class="container registration-card">
     <h1>Cadastro Online - LabStudio CRJ FLEXAL</h1>
     <p class="descricao">
-      Envie seus dados para análise da equipe do CRJ. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp.
+      Envie seus dados para análise da equipe do CRJ FLEXAL. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp.
     </p>
+
+    <div id="faixaEtariaDestaque" class="age-rule">
+      <i class="fa-solid fa-id-card" aria-hidden="true"></i>
+      <span>O CRJ FLEXAL atende jovens de 15 a 29 anos. O cadastro será analisado pela equipe.</span>
+    </div>
 
     <div id="aviso" class="aviso"></div>
 
     <div class="form-group">
       <label for="nome">Nome completo</label>
-      <input type="text" id="nome" placeholder="Digite seu nome completo">
+      <div class="field-shell">
+        <i class="fa-regular fa-user" aria-hidden="true"></i>
+        <input type="text" id="nome" placeholder="Digite seu nome completo">
+      </div>
       <div id="ajudaNome" class="campo-ajuda"></div>
     </div>
 
     <div class="form-group">
       <label for="telefone">WhatsApp</label>
-      <input type="text" id="telefone" placeholder="Ex: 27999999999">
+      <div class="field-shell">
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+        <input type="text" id="telefone" placeholder="Ex: 27999999999">
+      </div>
       <div id="ajudaTelefone" class="campo-ajuda"></div>
     </div>
 
     <div class="form-group">
       <label for="dataNascimento">Data de nascimento</label>
-      <input type="date" id="dataNascimento">
+      <div class="field-shell">
+        <i class="fa-regular fa-calendar-days" aria-hidden="true"></i>
+        <input type="date" id="dataNascimento">
+      </div>
       <div id="ajudaDataNascimento" class="campo-ajuda"></div>
     </div>
 
     <button id="btnEnviar">Enviar cadastro</button>
+
+    <section id="sucessoCadastro" class="success-panel" aria-live="polite" hidden>
+      <span class="success-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+      <h2>Cadastro enviado</h2>
+      <p id="sucessoMensagemCadastro"></p>
+      <div class="success-steps">
+        <span><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Análise da equipe</span>
+        <span><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Retorno pelo WhatsApp cadastrado</span>
+        <span><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Agendamento liberado após aprovação</span>
+      </div>
+      <button id="btnNovoCadastro" type="button" class="btn-ghost">Enviar outro cadastro</button>
+    </section>
   </div>
+
+  </main>
 
   <script>
     const inputNome = document.getElementById("nome");
@@ -401,6 +960,10 @@
     const ajudaNome = document.getElementById("ajudaNome");
     const ajudaTelefone = document.getElementById("ajudaTelefone");
     const ajudaDataNascimento = document.getElementById("ajudaDataNascimento");
+    const faixaEtariaDestaque = document.getElementById("faixaEtariaDestaque");
+    const sucessoCadastro = document.getElementById("sucessoCadastro");
+    const sucessoMensagemCadastro = document.getElementById("sucessoMensagemCadastro");
+    const btnNovoCadastro = document.getElementById("btnNovoCadastro");
 
     // ===============================
     // URL BASE DA API
@@ -429,7 +992,7 @@
       const temaFinal = tema === "light" ? "light" : "dark";
 
       document.documentElement.dataset.theme = temaFinal;
-      btnTema.innerText = temaFinal === "light" ? "☀️ Claro" : "🌙 Escuro";
+      btnTema.innerText = temaFinal === "light" ? "Claro" : "Escuro";
       btnTema.setAttribute(
         "aria-label",
         temaFinal === "light" ? "Tema claro ativo. Alternar para escuro." : "Tema escuro ativo. Alternar para claro."
@@ -505,7 +1068,16 @@
     // Centraliza o texto para refletir a configuração carregada.
     // ===============================
     function mensagemFaixaEtaria() {
-      return `O CRJ atende jovens de ${configuracaoLabStudio.idade_minima} a ${configuracaoLabStudio.idade_maxima} anos.`;
+      return `O CRJ FLEXAL atende jovens de ${configuracaoLabStudio.idade_minima} a ${configuracaoLabStudio.idade_maxima} anos.`;
+    }
+
+    function atualizarFaixaEtariaDestaque() {
+      if (!faixaEtariaDestaque) return;
+
+      faixaEtariaDestaque.innerHTML = `
+        <i class="fa-solid fa-id-card" aria-hidden="true"></i>
+        <span>${mensagemFaixaEtaria()} O cadastro será analisado pela equipe.</span>
+      `;
     }
 
     // ===============================
@@ -547,6 +1119,7 @@
         configuracaoLabStudio = { ...CONFIG_CADASTRO_FALLBACK };
       }
 
+      atualizarFaixaEtariaDestaque();
       return configuracaoLabStudio;
     }
 
@@ -557,6 +1130,19 @@
     function definirLoadingBotao(botao, carregando, textoCarregando, textoNormal) {
       botao.disabled = carregando;
       botao.innerText = carregando ? textoCarregando : textoNormal;
+      botao.classList.toggle("is-loading", carregando);
+    }
+
+    // ===============================
+    // FUNÇÃO: TELA DE SUCESSO DO CADASTRO
+    // Mantém o retorno na página depois do envio.
+    // ===============================
+    function mostrarTelaSucessoCadastro(mensagem) {
+      if (!sucessoCadastro) return;
+
+      sucessoMensagemCadastro.textContent = mensagem;
+      sucessoCadastro.hidden = false;
+      sucessoCadastro.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 
     // ===============================
@@ -641,7 +1227,7 @@
     }
 
     // ===============================
-    // FUNÇÃO: VALIDAR FAIXA ETÁRIA DO CRJ
+    // FUNÇÃO: VALIDAR FAIXA ETÁRIA DO CRJ FLEXAL
     // Usa a faixa etária configurada, com fallback igual à v1.0.
     // ===============================
     function idadePermitida(dataNascimento) {
@@ -766,10 +1352,11 @@
           return;
         }
 
-        const mensagemSucesso = resultado.mensagem || "Cadastro enviado com sucesso! A equipe do CRJ irá analisar seus dados. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp.";
+        const mensagemSucesso = resultado.mensagem || "Cadastro enviado com sucesso! A equipe do CRJ FLEXAL irá analisar seus dados. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp.";
 
         mostrarAviso(mensagemSucesso, "sucesso");
         mostrarToast(mensagemSucesso, "sucesso");
+        mostrarTelaSucessoCadastro(mensagemSucesso);
 
         inputNome.value = "";
         inputTelefone.value = "";
@@ -795,6 +1382,11 @@
     inputNome.addEventListener("input", validarNomeTempoReal);
     inputTelefone.addEventListener("input", validarTelefoneTempoReal);
     inputDataNascimento.addEventListener("change", validarDataNascimentoTempoReal);
+    btnNovoCadastro.addEventListener("click", () => {
+      sucessoCadastro.hidden = true;
+      aviso.style.display = "none";
+      inputNome.focus();
+    });
   </script>
 </body>
 </html>

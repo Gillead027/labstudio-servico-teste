@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - LabStudio CRJ FLEXAL</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23070a16'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='18'%20fill='%2322d3ee'/%3E%3Cpath%20d='M25%2041V20h18v6H31v15z'%20fill='white'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <style>
     /* ===============================
@@ -1063,11 +1068,827 @@
         font-size: 0.76rem;
       }
     }
+    /* ===============================
+       CAMADA VISUAL PREMIUM DO ADMIN
+       Refina o painel como dashboard sem alterar fluxos ou regras.
+    =============================== */
+    :root {
+      --primary: #8b5cf6;
+      --primary-hover: #7c3aed;
+      --success: #22c55e;
+      --danger: #f43f5e;
+      --warning: #f59e0b;
+      --accent: #22d3ee;
+      --bg: #070a16;
+      --page-bg:
+        linear-gradient(126deg, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0) 28%),
+        linear-gradient(235deg, rgba(34, 211, 238, 0.14) 0%, rgba(34, 211, 238, 0) 34%),
+        linear-gradient(145deg, #050713 0%, #080d1f 48%, #111827 100%);
+      --card: rgba(17, 24, 39, 0.76);
+      --card-strong: rgba(15, 23, 42, 0.9);
+      --card-gradient: linear-gradient(180deg, rgba(19, 25, 47, 0.6), rgba(8, 13, 31, 0.52));
+      --panel-bg: rgba(15, 23, 42, 0.42);
+      --nav-bg: rgba(8, 13, 31, 0.48);
+      --item-bg: rgba(15, 23, 42, 0.34);
+      --item-hover-bg: rgba(20, 30, 55, 0.58);
+      --empty-bg: rgba(15, 23, 42, 0.38);
+      --toast-bg: rgba(8, 13, 31, 0.74);
+      --obs-bg: rgba(34, 211, 238, 0.1);
+      --text: #f8fafc;
+      --muted: #b7c0d4;
+      --border: rgba(226, 232, 240, 0.18);
+      --input: rgba(15, 23, 42, 0.48);
+      --input-focus-bg: rgba(15, 23, 42, 0.72);
+      --shadow: 0 22px 64px rgba(0, 0, 0, 0.32);
+      --soft-border: rgba(148, 163, 184, 0.18);
+    }
+
+    html[data-theme="light"] {
+      --primary: #6d28d9;
+      --primary-hover: #5b21b6;
+      --accent: #0891b2;
+      --bg: #f6f8ff;
+      --page-bg:
+        linear-gradient(126deg, rgba(109, 40, 217, 0.15) 0%, rgba(109, 40, 217, 0) 30%),
+        linear-gradient(235deg, rgba(8, 145, 178, 0.12) 0%, rgba(8, 145, 178, 0) 34%),
+        linear-gradient(145deg, #ffffff 0%, #eef2ff 50%, #ecfeff 100%);
+      --card: rgba(255, 255, 255, 0.9);
+      --card-strong: rgba(255, 255, 255, 0.96);
+      --card-gradient: linear-gradient(180deg, rgba(255,255,255,0.64), rgba(248,250,252,0.72));
+      --panel-bg: rgba(255, 255, 255, 0.46);
+      --nav-bg: rgba(255, 255, 255, 0.54);
+      --item-bg: rgba(248,250,252,0.5);
+      --item-hover-bg: rgba(238, 242, 255, 0.68);
+      --empty-bg: rgba(255, 255, 255, 0.46);
+      --toast-bg: rgba(255, 255, 255, 0.74);
+      --obs-bg: rgba(8, 145, 178, 0.08);
+      --text: #0f172a;
+      --muted: #526174;
+      --border: rgba(71, 85, 105, 0.22);
+      --input: rgba(255, 255, 255, 0.58);
+      --input-focus-bg: #ffffff;
+      --shadow: 0 20px 52px rgba(15, 23, 42, 0.13);
+      --soft-border: rgba(71, 85, 105, 0.18);
+    }
+
+    html {
+      background: var(--page-bg);
+      background-attachment: fixed;
+    }
+
+    body {
+      font-family: "Poppins", "Segoe UI", Roboto, sans-serif;
+      background: var(--page-bg);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      background-size: cover;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+      background-size: 58px 58px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 82%);
+    }
+
+    .container {
+      max-width: 1240px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ===============================
+       TOPO E NAVEGACAO
+       Deixa as areas principais mais escaneaveis.
+    =============================== */
+    .topo-admin,
+    .nav-abas,
+    .login-card,
+    .filtros,
+    .painel-pendencias,
+    .painel-usuarios,
+    .card,
+    .bloco-resumo,
+    .toast,
+    .vazio {
+      backdrop-filter: blur(26px) saturate(145%);
+      -webkit-backdrop-filter: blur(26px) saturate(145%);
+    }
+
+    .topo-admin {
+      padding: 22px;
+      border: 1px solid var(--soft-border);
+      border-radius: 8px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.56), rgba(15, 23, 42, 0.3));
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+
+    html[data-theme="light"] .topo-admin {
+      background: linear-gradient(135deg, rgba(255,255,255,0.86), rgba(255,255,255,0.62));
+    }
+
+    .topo-admin h1,
+    .login-card h1 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--text);
+      letter-spacing: 0;
+      line-height: 1.12;
+    }
+
+    .topo-admin h1 i,
+    .admin-brand-mark i,
+    .login-card h1 i,
+    .titulo-aba i,
+    .usuarios-topo h2 i,
+    .pendencias-topo h2 i {
+      color: var(--accent);
+    }
+
+    .subtitle,
+    .descricao-aba,
+    .form-ajuda,
+    .item-ranking,
+    .info,
+    .usuario-info,
+    .pendencia-info {
+      color: var(--muted);
+    }
+
+    .nav-abas {
+      position: sticky;
+      top: 12px;
+      z-index: 10;
+      border-radius: 8px;
+      padding: 7px;
+      background: var(--nav-bg);
+    }
+
+    .aba-botao {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 8px;
+      font-weight: 800;
+    }
+
+    .aba-botao i {
+      color: var(--accent);
+    }
+
+    .aba-botao.ativa i {
+      color: #fff;
+    }
+
+    .titulo-aba,
+    .usuarios-topo h2,
+    .pendencias-topo h2,
+    .calendario-toolbar h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text);
+      letter-spacing: 0;
+    }
+
+    .admin-brand-mark {
+      width: 44px;
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,0.5), transparent 24px),
+        linear-gradient(135deg, var(--primary), var(--accent));
+      box-shadow: 0 16px 42px rgba(34, 211, 238, 0.2);
+    }
+
+    .topo-admin h1 .admin-brand-mark i {
+      color: #fff;
+    }
+
+    /* ===============================
+       CARDS, FORMULARIOS E BOTÕES
+       Aplica glassmorphism leve e microinteracoes consistentes.
+    =============================== */
+    .login-card,
+    .filtros,
+    .painel-pendencias,
+    .painel-usuarios,
+    .card,
+    .bloco-resumo {
+      border-radius: 8px;
+      border: 1px solid var(--soft-border);
+      box-shadow: var(--shadow);
+    }
+
+    .login-card .grupo {
+      margin-bottom: 14px;
+    }
+
+    /* ===============================
+       CADASTRO INTERNO DE USUARIOS
+       Organiza os campos em duas linhas para evitar que o formulario quebre.
+    =============================== */
+    .form-cadastro-usuario {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+    }
+
+    .form-cadastro-usuario .grupo {
+      min-width: 0;
+      width: 100%;
+    }
+
+    .form-cadastro-usuario input,
+    .form-cadastro-usuario select {
+      width: 100%;
+      min-height: 56px;
+    }
+
+    .form-cadastro-usuario #btnSalvarUsuario {
+      width: 100%;
+      min-height: 56px;
+      margin-top: 25px;
+      align-self: start;
+    }
+
+    @media (max-width: 980px) {
+      .form-cadastro-usuario {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    .bloco-resumo,
+    .card,
+    .login-card {
+      background: var(--card-gradient);
+    }
+
+    .painel-pendencias,
+    .painel-usuarios,
+    .filtros {
+      background: var(--panel-bg);
+    }
+
+    .bloco-resumo {
+      min-height: 150px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bloco-resumo::after {
+      content: "";
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      top: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      opacity: 0.86;
+    }
+
+    .bloco-resumo h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+
+    .numero-grande {
+      color: var(--text);
+      font-size: 2.35rem;
+      letter-spacing: 0;
+    }
+
+    .metric-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .metric-bar {
+      width: 100%;
+      height: 8px;
+      margin-top: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.16);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .metric-fill {
+      display: block;
+      width: var(--valor, 0%);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      box-shadow: 0 0 18px rgba(34, 211, 238, 0.18);
+    }
+
+    .card:hover,
+    .usuario-card:hover,
+    .pendencia-item:hover,
+    .bloco-resumo:hover,
+    .calendario-dia:hover {
+      transform: translateY(-3px);
+      border-color: rgba(34, 211, 238, 0.34);
+    }
+
+    .usuario-card,
+    .pendencia-item,
+    .calendario-dia,
+    .calendario-horario,
+    .config-horarios-chips,
+    .config-horario-chip {
+      border-radius: 8px;
+      border-color: var(--soft-border);
+      background: var(--item-bg);
+    }
+
+    input,
+    select,
+    textarea {
+      min-height: 42px;
+      border-radius: 8px;
+      background: var(--input);
+      color: var(--input-text);
+      border-color: var(--border);
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+      padding: 10px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      background: var(--input-focus-bg);
+      box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+    }
+
+    button {
+      min-height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 8px;
+      letter-spacing: 0;
+      box-sizing: border-box;
+    }
+
+    button:hover {
+      opacity: 1;
+      transform: translateY(-2px);
+    }
+
+    .btn-presenca,
+    .btn-desbloquear,
+    .btn-salvar {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+    }
+
+    .btn-falta {
+      background: linear-gradient(135deg, #d97706, #f59e0b);
+      color: #111827;
+    }
+
+    .btn-cancelar,
+    .btn-bloquear,
+    .btn-sair {
+      background: linear-gradient(135deg, #be123c, #f43f5e);
+    }
+
+    .btn-editar,
+    .btn-cadastro {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+    }
+
+    .btn-secundario,
+    .btn-tema {
+      background: var(--card-strong);
+      color: var(--text);
+      border: 1px solid var(--soft-border);
+    }
+
+    .btn-presenca::before,
+    .btn-falta::before,
+    .btn-cancelar::before,
+    .btn-desbloquear::before,
+    .btn-bloquear::before,
+    .btn-cadastro::before,
+    .btn-editar::before,
+    .btn-sair::before,
+    .btn-salvar::before,
+    .btn-tema::before,
+    #btnFiltrar::before,
+    #btnLimpar::before,
+    #btnEntrar::before {
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+    }
+
+    .btn-presenca::before { content: "\f00c"; }
+    .btn-falta::before { content: "\f071"; }
+    .btn-cancelar::before { content: "\f00d"; }
+    .btn-desbloquear::before { content: "\f09c"; }
+    .btn-bloquear::before { content: "\f05e"; }
+    .btn-cadastro::before { content: "\f234"; }
+    .btn-editar::before { content: "\f044"; }
+    .btn-sair::before { content: "\f2f5"; }
+    .btn-salvar::before { content: "\f0c7"; }
+    .btn-tema::before { content: "\f186"; color: var(--accent); }
+    html[data-theme="light"] .btn-tema::before { content: "\f185"; }
+    #btnFiltrar::before { content: "\f002"; }
+    #btnLimpar::before { content: "\f12d"; }
+    #btnEntrar::before { content: "\f2f6"; }
+    #btnCalendarioHoje::before { content: none; }
+
+    /* ===============================
+       STATUS E CALENDARIO
+       Chips coloridos deixam estados importantes mais claros.
+    =============================== */
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid transparent;
+      letter-spacing: 0;
+      text-transform: none;
+      white-space: nowrap;
+    }
+
+    .status::before {
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      font-size: 0.72rem;
+    }
+
+    .status-agendado {
+      background: rgba(34, 211, 238, 0.1);
+      border-color: rgba(34, 211, 238, 0.26);
+      color: #a5f3fc;
+    }
+
+    .status-agendado::before { content: "\f017"; }
+
+    .status-compareceu,
+    .status-ativo {
+      background: rgba(34, 197, 94, 0.12);
+      border-color: rgba(34, 197, 94, 0.28);
+      color: #bbf7d0;
+    }
+
+    .status-compareceu::before,
+    .status-ativo::before { content: "\f058"; }
+
+    .status-faltou,
+    .status-pendente {
+      background: rgba(245, 158, 11, 0.13);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fde68a;
+    }
+
+    .status-faltou::before,
+    .status-pendente::before { content: "\f071"; }
+
+    .status-cancelado,
+    .status-bloqueado {
+      background: rgba(244, 63, 94, 0.13);
+      border-color: rgba(244, 63, 94, 0.32);
+      color: #fecdd3;
+    }
+
+    .status-cancelado::before,
+    .status-bloqueado::before { content: "\f05e"; }
+
+    html[data-theme="light"] .status-agendado { color: #155e75; }
+    html[data-theme="light"] .status-compareceu,
+    html[data-theme="light"] .status-ativo { color: #166534; }
+    html[data-theme="light"] .status-faltou,
+    html[data-theme="light"] .status-pendente { color: #92400e; }
+    html[data-theme="light"] .status-cancelado,
+    html[data-theme="light"] .status-bloqueado { color: #be123c; }
+
+    .calendario-grade,
+    .calendario-semana {
+      gap: 10px;
+    }
+
+    .calendario-dia {
+      min-height: 126px;
+    }
+
+    .calendario-dia.livre {
+      background: linear-gradient(180deg, rgba(34, 197, 94, 0.13), rgba(15, 23, 42, 0.46));
+    }
+
+    .calendario-dia.parcial {
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.13), rgba(15, 23, 42, 0.46));
+    }
+
+    .calendario-dia.lotado,
+    .calendario-dia.bloqueado {
+      background: linear-gradient(180deg, rgba(244, 63, 94, 0.13), rgba(15, 23, 42, 0.46));
+    }
+
+    .calendario-dia.fora-funcionamento {
+      background: linear-gradient(180deg, rgba(148, 163, 184, 0.12), rgba(15, 23, 42, 0.42));
+    }
+
+    .calendario-numero {
+      background: var(--card-strong);
+      border: 1px solid var(--soft-border);
+    }
+
+    .calendario-dia.hoje .calendario-numero {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+    }
+
+    .calendario-legenda-item {
+      padding: 0.35rem 0.55rem;
+      border: 1px solid var(--soft-border);
+      border-radius: 999px;
+      background: var(--item-bg);
+    }
+
+    .observacao {
+      border-left-color: var(--accent);
+    }
+
+    .meta-line {
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .meta-line i,
+    .info i,
+    .usuario-info i,
+    .pendencia-info i,
+    .calendario-slot-meta i,
+    .log-admin-meta i {
+      width: 1.15rem;
+      color: var(--accent);
+    }
+
+    .vazio {
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      gap: 8px;
+      min-height: 116px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .vazio i {
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: var(--accent);
+      background: rgba(34, 211, 238, 0.09);
+      border: 1px solid rgba(34, 211, 238, 0.18);
+    }
+
+    /* ===============================
+       MODAIS DO ADMIN
+       Substituem prompts/confirms do navegador por dialogos de vidro.
+    =============================== */
+    body.modal-aberto {
+      overflow: hidden;
+    }
+
+    .modal-admin-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(2, 6, 23, 0.66);
+      backdrop-filter: blur(18px) saturate(140%);
+      -webkit-backdrop-filter: blur(18px) saturate(140%);
+    }
+
+    .modal-admin-overlay.ativo {
+      display: flex;
+      animation: fadeAdmin 0.18s ease both;
+    }
+
+    .modal-admin-card {
+      width: min(620px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      position: relative;
+      padding: 24px;
+      border: 1px solid var(--soft-border);
+      border-radius: 8px;
+      background: linear-gradient(180deg, rgba(19, 25, 47, 0.78), rgba(8, 13, 31, 0.68));
+      color: var(--text);
+      box-shadow: 0 32px 90px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08);
+      backdrop-filter: blur(30px) saturate(155%);
+      -webkit-backdrop-filter: blur(30px) saturate(155%);
+      animation: slideModalAdmin 0.22s ease both;
+    }
+
+    html[data-theme="light"] .modal-admin-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.84), rgba(248,250,252,0.76));
+      box-shadow: 0 28px 70px rgba(15, 23, 42, 0.18), inset 0 1px 0 rgba(255,255,255,0.86);
+    }
+
+    .modal-admin-fechar {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 40px;
+      min-height: 40px;
+      padding: 0;
+      background: var(--card-strong);
+      color: var(--text);
+      border: 1px solid var(--soft-border);
+      box-shadow: none;
+    }
+
+    .modal-admin-icone {
+      width: 54px;
+      height: 54px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      box-shadow: 0 18px 44px rgba(34, 211, 238, 0.22);
+    }
+
+    .modal-admin-icone.aviso {
+      background: linear-gradient(135deg, #f59e0b, #22d3ee);
+    }
+
+    .modal-admin-icone.sucesso {
+      background: linear-gradient(135deg, #16a34a, #22d3ee);
+    }
+
+    .modal-admin-icone.perigo {
+      background: linear-gradient(135deg, #be123c, #f97316);
+    }
+
+    .modal-admin-card h2 {
+      margin: 0 46px 8px 0;
+      color: var(--text);
+      font-size: 1.35rem;
+      line-height: 1.25;
+    }
+
+    .modal-admin-card p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.6;
+      white-space: pre-line;
+    }
+
+    .modal-admin-form {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .modal-admin-campo {
+      display: grid;
+      gap: 7px;
+    }
+
+    .modal-admin-campo label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .modal-admin-campo .campo-ajuda-modal {
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.4;
+    }
+
+    .modal-admin-acoes {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .modal-admin-acoes button {
+      min-width: 150px;
+    }
+
+    button.is-loading::after {
+      content: "";
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.45);
+      border-top-color: #fff;
+      border-radius: 999px;
+      animation: spinAdmin 0.75s linear infinite;
+    }
+
+    @keyframes fadeAdmin {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideModalAdmin {
+      from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes spinAdmin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .nav-abas {
+        position: static;
+      }
+
+      .topo-admin {
+        padding: 16px;
+      }
+
+      .topo-admin h1 {
+        font-size: 1.45rem;
+      }
+
+      .form-cadastro-usuario {
+        grid-template-columns: 1fr;
+      }
+
+      .form-cadastro-usuario #btnSalvarUsuario {
+        margin-top: 0;
+      }
+    }
   </style>
 </head>
 
 <body>
   <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+  <div id="modalAdminOverlay" class="modal-admin-overlay" aria-hidden="true">
+    <div class="modal-admin-card" role="dialog" aria-modal="true" aria-labelledby="modalAdminTitulo">
+      <button id="modalAdminFechar" class="modal-admin-fechar" type="button" aria-label="Fechar">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <div id="modalAdminIcone" class="modal-admin-icone">
+        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+      </div>
+      <h2 id="modalAdminTitulo">Confirmar ação</h2>
+      <p id="modalAdminDescricao"></p>
+      <form id="modalAdminForm" class="modal-admin-form"></form>
+      <div class="modal-admin-acoes">
+        <button id="modalAdminCancelar" type="button" class="btn-secundario">Cancelar</button>
+        <button id="modalAdminConfirmar" type="button" class="btn-salvar">Confirmar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ===============================
        TELA DE LOGIN
@@ -1075,7 +1896,7 @@
   =============================== -->
   <div id="loginOverlay" class="login-overlay">
     <div class="login-card">
-      <h1>LabStudio Admin</h1>
+      <h1><i class="fa-solid fa-lock" aria-hidden="true"></i> LabStudio Admin</h1>
       <p>Entre com o email e senha autorizados pela equipe administrativa.</p>
 
       <div class="grupo">
@@ -1105,12 +1926,12 @@
   <div id="painelAdmin" class="container" style="display: none;">
     <div class="topo-admin">
       <div>
-        <h1>Painel Admin - LabStudio CRJ FLEXAL</h1>
+        <h1><span class="admin-brand-mark"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span> Painel Admin - LabStudio CRJ FLEXAL</h1>
         <div class="subtitle">Gerencie agendamentos, presenças, faltas, cancelamentos, pendências, ranking e usuários.</div>
       </div>
 
       <div class="topo-acoes">
-        <button id="btnTema" class="btn-tema" type="button" aria-label="Alternar tema">🌙 Escuro</button>
+        <button id="btnTema" class="btn-tema" type="button" aria-label="Alternar tema">Escuro</button>
         <button id="btnSair" class="btn-sair">Sair</button>
       </div>
     </div>
@@ -1120,12 +1941,12 @@
          As abas evitam uma tela única muito longa.
     =============================== -->
     <div class="nav-abas">
-      <button class="aba-botao ativa" data-tab="dashboard">Dashboard</button>
-      <button class="aba-botao" data-tab="agendamentos">Agendamentos</button>
-      <button class="aba-botao" data-tab="calendario">Calendário</button>
-      <button class="aba-botao" data-tab="usuarios">Usuários</button>
-      <button class="aba-botao" data-tab="relatorios">Relatórios</button>
-      <button class="aba-botao" data-tab="configuracoes">Configurações</button>
+      <button class="aba-botao ativa" data-tab="dashboard"><i class="fa-solid fa-chart-line" aria-hidden="true"></i>Dashboard</button>
+      <button class="aba-botao" data-tab="agendamentos"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i>Agendamentos</button>
+      <button class="aba-botao" data-tab="calendario"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i>Calendário</button>
+      <button class="aba-botao" data-tab="usuarios"><i class="fa-solid fa-users" aria-hidden="true"></i>Usuários</button>
+      <button class="aba-botao" data-tab="relatorios"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i>Relatórios</button>
+      <button class="aba-botao" data-tab="configuracoes"><i class="fa-solid fa-gear" aria-hidden="true"></i>Configurações</button>
     </div>
 
     <!-- ===============================
@@ -1133,7 +1954,7 @@
          Mostra apenas uma visão rápida do funcionamento.
     =============================== -->
     <section id="aba-dashboard" class="aba-painel ativa">
-      <h2 class="titulo-aba">Dashboard</h2>
+      <h2 class="titulo-aba"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Dashboard</h2>
       <p class="descricao-aba">Visão rápida para acompanhar o que precisa de atenção hoje.</p>
 
       <div id="painelResumo" class="painel-resumo">
@@ -1142,7 +1963,7 @@
 
       <div class="painel-pendencias">
         <div class="pendencias-topo">
-          <h2>⚠️ Pendências de verificação</h2>
+          <h2><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Pendências de verificação</h2>
 
           <button id="btnProcessarPendencias" class="btn-falta">
             Processar faltas pendentes
@@ -1156,7 +1977,7 @@
 
       <div class="painel-usuarios">
         <div class="usuarios-topo">
-          <h2>🚫 Usuários bloqueados</h2>
+          <h2><i class="fa-solid fa-user-lock" aria-hidden="true"></i> Usuários bloqueados</h2>
         </div>
 
         <div id="conteudoBloqueados">
@@ -1166,7 +1987,7 @@
 
       <div class="painel-pendencias">
         <div class="pendencias-topo">
-          <h2>📅 Próximos agendamentos</h2>
+          <h2><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Próximos agendamentos</h2>
         </div>
 
         <div id="dashboardAgendamentos">
@@ -1180,7 +2001,7 @@
          Concentra filtros e lista completa de agendamentos.
     =============================== -->
     <section id="aba-agendamentos" class="aba-painel">
-      <h2 class="titulo-aba">Agendamentos</h2>
+      <h2 class="titulo-aba"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Agendamentos</h2>
       <p class="descricao-aba">Consulte, filtre e atualize o status dos agendamentos.</p>
 
       <div class="filtros">
@@ -1217,7 +2038,7 @@
          Visualiza a ocupação mensal usando a configuração dinâmica.
     =============================== -->
     <section id="aba-calendario" class="aba-painel">
-      <h2 class="titulo-aba">Calendário</h2>
+      <h2 class="titulo-aba"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Calendário</h2>
       <p class="descricao-aba">Acompanhe a agenda do mês, veja disponibilidade por dia e acesse os detalhes de cada horário.</p>
 
       <div class="painel-usuarios calendario-shell">
@@ -1225,9 +2046,9 @@
           <h2 id="calendarioTituloMes">Carregando mês...</h2>
 
           <div class="calendario-acoes">
-            <button id="btnCalendarioAnterior" class="btn-secundario" type="button" title="Mês anterior">Mês anterior</button>
-            <button id="btnCalendarioHoje" class="btn-editar" type="button">Hoje</button>
-            <button id="btnCalendarioProximo" class="btn-secundario" type="button" title="Próximo mês">Próximo mês</button>
+            <button id="btnCalendarioAnterior" class="btn-secundario" type="button" title="Mês anterior"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i>Mês anterior</button>
+            <button id="btnCalendarioHoje" class="btn-editar" type="button"><i class="fa-solid fa-calendar-day" aria-hidden="true"></i>Hoje</button>
+            <button id="btnCalendarioProximo" class="btn-secundario" type="button" title="Próximo mês">Próximo mês<i class="fa-solid fa-chevron-right" aria-hidden="true"></i></button>
           </div>
         </div>
 
@@ -1266,12 +2087,12 @@
          Mantém cadastro, edição e ações de bloqueio.
     =============================== -->
     <section id="aba-usuarios" class="aba-painel">
-      <h2 class="titulo-aba">Usuários</h2>
+      <h2 class="titulo-aba"><i class="fa-solid fa-users" aria-hidden="true"></i> Usuários</h2>
       <p class="descricao-aba">Cadastre jovens, edite dados, acompanhe faltas e controle bloqueios.</p>
 
       <div class="painel-usuarios">
         <div class="usuarios-topo">
-          <h2>📝 Cadastros online pendentes</h2>
+          <h2><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Cadastros online pendentes</h2>
         </div>
 
         <div class="form-ajuda">
@@ -1285,14 +2106,14 @@
 
       <div class="painel-usuarios">
         <div class="usuarios-topo">
-          <h2>➕ Cadastrar novo usuário</h2>
+          <h2><i class="fa-solid fa-user-plus" aria-hidden="true"></i> Cadastrar novo usuário</h2>
         </div>
 
         <div class="form-ajuda">
           Cadastre jovens diretamente pelo painel. O telefone pode ser digitado com ou sem +55, com ou sem traços.
         </div>
 
-        <div class="form-cadastro">
+        <div class="form-cadastro form-cadastro-usuario">
           <div class="grupo">
             <label for="novoNome">Nome</label>
             <input type="text" id="novoNome" placeholder="Ex: MC Jovem">
@@ -1335,7 +2156,7 @@
 
       <div class="painel-usuarios">
         <div class="usuarios-topo">
-          <h2>👥 Usuários cadastrados</h2>
+          <h2><i class="fa-solid fa-address-book" aria-hidden="true"></i> Usuários cadastrados</h2>
         </div>
 
         <div id="conteudoUsuarios">
@@ -1349,7 +2170,7 @@
          Consolida rankings e totais gerais.
     =============================== -->
     <section id="aba-relatorios" class="aba-painel">
-      <h2 class="titulo-aba">Relatórios</h2>
+      <h2 class="titulo-aba"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Relatórios</h2>
       <p class="descricao-aba">Acompanhe números gerais, presença, faltas, cancelamentos e usuários.</p>
 
       <div id="painelRelatorios" class="painel-resumo">
@@ -1362,7 +2183,7 @@
       =============================== -->
       <div class="painel-usuarios">
         <div class="usuarios-topo">
-          <h2>Logs administrativos</h2>
+          <h2><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Logs administrativos</h2>
         </div>
 
         <div id="conteudoLogsAdmin">
@@ -1376,12 +2197,12 @@
          Nesta primeira etapa, mostra a configuração central em modo leitura.
     =============================== -->
     <section id="aba-configuracoes" class="aba-painel">
-      <h2 class="titulo-aba">Configurações</h2>
+      <h2 class="titulo-aba"><i class="fa-solid fa-gear" aria-hidden="true"></i> Configurações</h2>
       <p class="descricao-aba">Consulte e ajuste as regras locais da v2.0, como dias de funcionamento, horários, faixa etária, faltas, link público e observações internas.</p>
 
       <div class="painel-usuarios">
         <div class="usuarios-topo">
-          <h2>Configuração de funcionamento</h2>
+          <h2><i class="fa-solid fa-sliders" aria-hidden="true"></i> Configuração de funcionamento</h2>
         </div>
 
         <div id="conteudoConfiguracoes">
@@ -1460,6 +2281,14 @@
     const loginErro = document.getElementById("loginErro");
     const btnSair = document.getElementById("btnSair");
     const btnTema = document.getElementById("btnTema");
+    const modalAdminOverlay = document.getElementById("modalAdminOverlay");
+    const modalAdminTitulo = document.getElementById("modalAdminTitulo");
+    const modalAdminDescricao = document.getElementById("modalAdminDescricao");
+    const modalAdminForm = document.getElementById("modalAdminForm");
+    const modalAdminIcone = document.getElementById("modalAdminIcone");
+    const modalAdminCancelar = document.getElementById("modalAdminCancelar");
+    const modalAdminConfirmar = document.getElementById("modalAdminConfirmar");
+    const modalAdminFechar = document.getElementById("modalAdminFechar");
 
     // ===============================
     // ELEMENTOS DA TELA
@@ -1488,6 +2317,9 @@
     const btnProcessarPendencias = document.getElementById("btnProcessarPendencias");
     const botoesAbas = document.querySelectorAll(".aba-botao");
     const paineisAbas = document.querySelectorAll(".aba-painel");
+    let modalAdminResolver = null;
+    let modalAdminCamposAtuais = [];
+    let modalAdminUltimoFoco = null;
 
     // ===============================
     // ELEMENTOS DO CADASTRO DE USUÁRIO
@@ -1529,7 +2361,7 @@
       const temaFinal = tema === "light" ? "light" : "dark";
 
       document.documentElement.dataset.theme = temaFinal;
-      btnTema.innerText = temaFinal === "light" ? "☀️ Claro" : "🌙 Escuro";
+      btnTema.innerText = temaFinal === "light" ? "Claro" : "Escuro";
       btnTema.setAttribute(
         "aria-label",
         temaFinal === "light" ? "Tema claro ativo. Alternar para escuro." : "Tema escuro ativo. Alternar para claro."
@@ -1573,6 +2405,7 @@
 
       botao.disabled = carregando;
       botao.innerText = carregando ? textoCarregando : textoNormal;
+      botao.classList.toggle("is-loading", carregando);
     }
 
     // ===============================
@@ -1582,18 +2415,207 @@
     function mensagemVazio(titulo, descricao) {
       return `
         <div class="vazio">
+          <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
           <strong>${escaparHtml(titulo)}</strong>
           <span>${escaparHtml(descricao)}</span>
         </div>
       `;
     }
 
+    function iconeModalAdmin(tipo) {
+      if (tipo === "perigo") return "fa-triangle-exclamation";
+      if (tipo === "aviso") return "fa-circle-exclamation";
+      if (tipo === "sucesso") return "fa-circle-check";
+      return "fa-circle-info";
+    }
+
+    function fecharModalAdmin(resultado) {
+      if (!modalAdminOverlay || !modalAdminResolver) return;
+
+      modalAdminOverlay.classList.remove("ativo");
+      modalAdminOverlay.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("modal-aberto");
+
+      const resolver = modalAdminResolver;
+      modalAdminResolver = null;
+      modalAdminCamposAtuais = [];
+      resolver(resultado);
+
+      if (modalAdminUltimoFoco && typeof modalAdminUltimoFoco.focus === "function") {
+        modalAdminUltimoFoco.focus();
+      }
+    }
+
+    function criarCampoModalAdmin(campo) {
+      const wrapper = document.createElement("div");
+      wrapper.className = "modal-admin-campo";
+
+      const idCampo = `modalAdminCampo_${campo.id}`;
+      const label = document.createElement("label");
+      label.setAttribute("for", idCampo);
+      label.textContent = campo.label || campo.id;
+      wrapper.appendChild(label);
+
+      let entrada;
+
+      if (campo.type === "textarea") {
+        entrada = document.createElement("textarea");
+      } else if (campo.type === "select") {
+        entrada = document.createElement("select");
+
+        (campo.options || []).forEach(opcao => {
+          const option = document.createElement("option");
+          option.value = typeof opcao === "object" ? opcao.value : opcao;
+          option.textContent = typeof opcao === "object" ? opcao.label : opcao;
+          entrada.appendChild(option);
+        });
+      } else {
+        entrada = document.createElement("input");
+        entrada.type = campo.type || "text";
+      }
+
+      entrada.id = idCampo;
+      entrada.dataset.modalCampo = campo.id;
+      entrada.value = campo.value ?? "";
+      entrada.required = Boolean(campo.required);
+
+      if (campo.placeholder) entrada.placeholder = campo.placeholder;
+      if (campo.min !== undefined) entrada.min = campo.min;
+      if (campo.max !== undefined) entrada.max = campo.max;
+      if (campo.step !== undefined) entrada.step = campo.step;
+
+      wrapper.appendChild(entrada);
+
+      if (campo.help) {
+        const ajuda = document.createElement("span");
+        ajuda.className = "campo-ajuda-modal";
+        ajuda.textContent = campo.help;
+        wrapper.appendChild(ajuda);
+      }
+
+      return wrapper;
+    }
+
+    function abrirModalAdmin({
+      titulo,
+      descricao = "",
+      tipo = "info",
+      textoConfirmar = "Confirmar",
+      textoCancelar = "Cancelar",
+      campos = []
+    }) {
+      if (!modalAdminOverlay) {
+        return Promise.resolve(null);
+      }
+
+      if (modalAdminResolver) {
+        fecharModalAdmin(null);
+      }
+
+      modalAdminUltimoFoco = document.activeElement;
+      modalAdminCamposAtuais = campos;
+
+      modalAdminTitulo.textContent = titulo || "Confirmar ação";
+      modalAdminDescricao.textContent = descricao || "";
+      modalAdminDescricao.hidden = !descricao;
+      modalAdminConfirmar.textContent = textoConfirmar;
+      modalAdminCancelar.textContent = textoCancelar;
+      modalAdminIcone.className = `modal-admin-icone ${["perigo", "aviso", "sucesso"].includes(tipo) ? tipo : ""}`;
+      modalAdminIcone.innerHTML = `<i class="fa-solid ${iconeModalAdmin(tipo)}" aria-hidden="true"></i>`;
+      modalAdminForm.innerHTML = "";
+
+      campos.forEach(campo => {
+        modalAdminForm.appendChild(criarCampoModalAdmin(campo));
+      });
+
+      modalAdminOverlay.classList.add("ativo");
+      modalAdminOverlay.removeAttribute("aria-hidden");
+      document.body.classList.add("modal-aberto");
+
+      setTimeout(() => {
+        const primeiroCampo = modalAdminForm.querySelector("input, select, textarea");
+        (primeiroCampo || modalAdminConfirmar).focus();
+      }, 0);
+
+      return new Promise(resolve => {
+        modalAdminResolver = resolve;
+      });
+    }
+
+    function confirmarModalAdminAtual() {
+      if (!modalAdminResolver) return;
+
+      const valores = {};
+
+      for (const campo of modalAdminCamposAtuais) {
+        const entrada = modalAdminForm.querySelector(`[data-modal-campo="${campo.id}"]`);
+        const valor = entrada ? entrada.value : "";
+
+        if (campo.required && !String(valor).trim()) {
+          mostrarToast(`Preencha o campo: ${campo.label || campo.id}.`, "aviso");
+          if (entrada) entrada.focus();
+          return;
+        }
+
+        valores[campo.id] = valor;
+      }
+
+      fecharModalAdmin(modalAdminCamposAtuais.length > 0 ? valores : true);
+    }
+
+    async function confirmarAcaoAdmin(titulo, descricao, opcoes = {}) {
+      const resultado = await abrirModalAdmin({
+        titulo,
+        descricao,
+        tipo: opcoes.tipo || "info",
+        textoConfirmar: opcoes.textoConfirmar || "Confirmar",
+        textoCancelar: opcoes.textoCancelar || "Cancelar"
+      });
+
+      return resultado === true;
+    }
+
+    async function solicitarCamposAdmin(opcoes) {
+      const resultado = await abrirModalAdmin(opcoes);
+      return resultado && typeof resultado === "object" ? resultado : null;
+    }
+
+    if (modalAdminConfirmar) {
+      modalAdminConfirmar.addEventListener("click", confirmarModalAdminAtual);
+    }
+
+    if (modalAdminForm) {
+      modalAdminForm.addEventListener("submit", event => {
+        event.preventDefault();
+        confirmarModalAdminAtual();
+      });
+    }
+
+    [modalAdminCancelar, modalAdminFechar].forEach(botao => {
+      if (!botao) return;
+      botao.addEventListener("click", () => fecharModalAdmin(null));
+    });
+
+    if (modalAdminOverlay) {
+      modalAdminOverlay.addEventListener("click", event => {
+        if (event.target === modalAdminOverlay) {
+          fecharModalAdmin(null);
+        }
+      });
+    }
+
+    window.addEventListener("keydown", event => {
+      if (event.key === "Escape" && modalAdminResolver) {
+        fecharModalAdmin(null);
+      }
+    });
+
     // ===============================
     // FUNÇÃO: MENSAGEM DA FAIXA ETÁRIA
     // Centraliza o texto para refletir a configuração carregada.
     // ===============================
     function mensagemFaixaEtaria() {
-      return `O CRJ atende jovens de ${configLabStudio.idade_minima} a ${configLabStudio.idade_maxima} anos.`;
+      return `O CRJ FLEXAL atende jovens de ${configLabStudio.idade_minima} a ${configLabStudio.idade_maxima} anos.`;
     }
 
     // ===============================
@@ -1941,7 +2963,7 @@
 
     // ===============================
     // FUNÇÃO: CALCULAR IDADE
-    // Usa a data de nascimento para aplicar a regra do CRJ.
+    // Usa a data de nascimento para aplicar a regra do CRJ FLEXAL.
     // ===============================
     function calcularIdade(dataNascimento) {
       if (!dataNascimento) return null;
@@ -1975,7 +2997,7 @@
     }
 
     // ===============================
-    // FUNÇÃO: VALIDAR FAIXA ETÁRIA DO CRJ
+    // FUNÇÃO: VALIDAR FAIXA ETÁRIA DO CRJ FLEXAL
     // Usa a faixa etária configurada, com fallback igual à v1.0.
     // ===============================
     function idadePermitida(dataNascimento) {
@@ -2252,6 +3274,8 @@
             type="button"
             class="calendario-dia ${statusDia.chave} ${selecionado} ${hoje}"
             data-calendario-data="${escaparHtml(dataIso)}"
+            title="${escaparHtml(`${formatarData(dataIso)} - ${statusDia.rotulo}. ${statusDia.mensagem}`)}"
+            aria-label="${escaparHtml(`${formatarData(dataIso)} - ${statusDia.rotulo}. ${statusDia.mensagem}`)}"
           >
             <span class="calendario-topo-dia">
               <span class="calendario-numero">${dia}</span>
@@ -2673,24 +3697,30 @@
         return;
       }
 
-      const motivo = prompt(
-        `Informe o motivo do bloqueio para ${formatarData(dataIso)}:\n\nPara testes, use prefixo [TESTE].`
-      );
+      const dadosBloqueio = await solicitarCamposAdmin({
+        titulo: "Bloquear data",
+        descricao: `Bloquear ${formatarData(dataIso)} no ambiente v2-local?`,
+        tipo: "perigo",
+        textoConfirmar: "Bloquear data",
+        campos: [
+          {
+            id: "motivo",
+            label: "Motivo do bloqueio",
+            type: "textarea",
+            required: true,
+            placeholder: "Para testes, use prefixo [TESTE]."
+          }
+        ]
+      });
 
-      if (motivo === null) return;
+      if (!dadosBloqueio) return;
 
-      const motivoLimpo = motivo.trim();
+      const motivoLimpo = dadosBloqueio.motivo.trim();
 
       if (!motivoLimpo) {
         mostrarToast("Informe um motivo para bloquear a data.", "aviso");
         return;
       }
-
-      const confirmar = confirm(
-        `Bloquear a data ${formatarData(dataIso)} no ambiente v2-local?\n\nMotivo: ${motivoLimpo}`
-      );
-
-      if (!confirmar) return;
 
       definirLoadingBotao(botao, true, "Bloqueando...", "Bloquear data");
 
@@ -2744,8 +3774,13 @@
         return;
       }
 
-      const confirmar = confirm(
-        `Desbloquear a data ${formatarData(dataIso)} no ambiente v2-local?`
+      const confirmar = await confirmarAcaoAdmin(
+        "Desbloquear data",
+        `Desbloquear a data ${formatarData(dataIso)} no ambiente v2-local?`,
+        {
+          tipo: "aviso",
+          textoConfirmar: "Desbloquear data"
+        }
       );
 
       if (!confirmar) return;
@@ -3307,6 +4342,16 @@
         String(user.status || "").toLowerCase() === "bloqueado"
       ).length;
 
+      const taxaComparecimento = totalAgendamentos > 0
+        ? Math.round((totalCompareceram / totalAgendamentos) * 100)
+        : 0;
+      const taxaPendencias = totalAgendamentos > 0
+        ? Math.round((totalPendentes / totalAgendamentos) * 100)
+        : 0;
+      const taxaBloqueio = totalUsuarios > 0
+        ? Math.round((totalBloqueados / totalUsuarios) * 100)
+        : 0;
+
       const rankingPresencas = [...listaUsuarios]
         .filter(user => Number(user.presencas || 0) > 0)
         .sort((a, b) => Number(b.presencas || 0) - Number(a.presencas || 0))
@@ -3323,24 +4368,30 @@
       // ===============================
       painelResumo.innerHTML = `
         <div class="bloco-resumo">
-          <h3>📅 Agendamentos</h3>
+          <h3><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Agendamentos</h3>
           <div class="numero-grande">${totalAgendamentos}</div>
           <div class="item-ranking">Agendados: ${totalAgendados}</div>
           <div class="item-ranking">Compareceram: ${totalCompareceram}</div>
+          <div class="metric-row"><span>Comparecimento</span><strong>${taxaComparecimento}%</strong></div>
+          <div class="metric-bar" aria-hidden="true"><span class="metric-fill" style="--valor: ${taxaComparecimento}%"></span></div>
         </div>
 
         <div class="bloco-resumo">
-          <h3>⚠️ Pendências</h3>
+          <h3><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Pendências</h3>
           <div class="numero-grande">${totalPendentes}</div>
           <div class="item-ranking">Pendentes +24h: ${totalPendentes24h}</div>
           <div class="item-ranking">Faltas registradas: ${totalFaltaram}</div>
+          <div class="metric-row"><span>Pendências abertas</span><strong>${taxaPendencias}%</strong></div>
+          <div class="metric-bar" aria-hidden="true"><span class="metric-fill" style="--valor: ${taxaPendencias}%"></span></div>
         </div>
 
         <div class="bloco-resumo">
-          <h3>🚫 Bloqueados</h3>
+          <h3><i class="fa-solid fa-user-lock" aria-hidden="true"></i> Bloqueados</h3>
           <div class="numero-grande">${totalBloqueados}</div>
           <div class="item-ranking">Usuários ativos: ${totalCadastradosAtivos}</div>
           <div class="item-ranking">Total de usuários: ${totalUsuarios}</div>
+          <div class="metric-row"><span>Bloqueio da base</span><strong>${taxaBloqueio}%</strong></div>
+          <div class="metric-bar" aria-hidden="true"><span class="metric-fill" style="--valor: ${taxaBloqueio}%"></span></div>
         </div>
       `;
 
@@ -3350,7 +4401,7 @@
       // ===============================
       painelRelatorios.innerHTML = `
         <div class="bloco-resumo">
-          <h3>📊 Totais gerais</h3>
+          <h3><i class="fa-solid fa-chart-simple" aria-hidden="true"></i> Totais gerais</h3>
           <div class="numero-grande">${totalAgendamentos}</div>
           <div class="item-ranking">Total de agendamentos: ${totalAgendamentos}</div>
           <div class="item-ranking">Total de comparecimentos: ${totalCompareceram}</div>
@@ -3361,7 +4412,7 @@
         </div>
 
         <div class="bloco-resumo">
-          <h3>👥 Usuários</h3>
+          <h3><i class="fa-solid fa-users" aria-hidden="true"></i> Usuários</h3>
           <div class="numero-grande">${totalUsuarios}</div>
           <div class="item-ranking">Total de usuários: ${totalUsuarios}</div>
           <div class="item-ranking">Cadastrados ativos: ${totalCadastradosAtivos}</div>
@@ -3369,7 +4420,7 @@
         </div>
 
         <div class="bloco-resumo">
-          <h3>🏆 Ranking de presença</h3>
+          <h3><i class="fa-solid fa-trophy" aria-hidden="true"></i> Ranking de presença</h3>
           ${
             rankingPresencas.length === 0
               ? '<div class="item-ranking">Nenhuma presença registrada ainda.</div>'
@@ -3382,7 +4433,7 @@
         </div>
 
         <div class="bloco-resumo">
-          <h3>⚠️ Ranking de faltas</h3>
+          <h3><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Ranking de faltas</h3>
           ${
             rankingFaltas.length === 0
               ? '<div class="item-ranking">Nenhuma falta registrada ainda.</div>'
@@ -3606,8 +4657,13 @@
         const avisoAgendamentos = totalAgendamentos > 0
           ? `\n\nExistem ${totalAgendamentos} agendamento(s) neste horário. Remover pode ocultar este horário da agenda futura, mas não apaga agendamentos existentes.`
           : "";
-        const confirmar = confirm(
-          `Remover o horário ${horarioLimpo} da configuração v2-local?${avisoAgendamentos}`
+        const confirmar = await confirmarAcaoAdmin(
+          "Remover horário",
+          `Remover o horário ${horarioLimpo} da configuração v2-local?${avisoAgendamentos}`,
+          {
+            tipo: "aviso",
+            textoConfirmar: "Remover horário"
+          }
         );
 
         if (!confirmar) return;
@@ -3771,49 +4827,49 @@
 
         <div class="painel-resumo">
           <div class="bloco-resumo">
-            <h3>Dias de funcionamento</h3>
+            <h3><i class="fa-solid fa-calendar-week" aria-hidden="true"></i> Dias de funcionamento</h3>
             <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.dias_funcionamento_label))}</div>
             <div class="item-ranking">Códigos: ${escaparHtml(formatarListaConfiguracao(config.dias_funcionamento))}</div>
           </div>
 
           <div class="bloco-resumo">
-            <h3>Horários disponíveis</h3>
+            <h3><i class="fa-regular fa-clock" aria-hidden="true"></i> Horários disponíveis</h3>
             <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.horarios_disponiveis))}</div>
           </div>
 
           <div class="bloco-resumo">
-            <h3>Datas bloqueadas</h3>
+            <h3><i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i> Datas bloqueadas</h3>
             <div class="item-ranking">${escaparHtml(formatarListaConfiguracao(config.datas_bloqueadas))}</div>
           </div>
 
           <div class="bloco-resumo">
-            <h3>Faixa etária</h3>
+            <h3><i class="fa-solid fa-id-card" aria-hidden="true"></i> Faixa etária</h3>
             <div class="item-ranking">Idade mínima: ${escaparHtml(config.idade_minima)}</div>
             <div class="item-ranking">Idade máxima: ${escaparHtml(config.idade_maxima)}</div>
           </div>
 
           <div class="bloco-resumo">
-            <h3>Bloqueio por faltas</h3>
+            <h3><i class="fa-solid fa-user-lock" aria-hidden="true"></i> Bloqueio por faltas</h3>
             <div class="item-ranking">Limite de faltas: ${escaparHtml(config.limite_faltas_bloqueio)}</div>
           </div>
 
           <div class="bloco-resumo">
-            <h3>Link público</h3>
+            <h3><i class="fa-solid fa-link" aria-hidden="true"></i> Link público</h3>
             <div class="item-ranking">${escaparHtml(config.link_publico || "Não informado")}</div>
           </div>
 
           <div class="bloco-resumo">
-            <h3>Mensagem de funcionamento</h3>
+            <h3><i class="fa-solid fa-message" aria-hidden="true"></i> Mensagem de funcionamento</h3>
             <div class="item-ranking">${escaparHtml(config.mensagem_funcionamento || "Não informada")}</div>
           </div>
 
           <div class="bloco-resumo">
-            <h3>Observação interna</h3>
+            <h3><i class="fa-solid fa-note-sticky" aria-hidden="true"></i> Observação interna</h3>
             <div class="item-ranking">${escaparHtml(config.observacao_interna || "Sem observação")}</div>
           </div>
 
           <div class="bloco-resumo">
-            <h3>Origem e versão</h3>
+            <h3><i class="fa-solid fa-code-branch" aria-hidden="true"></i> Origem e versão</h3>
             <div class="item-ranking">Ambiente: ${escaparHtml(ambienteConfigLabStudio)}</div>
             <div class="item-ranking">Origem: ${escaparHtml(origem)}</div>
             <div class="item-ranking">Versão: ${escaparHtml(config.versao_config || "Não informada")}</div>
@@ -4074,13 +5130,13 @@
         ) + `
           <div class="painel-resumo">
             <div class="bloco-resumo">
-              <h3>Faixa etária</h3>
+              <h3><i class="fa-solid fa-id-card" aria-hidden="true"></i> Faixa etária</h3>
               <div class="item-ranking">Idade mínima: ${escaparHtml(config.idade_minima)}</div>
               <div class="item-ranking">Idade máxima: ${escaparHtml(config.idade_maxima)}</div>
             </div>
 
             <div class="bloco-resumo">
-              <h3>Bloqueio por faltas</h3>
+              <h3><i class="fa-solid fa-user-lock" aria-hidden="true"></i> Bloqueio por faltas</h3>
               <div class="item-ranking">Limite de faltas: ${escaparHtml(config.limite_faltas_bloqueio)}</div>
             </div>
           </div>
@@ -4252,8 +5308,13 @@
       const usuarioId = usuario.id;
       const nomeUsuario = usuario.nome;
 
-      const confirmar = confirm(
-        `Aprovar cadastro online de ${nomeUsuario || "este usuário"}?`
+      const confirmar = await confirmarAcaoAdmin(
+        "Aprovar cadastro online",
+        `Aprovar cadastro online de ${nomeUsuario || "este usuário"}? A mensagem com o link será enviada pelo WhatsApp.`,
+        {
+          tipo: "sucesso",
+          textoConfirmar: "Aprovar cadastro"
+        }
       );
 
       if (!confirmar) return;
@@ -4326,13 +5387,24 @@
     // Usa status bloqueado para manter compatibilidade com as regras atuais.
     // ===============================
     async function rejeitarCadastroOnline(usuarioId, nomeUsuario, botao = null) {
-      const motivo = prompt(
-        `Informe o motivo da rejeição de ${nomeUsuario || "este usuário"}:`
-      );
+      const dadosRejeicao = await solicitarCamposAdmin({
+        titulo: "Rejeitar cadastro online",
+        descricao: `Informe o motivo da rejeição de ${nomeUsuario || "este usuário"}.`,
+        tipo: "perigo",
+        textoConfirmar: "Rejeitar cadastro",
+        campos: [
+          {
+            id: "motivo",
+            label: "Motivo da rejeição",
+            type: "textarea",
+            required: true
+          }
+        ]
+      });
 
-      if (motivo === null) return;
+      if (!dadosRejeicao) return;
 
-      const motivoLimpo = motivo.trim();
+      const motivoLimpo = dadosRejeicao.motivo.trim();
 
       if (!motivoLimpo) {
         mostrarToast("Informe um motivo para rejeitar o cadastro.", "aviso");
@@ -4486,7 +5558,7 @@
       const telefoneAtual = usuario.telefone || "";
       const dataNascimentoAtual = usuario.data_nascimento || "";
       const statusAtual = String(usuario.status || "ativo").toLowerCase();
-      const cadastradoAtual = usuario.cadastrado === true ? "sim" : "não";
+      const cadastradoAtual = usuario.cadastrado === true ? "sim" : "nao";
       const faltasAtuais = Number(usuario.faltas || 0);
       const presencasAtuais = Number(usuario.presencas || 0);
 
@@ -4494,26 +5566,81 @@
       // COLETA DOS NOVOS DADOS
       // Se a equipe clicar em cancelar, a edição é abandonada sem salvar.
       // ===============================
-      const nome = prompt("Nome do usuário:", nomeAtual);
-      if (nome === null) return;
+      const dadosEdicao = await solicitarCamposAdmin({
+        titulo: "Editar usuário",
+        descricao: `Atualize os dados de ${nomeAtual || "este usuário"}.`,
+        tipo: "info",
+        textoConfirmar: "Salvar alterações",
+        campos: [
+          {
+            id: "nome",
+            label: "Nome do usuário",
+            type: "text",
+            required: true,
+            value: nomeAtual
+          },
+          {
+            id: "telefone",
+            label: "Telefone / WhatsApp",
+            type: "text",
+            required: true,
+            value: telefoneAtual
+          },
+          {
+            id: "dataNascimento",
+            label: "Data de nascimento",
+            type: "date",
+            required: true,
+            value: dataNascimentoAtual
+          },
+          {
+            id: "status",
+            label: "Status",
+            type: "select",
+            value: statusAtual,
+            options: [
+              { value: "ativo", label: "Ativo" },
+              { value: "bloqueado", label: "Bloqueado" }
+            ]
+          },
+          {
+            id: "cadastrado",
+            label: "Cadastro ativo?",
+            type: "select",
+            value: cadastradoAtual,
+            options: [
+              { value: "sim", label: "Sim" },
+              { value: "nao", label: "Não" }
+            ]
+          },
+          {
+            id: "faltas",
+            label: "Quantidade de faltas",
+            type: "number",
+            min: "0",
+            step: "1",
+            value: String(faltasAtuais)
+          },
+          {
+            id: "presencas",
+            label: "Quantidade de presenças",
+            type: "number",
+            min: "0",
+            step: "1",
+            value: String(presencasAtuais)
+          }
+        ]
+      });
 
-      const telefone = prompt("Telefone / WhatsApp:", telefoneAtual);
-      if (telefone === null) return;
+      if (!dadosEdicao) return;
 
-      const dataNascimento = prompt("Data de nascimento (AAAA-MM-DD):", dataNascimentoAtual);
-      if (dataNascimento === null) return;
-
-      const status = prompt('Status do usuário: digite "ativo" ou "bloqueado"', statusAtual);
-      if (status === null) return;
-
-      const cadastradoTexto = prompt('Cadastro ativo? digite "sim" ou "não"', cadastradoAtual);
-      if (cadastradoTexto === null) return;
-
-      const faltasTexto = prompt("Quantidade de faltas:", String(faltasAtuais));
-      if (faltasTexto === null) return;
-
-      const presencasTexto = prompt("Quantidade de presenças:", String(presencasAtuais));
-      if (presencasTexto === null) return;
+      const nome = dadosEdicao.nome;
+      const telefone = dadosEdicao.telefone;
+      const dataNascimento = dadosEdicao.dataNascimento;
+      const status = dadosEdicao.status;
+      const cadastradoTexto = dadosEdicao.cadastrado;
+      const faltasTexto = dadosEdicao.faltas;
+      const presencasTexto = dadosEdicao.presencas;
 
       const nomeLimpo = nome.trim();
       const telefoneLimpo = limparTelefone(telefone);
@@ -4623,8 +5750,13 @@
     // faltas = 0
     // ===============================
     async function desbloquearUsuario(usuarioId, nomeUsuario, botao = null) {
-      const confirmar = confirm(
-        `Desbloquear ${nomeUsuario || "este usuário"}?\n\nIsso vai mudar o status para "ativo" e zerar as faltas.`
+      const confirmar = await confirmarAcaoAdmin(
+        "Desbloquear usuário",
+        `Desbloquear ${nomeUsuario || "este usuário"}?\n\nIsso vai mudar o status para "ativo" e zerar as faltas.`,
+        {
+          tipo: "sucesso",
+          textoConfirmar: "Desbloquear"
+        }
       );
 
       if (!confirmar) return;
@@ -4662,8 +5794,13 @@
     // Útil caso a equipe precise impedir acesso sem esperar duas faltas.
     // ===============================
     async function bloquearUsuario(usuarioId, nomeUsuario, botao = null) {
-      const confirmar = confirm(
-        `Bloquear ${nomeUsuario || "este usuário"} manualmente?\n\nEle não poderá receber o link pelo bot nem agendar pelo site.`
+      const confirmar = await confirmarAcaoAdmin(
+        "Bloquear usuário",
+        `Bloquear ${nomeUsuario || "este usuário"} manualmente?\n\nEle não poderá receber o link pelo bot nem agendar pelo site.`,
+        {
+          tipo: "perigo",
+          textoConfirmar: "Bloquear"
+        }
       );
 
       if (!confirmar) return;
@@ -4700,8 +5837,13 @@
     // Se o usuário estiver bloqueado, também volta para ativo.
     // ===============================
     async function zerarFaltasUsuario(usuarioId, nomeUsuario, botao = null) {
-      const confirmar = confirm(
-        `Zerar faltas de ${nomeUsuario || "este usuário"}?\n\nSe estiver bloqueado, ele também voltará para ativo.`
+      const confirmar = await confirmarAcaoAdmin(
+        "Zerar faltas",
+        `Zerar faltas de ${nomeUsuario || "este usuário"}?\n\nSe estiver bloqueado, ele também voltará para ativo.`,
+        {
+          tipo: "aviso",
+          textoConfirmar: "Zerar faltas"
+        }
       );
 
       if (!confirmar) return;
@@ -4742,8 +5884,13 @@
     async function alterarCadastroUsuario(usuarioId, nomeUsuario, novoValor, botao = null) {
       const acao = novoValor ? "ativar" : "desativar";
 
-      const confirmar = confirm(
-        `Deseja ${acao} o cadastro de ${nomeUsuario || "este usuário"}?`
+      const confirmar = await confirmarAcaoAdmin(
+        `${novoValor ? "Ativar" : "Desativar"} cadastro`,
+        `Deseja ${acao} o cadastro de ${nomeUsuario || "este usuário"}?`,
+        {
+          tipo: novoValor ? "sucesso" : "aviso",
+          textoConfirmar: novoValor ? "Ativar cadastro" : "Desativar cadastro"
+        }
       );
 
       if (!confirmar) return;
@@ -5174,8 +6321,13 @@
         }
 
         if (["compareceu", "faltou"].includes(statusAtual)) {
-          const confirmarStatus = confirm(
-            `Este agendamento está como "${statusAtual}". Reagendar vai voltar o status do agendamento para "agendado", sem alterar faltas ou presenças do usuário. Deseja continuar?`
+          const confirmarStatus = await confirmarAcaoAdmin(
+            "Reagendar agendamento finalizado",
+            `Este agendamento está como "${statusAtual}". Reagendar vai voltar o status do agendamento para "agendado", sem alterar faltas ou presenças do usuário. Deseja continuar?`,
+            {
+              tipo: "aviso",
+              textoConfirmar: "Continuar"
+            }
           );
 
           if (!confirmarStatus) return;
@@ -5183,25 +6335,42 @@
 
         const dataAtual = String(agendamento.data || "").split("T")[0];
         const horarioAtual = normalizarHorarioAgendamento(agendamento.horario || "");
-        const novaDataPrompt = prompt("Nova data do agendamento (YYYY-MM-DD):", dataAtual);
-
-        if (novaDataPrompt === null) return;
-
-        const novaData = novaDataPrompt.trim();
         const horariosDisponiveis = horariosConfiguradosCalendario();
-        const novoHorarioPrompt = prompt(
-          `Novo horário (HH:MM):\n\nHorários disponíveis: ${horariosDisponiveis.join(", ")}`,
-          horarioAtual
-        );
+        const dadosReagendamento = await solicitarCamposAdmin({
+          titulo: "Reagendar horário",
+          descricao: `Escolha a nova data e horário.\nHorários configurados: ${horariosDisponiveis.join(", ")}`,
+          tipo: "info",
+          textoConfirmar: "Validar reagendamento",
+          campos: [
+            {
+              id: "novaData",
+              label: "Nova data",
+              type: "date",
+              required: true,
+              value: dataAtual
+            },
+            {
+              id: "novoHorario",
+              label: "Novo horário",
+              type: "text",
+              required: true,
+              value: horarioAtual,
+              placeholder: "HH:MM"
+            },
+            {
+              id: "motivo",
+              label: "Motivo do reagendamento",
+              type: "textarea",
+              required: true
+            }
+          ]
+        });
 
-        if (novoHorarioPrompt === null) return;
+        if (!dadosReagendamento) return;
 
-        const novoHorario = normalizarHorarioAgendamento(novoHorarioPrompt);
-        const motivoPrompt = prompt("Motivo do reagendamento:");
-
-        if (motivoPrompt === null) return;
-
-        const motivo = motivoPrompt.trim();
+        const novaData = dadosReagendamento.novaData.trim();
+        const novoHorario = normalizarHorarioAgendamento(dadosReagendamento.novoHorario);
+        const motivo = dadosReagendamento.motivo.trim();
 
         if (!motivo) {
           mostrarToast("Informe o motivo do reagendamento.", "aviso");
@@ -5228,7 +6397,14 @@
         }
 
         const resumoReagendamento = montarMensagemReagendamento(agendamento, novaData, novoHorario, motivo);
-        const confirmar = confirm(`${resumoReagendamento}\n\nConfirmar reagendamento?`);
+        const confirmar = await confirmarAcaoAdmin(
+          "Confirmar reagendamento",
+          `${resumoReagendamento}\n\nConfirmar reagendamento?`,
+          {
+            tipo: "aviso",
+            textoConfirmar: "Salvar reagendamento"
+          }
+        );
 
         if (!confirmar) return;
 
@@ -5262,7 +6438,14 @@
     // FUNÇÃO: CONFIRMAR PRESENÇA
     // ===============================
     async function confirmarPresenca(agendamentoId, botao = null) {
-      const confirmar = confirm("Confirmar presença deste jovem?");
+      const confirmar = await confirmarAcaoAdmin(
+        "Confirmar presença",
+        "Confirmar presença deste jovem?",
+        {
+          tipo: "sucesso",
+          textoConfirmar: "Confirmar presença"
+        }
+      );
       if (!confirmar) return;
 
       definirLoadingBotao(botao, true, "Confirmando...", "Confirmar presença");
@@ -5336,7 +6519,14 @@
     // FUNÇÃO: MARCAR FALTA
     // ===============================
     async function marcarFalta(agendamentoId, botao = null) {
-      const confirmar = confirm("Marcar falta para este jovem?");
+      const confirmar = await confirmarAcaoAdmin(
+        "Marcar falta",
+        "Marcar falta para este jovem?",
+        {
+          tipo: "aviso",
+          textoConfirmar: "Marcar falta"
+        }
+      );
       if (!confirmar) return;
 
       definirLoadingBotao(botao, true, "Marcando...", "Marcar falta");
@@ -5410,8 +6600,13 @@
     // Processa automaticamente faltas com mais de 24h.
     // ===============================
     async function processarFaltasPendentes() {
-      const confirmar = confirm(
-        "Processar automaticamente faltas pendentes?\n\nSó serão marcados como falta os agendamentos que passaram há mais de 24 horas e ainda estão como agendados."
+      const confirmar = await confirmarAcaoAdmin(
+        "Processar faltas pendentes",
+        "Processar automaticamente faltas pendentes?\n\nSó serão marcados como falta os agendamentos que passaram há mais de 24 horas e ainda estão como agendados.",
+        {
+          tipo: "aviso",
+          textoConfirmar: "Processar faltas"
+        }
       );
 
       if (!confirmar) return;
@@ -5501,16 +6696,24 @@
     // Exige motivo e salva na coluna observacao.
     // ===============================
     async function cancelarAgendamento(agendamentoId, botao = null) {
-      const confirmar = confirm("Cancelar este agendamento?");
-      if (!confirmar) return;
+      const dadosCancelamento = await solicitarCamposAdmin({
+        titulo: "Cancelar agendamento",
+        descricao: "Informe o motivo do cancelamento.\nEx: jovem avisou com antecedência, evento interno, problema técnico, falta de equipe...",
+        tipo: "perigo",
+        textoConfirmar: "Cancelar agendamento",
+        campos: [
+          {
+            id: "motivo",
+            label: "Motivo do cancelamento",
+            type: "textarea",
+            required: true
+          }
+        ]
+      });
 
-      const motivo = prompt(
-        "Informe o motivo do cancelamento:\n\nEx: jovem avisou com antecedência, evento interno, problema técnico, falta de equipe..."
-      );
+      if (!dadosCancelamento) return;
 
-      if (motivo === null) return;
-
-      const motivoLimpo = motivo.trim();
+      const motivoLimpo = dadosCancelamento.motivo.trim();
 
       if (!motivoLimpo) {
         mostrarToast("Para cancelar, informe um motivo.", "aviso");
