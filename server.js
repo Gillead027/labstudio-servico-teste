@@ -178,6 +178,57 @@ async function obterConfiguracaoLabStudio() {
   }
 }
 
+function normalizarConfiguracaoLabStudio(config) {
+  const configRecebida = config && typeof config === "object" ? config : {};
+
+  return {
+    ...DEFAULT_LABSTUDIO_CONFIG,
+    ...configRecebida,
+    dias_funcionamento: Array.isArray(configRecebida.dias_funcionamento) && configRecebida.dias_funcionamento.length > 0
+      ? configRecebida.dias_funcionamento
+      : DEFAULT_LABSTUDIO_CONFIG.dias_funcionamento,
+    dias_funcionamento_label: Array.isArray(configRecebida.dias_funcionamento_label) && configRecebida.dias_funcionamento_label.length > 0
+      ? configRecebida.dias_funcionamento_label
+      : DEFAULT_LABSTUDIO_CONFIG.dias_funcionamento_label,
+    horarios_disponiveis: Array.isArray(configRecebida.horarios_disponiveis) && configRecebida.horarios_disponiveis.length > 0
+      ? configRecebida.horarios_disponiveis
+      : DEFAULT_LABSTUDIO_CONFIG.horarios_disponiveis,
+    datas_bloqueadas: Array.isArray(configRecebida.datas_bloqueadas)
+      ? configRecebida.datas_bloqueadas
+      : DEFAULT_LABSTUDIO_CONFIG.datas_bloqueadas,
+    idade_minima: Number.isFinite(Number(configRecebida.idade_minima))
+      ? Number(configRecebida.idade_minima)
+      : DEFAULT_LABSTUDIO_CONFIG.idade_minima,
+    idade_maxima: Number.isFinite(Number(configRecebida.idade_maxima))
+      ? Number(configRecebida.idade_maxima)
+      : DEFAULT_LABSTUDIO_CONFIG.idade_maxima,
+    limite_faltas_bloqueio: Number.isFinite(Number(configRecebida.limite_faltas_bloqueio))
+      ? Number(configRecebida.limite_faltas_bloqueio)
+      : DEFAULT_LABSTUDIO_CONFIG.limite_faltas_bloqueio,
+    link_publico: configRecebida.link_publico || DEFAULT_LABSTUDIO_CONFIG.link_publico,
+    mensagem_funcionamento: configRecebida.mensagem_funcionamento || DEFAULT_LABSTUDIO_CONFIG.mensagem_funcionamento,
+    versao_config: configRecebida.versao_config || DEFAULT_LABSTUDIO_CONFIG.versao_config
+  };
+}
+
+async function obterConfigLabStudioSegura() {
+  try {
+    const resultado = await obterConfiguracaoLabStudio();
+    return normalizarConfiguracaoLabStudio(resultado.config);
+  } catch (err) {
+    console.error("❌ Falha ao carregar configuração. Usando fallback local:", err);
+    return DEFAULT_LABSTUDIO_CONFIG;
+  }
+}
+
+function mensagemFaixaEtaria(config = DEFAULT_LABSTUDIO_CONFIG) {
+  return `O LabStudio atende jovens de ${config.idade_minima} a ${config.idade_maxima} anos.`;
+}
+
+function mensagemFaixaEtariaCrj(config = DEFAULT_LABSTUDIO_CONFIG) {
+  return `O CRJ atende jovens de ${config.idade_minima} a ${config.idade_maxima} anos.`;
+}
+
 // ===============================
 // CONFIGURAÇÃO DO CLIENTE WHATSAPP
 // LocalAuth salva a sessão do WhatsApp.
@@ -1002,18 +1053,20 @@ function calcularIdade(dataNascimento) {
 
 // ===============================
 // FUNÇÃO: VALIDAR FAIXA ETÁRIA DO CRJ
-// O CRJ atende jovens de 15 a 29 anos.
+// Usa a faixa etária configurada, com fallback igual à v1.0.
 // ===============================
-function idadePermitida(dataNascimento) {
+function idadePermitida(dataNascimento, config = DEFAULT_LABSTUDIO_CONFIG) {
   const idade = calcularIdade(dataNascimento);
-  return idade !== null && idade >= 15 && idade <= 29;
+  return idade !== null &&
+    idade >= config.idade_minima &&
+    idade <= config.idade_maxima;
 }
 
 // ===============================
 // FUNÇÃO: VALIDAR DATA DE AGENDAMENTO
-// Garante no servidor as mesmas regras de terça/quinta e datas bloqueadas.
+// Garante no servidor as regras de funcionamento configuradas.
 // ===============================
-function validarDataAgendamento(dataSelecionada) {
+function validarDataAgendamento(dataSelecionada, config = DEFAULT_LABSTUDIO_CONFIG) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dataSelecionada || ""))) {
     return {
       ok: false,
@@ -1032,14 +1085,14 @@ function validarDataAgendamento(dataSelecionada) {
 
   const diaSemana = dataObjeto.getDay();
 
-  if (![2, 4].includes(diaSemana)) {
+  if (!config.dias_funcionamento.includes(diaSemana)) {
     return {
       ok: false,
-      mensagem: "O LabStudio funciona apenas às terças e quintas-feiras."
+      mensagem: config.mensagem_funcionamento
     };
   }
 
-  if (DATAS_BLOQUEADAS.includes(dataSelecionada)) {
+  if (config.datas_bloqueadas.includes(dataSelecionada)) {
     return {
       ok: false,
       mensagem: "Esta data está reservada para evento interno ou feriado."
@@ -1211,7 +1264,9 @@ async function buscarUsuarioPorWhatsApp(msg) {
 // ===============================
 app.get("/api/horarios", async (req, res) => {
   const dataSelecionada = String(req.query.data || "").trim();
-  const validacaoData = validarDataAgendamento(dataSelecionada);
+
+  const config = await obterConfigLabStudioSegura();
+  const validacaoData = validarDataAgendamento(dataSelecionada, config);
 
   if (!validacaoData.ok) {
     return responderErroApi(res, 400, validacaoData.mensagem);
@@ -1219,7 +1274,7 @@ app.get("/api/horarios", async (req, res) => {
 
   try {
     const ocupados = await buscarHorariosOcupados(dataSelecionada);
-    const horariosDisponiveis = HORARIOS_TERCA_QUINTA.filter((hora) =>
+    const horariosDisponiveis = config.horarios_disponiveis.filter((hora) =>
       !ocupados.includes(hora)
     );
 
@@ -1254,13 +1309,14 @@ app.post("/api/agendar", async (req, res) => {
     return responderErroApi(res, 400, "Preencha todos os campos corretamente.");
   }
 
-  const validacaoData = validarDataAgendamento(dataSelecionada);
+  const config = await obterConfigLabStudioSegura();
+  const validacaoData = validarDataAgendamento(dataSelecionada, config);
 
   if (!validacaoData.ok) {
     return responderErroApi(res, 400, validacaoData.mensagem);
   }
 
-  if (!HORARIOS_TERCA_QUINTA.includes(horario)) {
+  if (!config.horarios_disponiveis.includes(horario)) {
     return responderErroApi(res, 400, "Horário inválido para esta agenda.");
   }
 
@@ -1283,18 +1339,18 @@ app.post("/api/agendar", async (req, res) => {
       );
     }
 
-    if (!idadePermitida(usuario.data_nascimento)) {
+    if (!idadePermitida(usuario.data_nascimento, config)) {
       return responderErroApi(
         res,
         403,
-        "O LabStudio atende jovens de 15 a 29 anos. Procure a equipe do CRJ."
+        `${mensagemFaixaEtaria(config)} Procure a equipe do CRJ.`
       );
     }
 
     const statusUsuario = String(usuario.status || "").toLowerCase();
     const faltasUsuario = Number(usuario.faltas || 0);
 
-    if (statusUsuario === "bloqueado" || faltasUsuario >= 2) {
+    if (statusUsuario === "bloqueado" || faltasUsuario >= config.limite_faltas_bloqueio) {
       return responderErroApi(
         res,
         403,
@@ -1363,8 +1419,10 @@ app.post("/api/cadastro-online", async (req, res) => {
     );
   }
 
-  if (!idadePermitida(dataNascimento)) {
-    return responderErroApi(res, 400, "O CRJ atende jovens de 15 a 29 anos.");
+  const config = await obterConfigLabStudioSegura();
+
+  if (!idadePermitida(dataNascimento, config)) {
+    return responderErroApi(res, 400, mensagemFaixaEtariaCrj(config));
   }
 
   try {
@@ -1565,12 +1623,14 @@ Após o envio, aguarde a análise da equipe do CRJ.`
       return;
     }
 
+    const config = await obterConfigLabStudioSegura();
+
     // Normaliza status e faltas para evitar erro de comparação.
     const statusUsuario = String(usuario.status || "").toLowerCase();
     const faltasUsuario = Number(usuario.faltas || 0);
 
-    // Se estiver bloqueado ou tiver 2 faltas ou mais.
-    if (statusUsuario === "bloqueado" || faltasUsuario >= 2) {
+    // Se estiver bloqueado ou tiver faltas no limite configurado.
+    if (statusUsuario === "bloqueado" || faltasUsuario >= config.limite_faltas_bloqueio) {
       await client.sendMessage(
         msg.from,
         `Olá, ${usuario.nome || "jovem"}.
@@ -1616,12 +1676,12 @@ Seu cadastro precisa ser atualizado com a data de nascimento antes de acessar o 
       return;
     }
 
-    if (!idadePermitida(usuario.data_nascimento)) {
+    if (!idadePermitida(usuario.data_nascimento, config)) {
       await client.sendMessage(
         msg.from,
         `Olá, ${usuario.nome || "jovem"}.
 
-O LabStudio atende jovens de 15 a 29 anos.
+${mensagemFaixaEtaria(config)}
 
 📍 Procure presencialmente a equipe do CRJ para mais orientações.`
       );
