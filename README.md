@@ -39,9 +39,12 @@ ALLOWED_ORIGINS=http://localhost:3001,http://127.0.0.1:3001
 QR_PAGE_TOKEN=troque-por-uma-senha-local
 PUPPETEER_EXECUTABLE_PATH=
 WWEBJS_AUTH_PATH=.wwebjs_auth
+LABSTUDIO_CONFIG_ENV=v2-local
 ```
 
 Nunca coloque a `SUPABASE_SERVICE_ROLE_KEY` em arquivos HTML. Ela deve ficar somente no `.env`, usada pelo `server.js`.
+
+`LABSTUDIO_CONFIG_ENV` define qual linha da tabela `labstudio_configuracoes` sera lida pelo backend. No desenvolvimento local da v2, use `v2-local`. Se a leitura da configuracao no Supabase falhar ou se nao existir uma linha ativa para esse ambiente, o sistema continua usando o fallback local da v1.0.
 
 ## Rodar Localmente
 

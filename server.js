@@ -19,6 +19,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BOT_NOTIFY_NUMBER = process.env.BOT_NOTIFY_NUMBER;
 const PUBLIC_SITE_URL = String(process.env.PUBLIC_SITE_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
+const LABSTUDIO_CONFIG_ENV = process.env.LABSTUDIO_CONFIG_ENV || "v2-local";
 
 // URL base do bot. Em testes locais, deixe vazio para usar localhost.
 // Exemplo:
@@ -160,18 +161,60 @@ const DEFAULT_LABSTUDIO_CONFIG = {
 };
 
 async function obterConfiguracaoLabStudio() {
+  const ambiente = LABSTUDIO_CONFIG_ENV;
+
   try {
-    // Futuro ponto de leitura do Supabase.
-    // Nesta etapa, não buscamos nem escrevemos dados externos.
+    // Leitura segura: busca a configuração ativa do ambiente local da v2.
+    // Não cria, altera nem remove dados no Supabase.
+    const { data, error } = await supabase
+      .from("labstudio_configuracoes")
+      .select("*")
+      .eq("ambiente", ambiente)
+      .eq("ativo", true)
+      .maybeSingle();
+
+    if (error) {
+      console.warn(
+        `⚠️ Falha ao consultar labstudio_configuracoes para ambiente "${ambiente}". Usando fallback local: ${error.message}`
+      );
+
+      return {
+        origem: "fallback-local",
+        ambiente,
+        config: DEFAULT_LABSTUDIO_CONFIG
+      };
+    }
+
+    if (!data) {
+      console.warn(
+        `⚠️ Nenhuma configuração ativa encontrada para ambiente "${ambiente}". Usando fallback local.`
+      );
+
+      return {
+        origem: "fallback-local",
+        ambiente,
+        config: DEFAULT_LABSTUDIO_CONFIG
+      };
+    }
+
+    const configBanco = data.config && typeof data.config === "object"
+      ? { ...data, ...data.config }
+      : data;
+
     return {
-      origem: "fallback-local",
-      config: DEFAULT_LABSTUDIO_CONFIG
+      origem: "supabase",
+      ambiente,
+      config: normalizarConfiguracaoLabStudio(configBanco)
     };
   } catch (err) {
-    console.error("❌ Erro ao obter configuração do LabStudio:", err);
+    console.warn(
+      `⚠️ Erro inesperado ao obter configuração do LabStudio para ambiente "${ambiente}". Usando fallback local:`,
+      err
+    );
 
     return {
       origem: "fallback-local",
+      ambiente,
       erro: err,
       config: DEFAULT_LABSTUDIO_CONFIG
     };
@@ -787,9 +830,11 @@ app.get("/status", (req, res) => {
 // ===============================
 // ROTA: CONFIGURAÇÕES PÚBLICAS DO LABSTUDIO
 // Leitura pública e segura para o painel e, futuramente, para as telas públicas.
-// Nesta etapa, não consulta nem altera dados no Supabase.
+// Consulta apenas a configuração ativa do ambiente e nunca escreve no Supabase.
 // ===============================
 app.get("/api/configuracoes-publicas", async (req, res) => {
+  const ambiente = LABSTUDIO_CONFIG_ENV;
+
   try {
     const resultado = await obterConfiguracaoLabStudio();
 
@@ -797,6 +842,7 @@ app.get("/api/configuracoes-publicas", async (req, res) => {
       return res.status(500).json({
         ok: false,
         origem: "fallback-local",
+        ambiente,
         mensagem: "Usando configuração padrão local.",
         config: DEFAULT_LABSTUDIO_CONFIG
       });
@@ -805,6 +851,7 @@ app.get("/api/configuracoes-publicas", async (req, res) => {
     return res.json({
       ok: true,
       origem: resultado.origem || "fallback-local",
+      ambiente: resultado.ambiente || ambiente,
       config: resultado.config || DEFAULT_LABSTUDIO_CONFIG
     });
   } catch (err) {
@@ -813,6 +860,7 @@ app.get("/api/configuracoes-publicas", async (req, res) => {
     return res.status(500).json({
       ok: false,
       origem: "fallback-local",
+      ambiente,
       mensagem: "Usando configuração padrão local.",
       config: DEFAULT_LABSTUDIO_CONFIG
     });
