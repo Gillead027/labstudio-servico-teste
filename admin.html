@@ -1042,6 +1042,29 @@
     const API_BASE_URL = "";
 
     // ===============================
+    // CONFIGURAÇÃO PÚBLICA DO LABSTUDIO
+    // O fallback mantém a regra atual da v1.0 caso a rota falhe.
+    // ===============================
+    const CONFIG_ADMIN_FALLBACK = {
+      idade_minima: 15,
+      idade_maxima: 29,
+      limite_faltas_bloqueio: 2,
+      dias_funcionamento: [2, 4],
+      dias_funcionamento_label: ["terça-feira", "quinta-feira"],
+      horarios_disponiveis: ["18:00", "18:30"],
+      datas_bloqueadas: [
+        "2024-07-19",
+        "2024-05-01",
+        "2024-05-30"
+      ],
+      mensagem_funcionamento: "O LabStudio funciona às terças e quintas-feiras, mediante disponibilidade de horário.",
+      versao_config: "fallback-admin-local"
+    };
+
+    let configLabStudio = { ...CONFIG_ADMIN_FALLBACK };
+    let origemConfigLabStudio = "fallback-local";
+
+    // ===============================
     // ELEMENTOS DO LOGIN
     // ===============================
     const loginOverlay = document.getElementById("loginOverlay");
@@ -1176,6 +1199,75 @@
     }
 
     // ===============================
+    // FUNÇÃO: MENSAGEM DA FAIXA ETÁRIA
+    // Centraliza o texto para refletir a configuração carregada.
+    // ===============================
+    function mensagemFaixaEtaria() {
+      return `O CRJ atende jovens de ${configLabStudio.idade_minima} a ${configLabStudio.idade_maxima} anos.`;
+    }
+
+    // ===============================
+    // FUNÇÃO: NORMALIZAR CONFIGURAÇÃO PÚBLICA
+    // Evita que valores ausentes da rota quebrem validações do painel.
+    // ===============================
+    function normalizarConfiguracaoPublica(config) {
+      const configRecebida = config && typeof config === "object" ? config : {};
+
+      return {
+        ...CONFIG_ADMIN_FALLBACK,
+        ...configRecebida,
+        idade_minima: Number.isFinite(Number(configRecebida.idade_minima))
+          ? Number(configRecebida.idade_minima)
+          : CONFIG_ADMIN_FALLBACK.idade_minima,
+        idade_maxima: Number.isFinite(Number(configRecebida.idade_maxima))
+          ? Number(configRecebida.idade_maxima)
+          : CONFIG_ADMIN_FALLBACK.idade_maxima,
+        limite_faltas_bloqueio: Number.isFinite(Number(configRecebida.limite_faltas_bloqueio))
+          ? Number(configRecebida.limite_faltas_bloqueio)
+          : CONFIG_ADMIN_FALLBACK.limite_faltas_bloqueio,
+        dias_funcionamento: Array.isArray(configRecebida.dias_funcionamento) && configRecebida.dias_funcionamento.length > 0
+          ? configRecebida.dias_funcionamento
+          : CONFIG_ADMIN_FALLBACK.dias_funcionamento,
+        dias_funcionamento_label: Array.isArray(configRecebida.dias_funcionamento_label) && configRecebida.dias_funcionamento_label.length > 0
+          ? configRecebida.dias_funcionamento_label
+          : CONFIG_ADMIN_FALLBACK.dias_funcionamento_label,
+        horarios_disponiveis: Array.isArray(configRecebida.horarios_disponiveis) && configRecebida.horarios_disponiveis.length > 0
+          ? configRecebida.horarios_disponiveis
+          : CONFIG_ADMIN_FALLBACK.horarios_disponiveis,
+        datas_bloqueadas: Array.isArray(configRecebida.datas_bloqueadas)
+          ? configRecebida.datas_bloqueadas
+          : CONFIG_ADMIN_FALLBACK.datas_bloqueadas,
+        mensagem_funcionamento: configRecebida.mensagem_funcionamento || CONFIG_ADMIN_FALLBACK.mensagem_funcionamento,
+        versao_config: configRecebida.versao_config || CONFIG_ADMIN_FALLBACK.versao_config
+      };
+    }
+
+    // ===============================
+    // FUNÇÃO: CARREGAR CONFIGURAÇÕES PÚBLICAS
+    // Deve rodar depois do login admin validado e antes das regras do painel.
+    // ===============================
+    async function carregarConfiguracoesPublicas() {
+      try {
+        const resposta = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/configuracoes-publicas`);
+        const texto = await resposta.text();
+        const resultado = JSON.parse(texto);
+
+        if (!resposta.ok || !resultado.config) {
+          throw new Error(resultado.mensagem || "Configuração pública indisponível.");
+        }
+
+        configLabStudio = normalizarConfiguracaoPublica(resultado.config);
+        origemConfigLabStudio = resultado.origem || "fallback-local";
+      } catch (err) {
+        console.warn("Usando configuração local de fallback do admin:", err);
+        configLabStudio = { ...CONFIG_ADMIN_FALLBACK };
+        origemConfigLabStudio = "fallback-local";
+      }
+
+      return configLabStudio;
+    }
+
+    // ===============================
     // FUNÇÃO: VERIFICAR PERMISSÃO ADMIN
     // Confirma se o usuário autenticado está ativo e autorizado no painel.
     // ===============================
@@ -1220,6 +1312,7 @@
         return;
       }
 
+      await carregarConfiguracoesPublicas();
       adminValidado = true;
       liberarPainel();
     }
@@ -1485,11 +1578,13 @@
 
     // ===============================
     // FUNÇÃO: VALIDAR FAIXA ETÁRIA DO CRJ
-    // O CRJ atende jovens de 15 a 29 anos.
+    // Usa a faixa etária configurada, com fallback igual à v1.0.
     // ===============================
     function idadePermitida(dataNascimento) {
       const idade = calcularIdade(dataNascimento);
-      return idade !== null && idade >= 15 && idade <= 29;
+      return idade !== null &&
+        idade >= configLabStudio.idade_minima &&
+        idade <= configLabStudio.idade_maxima;
     }
 
     // ===============================
@@ -1621,7 +1716,7 @@
       }
 
       if (!idadePermitida(dataNascimento)) {
-        atualizarAjudaCampo(novaDataNascimento, ajudaNovaDataNascimento, `Idade calculada: ${idade} anos. O CRJ atende jovens de 15 a 29 anos.`, "erro");
+        atualizarAjudaCampo(novaDataNascimento, ajudaNovaDataNascimento, `Idade calculada: ${idade} anos. ${mensagemFaixaEtaria()}`, "erro");
         return false;
       }
 
@@ -1886,11 +1981,11 @@
 
       let novoStatus = usuario.status || "ativo";
 
-      if (novasFaltas >= 2) {
+      if (novasFaltas >= configLabStudio.limite_faltas_bloqueio) {
         novoStatus = "bloqueado";
       }
 
-      if (String(novoStatus).toLowerCase() === "bloqueado" && novasFaltas < 2) {
+      if (String(novoStatus).toLowerCase() === "bloqueado" && novasFaltas < configLabStudio.limite_faltas_bloqueio) {
         novoStatus = "ativo";
       }
 
@@ -1939,10 +2034,10 @@
 
       // ===============================
       // VALIDAÇÃO DE IDADE
-      // O CRJ atende jovens de 15 a 29 anos.
+      // Usa a faixa etária configurada para manter o painel alinhado ao backend.
       // ===============================
       if (!idadePermitida(dataNascimento)) {
-        mostrarToast("O CRJ atende jovens de 15 a 29 anos.", "aviso");
+        mostrarToast(mensagemFaixaEtaria(), "aviso");
         return;
       }
 
@@ -2236,23 +2331,9 @@
       conteudoConfiguracoes.innerHTML = '<div class="vazio">Carregando configurações...</div>';
 
       try {
-        const resposta = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/configuracoes-publicas`);
-        const texto = await resposta.text();
-
-        let resultado = null;
-
-        try {
-          resultado = JSON.parse(texto);
-        } catch (_err) {
-          throw new Error("Resposta inválida da rota de configurações.");
-        }
-
-        if (!resposta.ok || !resultado.config) {
-          throw new Error(resultado.mensagem || "Não foi possível carregar as configurações.");
-        }
-
-        const config = resultado.config;
-        const origem = resultado.origem || "não informada";
+        await carregarConfiguracoesPublicas();
+        const config = configLabStudio;
+        const origem = origemConfigLabStudio || "não informada";
 
         conteudoConfiguracoes.innerHTML = `
           <div class="painel-resumo">
@@ -2302,10 +2383,25 @@
         `;
       } catch (err) {
         console.error("Erro ao carregar configurações:", err);
+        const config = configLabStudio || CONFIG_ADMIN_FALLBACK;
+
         conteudoConfiguracoes.innerHTML = mensagemVazio(
-          "Não foi possível carregar as configurações.",
-          err.message || "A aba de configurações falhou, mas as outras áreas do painel continuam disponíveis."
-        );
+          "Não foi possível atualizar as configurações pela rota.",
+          "Exibindo fallback local. As outras áreas do painel continuam disponíveis."
+        ) + `
+          <div class="painel-resumo">
+            <div class="bloco-resumo">
+              <h3>Faixa etária</h3>
+              <div class="item-ranking">Idade mínima: ${escaparHtml(config.idade_minima)}</div>
+              <div class="item-ranking">Idade máxima: ${escaparHtml(config.idade_maxima)}</div>
+            </div>
+
+            <div class="bloco-resumo">
+              <h3>Bloqueio por faltas</h3>
+              <div class="item-ranking">Limite de faltas: ${escaparHtml(config.limite_faltas_bloqueio)}</div>
+            </div>
+          </div>
+        `;
       }
     }
 
@@ -2764,7 +2860,7 @@
       }
 
       if (!idadePermitida(dataNascimentoLimpa)) {
-        mostrarToast("O CRJ atende jovens de 15 a 29 anos.", "aviso");
+        mostrarToast(mensagemFaixaEtaria(), "aviso");
         return;
       }
 
