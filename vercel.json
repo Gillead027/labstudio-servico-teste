@@ -1,12 +1,13 @@
 {
+  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://SEU-DOMINIO-DO-BACKEND.com/api/:path*"
+      "destination": "http://2.24.74.57:3002/api/:path*"
     },
     {
       "source": "/notificar-aprovacao",
-      "destination": "https://SEU-DOMINIO-DO-BACKEND.com/notificar-aprovacao"
+      "destination": "http://2.24.74.57:3002/notificar-aprovacao"
     }
   ]
 }
