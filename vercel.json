@@ -2,15 +2,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://2.24.74.57:3001/api/:path*"
-    },
-    {
-      "source": "/notificar",
-      "destination": "http://2.24.74.57:3001/notificar"
+      "destination": "https://SEU-DOMINIO-DO-BACKEND.com/api/:path*"
     },
     {
       "source": "/notificar-aprovacao",
-      "destination": "http://2.24.74.57:3001/notificar-aprovacao"
+      "destination": "https://SEU-DOMINIO-DO-BACKEND.com/notificar-aprovacao"
     }
   ]
 }

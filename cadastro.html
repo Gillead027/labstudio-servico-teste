@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cadastro Online - LabStudio CRJ FLEXAL</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23070a16'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='18'%20fill='%2322d3ee'/%3E%3Cpath%20d='M25%2041V20h18v6H31v15z'%20fill='white'/%3E%3C/svg%3E">
+  <!-- Acelera a primeira conexão com o CDN dos ícones sem mudar a identidade visual. -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -460,18 +462,22 @@
       animation: slideUpPremium 0.58s ease both;
     }
 
+    .brand-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-lockup,
     .brand-kicker {
       display: inline-flex;
       align-items: center;
       gap: 9px;
-      padding: 0.55rem 0.75rem;
       border: 1px solid var(--border);
       border-radius: 999px;
       background: var(--surface);
       color: var(--text);
-      font-size: 0.82rem;
-      font-weight: 800;
-      text-transform: uppercase;
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
     }
@@ -481,23 +487,18 @@
        Mantém a mesma identidade do agendamento público.
     =============================== */
     .brand-lockup {
-      display: inline-flex;
-      align-items: center;
       gap: 12px;
-      padding: 0.3rem 0.85rem;
-      margin-bottom: 16px;
-      border: 1px solid var(--border);
-      border-radius: 999px;
+      min-height: 50px;
+      padding: 0.45rem 0.78rem;
       background: rgba(15, 23, 42, 0.28);
-      color: var(--text);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 44px rgba(0,0,0,0.18);
       backdrop-filter: blur(22px) saturate(150%);
       -webkit-backdrop-filter: blur(22px) saturate(150%);
     }
 
     .brand-mark {
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -531,6 +532,14 @@
 
     .brand-kicker i {
       color: var(--accent);
+    }
+
+    .brand-kicker {
+      min-height: 50px;
+      padding: 0.55rem 0.75rem;
+      font-size: 0.82rem;
+      font-weight: 800;
+      text-transform: uppercase;
     }
 
     .signup-intro h1 {
@@ -842,27 +851,34 @@
         right: 8px;
         max-width: calc(100vw - 16px);
       }
+
+      .brand-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 
 <body>
   <button id="btnTema" class="theme-toggle" type="button" aria-label="Alternar tema">Escuro</button>
-  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+  <div id="toastContainer" class="toast-container" role="status" aria-live="polite" aria-atomic="false"></div>
 
   <main class="signup-shell">
     <section class="signup-intro" aria-label="Cadastro LabStudio CRJ FLEXAL">
-      <div class="brand-lockup">
-        <span class="brand-mark"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
-        <span>
-          <strong>LabStudio</strong>
-          <small>CRJ FLEXAL</small>
-        </span>
-      </div>
+      <div class="brand-row">
+        <div class="brand-lockup">
+          <span class="brand-mark"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
+          <span>
+            <strong>LabStudio</strong>
+            <small>CRJ FLEXAL</small>
+          </span>
+        </div>
 
-      <div class="brand-kicker">
-        <i class="fa-solid fa-music" aria-hidden="true"></i>
-        <span>Entrada para o LabStudio</span>
+        <div class="brand-kicker">
+          <i class="fa-solid fa-music" aria-hidden="true"></i>
+          <span>Entrada para o LabStudio</span>
+        </div>
       </div>
 
       <h1>Cadastro Online - LabStudio CRJ FLEXAL</h1>
@@ -903,13 +919,14 @@
       <span>O CRJ FLEXAL atende jovens de 15 a 29 anos. O cadastro será analisado pela equipe.</span>
     </div>
 
-    <div id="aviso" class="aviso"></div>
+    <div id="aviso" class="aviso" role="status" aria-live="polite" aria-atomic="true"></div>
 
+    <!-- Atributos nativos reduzem erro de digitação antes do envio, sem substituir a validação segura da API. -->
     <div class="form-group">
       <label for="nome">Nome completo</label>
       <div class="field-shell">
         <i class="fa-regular fa-user" aria-hidden="true"></i>
-        <input type="text" id="nome" placeholder="Digite seu nome completo">
+        <input type="text" id="nome" placeholder="Digite seu nome completo" autocomplete="name" maxlength="100" required aria-describedby="ajudaNome">
       </div>
       <div id="ajudaNome" class="campo-ajuda"></div>
     </div>
@@ -918,7 +935,7 @@
       <label for="telefone">WhatsApp</label>
       <div class="field-shell">
         <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
-        <input type="text" id="telefone" placeholder="Ex: 27999999999">
+        <input type="tel" id="telefone" placeholder="Ex: 27999999999" autocomplete="tel" inputmode="numeric" maxlength="18" pattern="[0-9\s()+-]{10,18}" required aria-describedby="ajudaTelefone">
       </div>
       <div id="ajudaTelefone" class="campo-ajuda"></div>
     </div>
@@ -927,12 +944,12 @@
       <label for="dataNascimento">Data de nascimento</label>
       <div class="field-shell">
         <i class="fa-regular fa-calendar-days" aria-hidden="true"></i>
-        <input type="date" id="dataNascimento">
+        <input type="date" id="dataNascimento" required aria-describedby="ajudaDataNascimento faixaEtariaDestaque">
       </div>
       <div id="ajudaDataNascimento" class="campo-ajuda"></div>
     </div>
 
-    <button id="btnEnviar">Enviar cadastro</button>
+    <button id="btnEnviar" type="button">Enviar cadastro</button>
 
     <section id="sucessoCadastro" class="success-panel" aria-live="polite" hidden>
       <span class="success-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
@@ -1018,6 +1035,8 @@
     function mostrarAviso(mensagem, tipo = "erro") {
       aviso.innerText = mensagem;
       aviso.className = `aviso ${tipo === "aviso" ? "aviso-tipo" : tipo}`;
+      // Erros usam alert; avisos e sucesso usam status para não interromper a navegação.
+      aviso.setAttribute("role", tipo === "erro" ? "alert" : "status");
       aviso.style.display = "block";
     }
 
@@ -1029,6 +1048,8 @@
       const toast = document.createElement("div");
       toast.className = `toast ${tipo === "aviso" ? "aviso-tipo" : tipo}`;
       toast.textContent = mensagem;
+      // O papel muda conforme a gravidade para leitores de tela anunciarem erros com prioridade.
+      toast.setAttribute("role", tipo === "erro" ? "alert" : "status");
       toastContainer.appendChild(toast);
 
       setTimeout(() => {
@@ -1081,6 +1102,42 @@
     }
 
     // ===============================
+    // FUNÇÃO: DATA ISO LOCAL
+    // Formata datas sem UTC para o seletor manter a idade correta no fuso local.
+    // ===============================
+    function formatarDataIsoLocal(data) {
+      const ano = data.getFullYear();
+      const mes = String(data.getMonth() + 1).padStart(2, "0");
+      const dia = String(data.getDate()).padStart(2, "0");
+
+      return `${ano}-${mes}-${dia}`;
+    }
+
+    // ===============================
+    // FUNÇÃO: SOMAR ANOS COM SEGURANÇA
+    // Evita datas impossíveis em anos bissextos ao calcular limites de idade.
+    // ===============================
+    function somarAnosData(data, anos) {
+      const resultado = new Date(data);
+      resultado.setFullYear(resultado.getFullYear() + anos);
+      return resultado;
+    }
+
+    // ===============================
+    // FUNÇÃO: RESTRIÇÕES NATIVAS DA DATA DE NASCIMENTO
+    // Limita o datepicker à faixa etária configurada, mantendo a validação da API como regra final.
+    // ===============================
+    function aplicarRestricoesDataNascimento() {
+      const hoje = new Date();
+      const dataMaxima = somarAnosData(hoje, -configuracaoLabStudio.idade_minima);
+      const dataMinima = somarAnosData(hoje, -(configuracaoLabStudio.idade_maxima + 1));
+      dataMinima.setDate(dataMinima.getDate() + 1);
+
+      inputDataNascimento.max = formatarDataIsoLocal(dataMaxima);
+      inputDataNascimento.min = formatarDataIsoLocal(dataMinima);
+    }
+
+    // ===============================
     // FUNÇÃO: NORMALIZAR CONFIGURAÇÃO PÚBLICA
     // Evita que valores ausentes da rota quebrem a validação do cadastro.
     // ===============================
@@ -1120,6 +1177,7 @@
       }
 
       atualizarFaixaEtariaDestaque();
+      aplicarRestricoesDataNascimento();
       return configuracaoLabStudio;
     }
 
@@ -1131,6 +1189,8 @@
       botao.disabled = carregando;
       botao.innerText = carregando ? textoCarregando : textoNormal;
       botao.classList.toggle("is-loading", carregando);
+      // aria-busy deixa claro que o envio ainda está em andamento sem criar outro componente.
+      botao.setAttribute("aria-busy", carregando ? "true" : "false");
     }
 
     // ===============================
@@ -1153,6 +1213,18 @@
       return String(valor || "").replace(/\D/g, "");
     }
 
+    function numeroTemDdiBrasil(valor) {
+      // Telefone BR: so considera 55 como DDI quando existem DDI + DDD + numero local.
+      const numero = limparTelefone(valor);
+      return numero.startsWith("55") && numero.length > 11;
+    }
+
+    function removerDdiBrasilSeInformado(valor) {
+      // Telefone BR: preserva numeros locais com DDD 55 e remove apenas o DDI 55 real.
+      const numero = limparTelefone(valor);
+      return numeroTemDdiBrasil(numero) ? numero.slice(2) : numero;
+    }
+
     // ===============================
     // FUNÇÃO: GERAR VARIAÇÕES DO TELEFONE
     // Compara números com/sem 55 e com/sem nono dígito.
@@ -1169,16 +1241,18 @@
 
         variantes.add(n);
 
-        if (n.startsWith("55")) {
-          variantes.add(n.slice(2));
+        // Telefone BR: so trata 55 como DDI quando o numero tem DDI + DDD + telefone.
+        if (numeroTemDdiBrasil(n)) {
+          variantes.add(removerDdiBrasilSeInformado(n));
         } else {
+          // Se nao tem DDI, tambem testa com 55 para manter compatibilidade com registros antigos.
           variantes.add("55" + n);
         }
       }
 
       adicionar(numero);
 
-      const sem55 = numero.startsWith("55") ? numero.slice(2) : numero;
+      const sem55 = removerDdiBrasilSeInformado(numero);
       adicionar(sem55);
 
       if (sem55.length === 11 && sem55[2] === "9") {
@@ -1245,6 +1319,8 @@
       elementoAjuda.textContent = mensagem;
       elementoAjuda.className = `campo-ajuda ${tipo}`;
       campo.classList.toggle("campo-invalido", tipo === "erro");
+      // aria-invalid sincroniza a validação visual com leitores de tela.
+      campo.setAttribute("aria-invalid", tipo === "erro" ? "true" : "false");
     }
 
     function validarNomeTempoReal() {
@@ -1317,6 +1393,12 @@
       const telefoneLimpo = limparTelefone(inputTelefone.value);
       const dataNascimento = inputDataNascimento.value;
 
+      // Validação nativa cobre campos vazios e formato de telefone antes das mensagens customizadas.
+      if (!inputNome.reportValidity() || !inputTelefone.reportValidity() || !inputDataNascimento.reportValidity()) {
+        mostrarToast("Confira os campos destacados antes de enviar.", "aviso");
+        return;
+      }
+
       if (!formularioCadastroValido() || !nome || !telefoneLimpo || !dataNascimento) {
         mostrarAviso("Preencha nome completo, WhatsApp e data de nascimento.");
         mostrarToast("Preencha os campos destacados para enviar o cadastro.", "aviso");
@@ -1367,6 +1449,10 @@
         inputNome.classList.remove("campo-invalido");
         inputTelefone.classList.remove("campo-invalido");
         inputDataNascimento.classList.remove("campo-invalido");
+        // Ao limpar o cadastro, limpamos também o estado acessível dos campos.
+        inputNome.setAttribute("aria-invalid", "false");
+        inputTelefone.setAttribute("aria-invalid", "false");
+        inputDataNascimento.setAttribute("aria-invalid", "false");
 
       } catch (err) {
         mostrarAviso("Erro ao enviar cadastro: " + err.message);

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LabStudio CRJ FLEXAL - Agendamento</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23070a16'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='18'%20fill='%2322d3ee'/%3E%3Cpath%20d='M25%2041V20h18v6H31v15z'%20fill='white'/%3E%3C/svg%3E">
+  <!-- Acelera a primeira conexão com o CDN dos ícones sem mudar a identidade visual. -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -456,6 +458,8 @@
       padding: 28px 0 44px;
       position: relative;
       z-index: 1;
+      display: grid;
+      gap: 36px;
     }
 
     .page-shell,
@@ -468,8 +472,36 @@
       display: grid;
       grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.92fr);
       gap: 42px;
-      align-items: center;
+      align-items: start;
       padding: 34px 0 26px;
+    }
+
+    .hero-content {
+      display: grid;
+      gap: 24px;
+    }
+
+    .hero h1 {
+      margin-top: 0;
+    }
+
+    .hero-copy {
+      max-width: 640px;
+      margin-bottom: 0;
+    }
+
+    .container.booking-card {
+      justify-self: center;
+      margin-top: 0;
+      max-width: 520px;
+    }
+
+    .landing-section {
+      padding-top: 22px;
+    }
+
+    .landing-section + .landing-section {
+      margin-top: 34px;
     }
 
     .hero-content,
@@ -478,6 +510,14 @@
       animation: slideUpPremium 0.58s ease both;
     }
 
+    .brand-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-lockup,
     .brand-kicker,
     .hero-pill {
       display: inline-flex;
@@ -496,22 +536,18 @@
        Cria uma marca simples para o LabStudio sem depender de imagens externas.
     =============================== */
     .brand-lockup {
-      display: inline-flex;
-      align-items: center;
       gap: 12px;
-      padding: 0.7rem 0.85rem;
-      border: 1px solid var(--border);
-      border-radius: 999px;
+      min-height: 50px;
+      padding: 0.45rem 0.78rem;
       background: rgba(15, 23, 42, 0.28);
-      color: var(--text);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 44px rgba(0,0,0,0.18);
       backdrop-filter: blur(22px) saturate(150%);
       -webkit-backdrop-filter: blur(22px) saturate(150%);
     }
 
     .brand-mark {
-      width: 42px;
-      height: 42px;
+      width: 40px;
+      height: 40px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -543,11 +579,8 @@
       text-transform: uppercase;
     }
 
-    .brand-lockup + .brand-kicker {
-      margin-top: 16px;
-    }
-
     .brand-kicker {
+      min-height: 50px;
       padding: 0.55rem 0.75rem;
       font-size: 0.82rem;
       font-weight: 800;
@@ -964,28 +997,35 @@
       .hero-pills {
         flex-direction: column;
       }
+
+      .brand-row {
+        align-items: flex-start;
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 
 <body>
   <button id="btnTema" class="theme-toggle" type="button" aria-label="Alternar tema">Escuro</button>
-  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+  <div id="toastContainer" class="toast-container" role="status" aria-live="polite" aria-atomic="false"></div>
 
   <main class="page-shell">
     <section class="hero" aria-label="Agendamento LabStudio CRJ FLEXAL">
       <div class="hero-content">
-        <div class="brand-lockup">
-          <span class="brand-mark"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
-          <span>
-            <strong>LabStudio</strong>
-            <small>CRJ FLEXAL</small>
-          </span>
-        </div>
+        <div class="brand-row">
+          <div class="brand-lockup">
+            <span class="brand-mark"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
+            <span>
+              <strong>LabStudio</strong>
+              <small>CRJ FLEXAL</small>
+            </span>
+          </div>
 
-        <div class="brand-kicker">
-          <i class="fa-solid fa-record-vinyl" aria-hidden="true"></i>
-          <span>Estúdio musical do CRJ FLEXAL</span>
+          <div class="brand-kicker">
+            <i class="fa-solid fa-record-vinyl" aria-hidden="true"></i>
+            <span>Estúdio musical do CRJ FLEXAL</span>
+          </div>
         </div>
 
         <h1>LabStudio CRJ FLEXAL</h1>
@@ -1012,13 +1052,14 @@
       </div>
     </div>
 
-    <div id="aviso" class="aviso"></div>
+    <div id="aviso" class="aviso" role="status" aria-live="polite" aria-atomic="true"></div>
 
+    <!-- Atributos nativos ajudam o navegador a validar rápido antes da API, mantendo a validação principal no servidor. -->
     <div class="form-group">
       <label for="nome">Nome do Artista / Grupo</label>
       <div class="field-shell">
         <i class="fa-regular fa-user" aria-hidden="true"></i>
-        <input type="text" id="nome" placeholder="Ex: MC Jovem">
+        <input type="text" id="nome" placeholder="Ex: MC Jovem" autocomplete="name" maxlength="80" required aria-describedby="ajudaNome">
       </div>
       <div id="ajudaNome" class="campo-ajuda"></div>
     </div>
@@ -1027,7 +1068,7 @@
       <label for="telefone">WhatsApp</label>
       <div class="field-shell">
         <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
-        <input type="text" id="telefone" placeholder="Ex: 27999999999">
+        <input type="tel" id="telefone" placeholder="Ex: 27999999999" autocomplete="tel" inputmode="numeric" maxlength="18" pattern="[0-9\s()+-]{10,18}" required aria-describedby="ajudaTelefone">
       </div>
       <div id="ajudaTelefone" class="campo-ajuda"></div>
     </div>
@@ -1036,7 +1077,7 @@
       <label for="data">Data do Set</label>
       <div class="field-shell">
         <i class="fa-regular fa-calendar-days" aria-hidden="true"></i>
-        <input type="date" id="data">
+        <input type="date" id="data" required aria-describedby="aviso">
       </div>
     </div>
 
@@ -1044,13 +1085,13 @@
       <label for="horario">Horários Disponíveis</label>
       <div class="field-shell">
         <i class="fa-regular fa-clock" aria-hidden="true"></i>
-        <select id="horario">
+        <select id="horario" required aria-describedby="aviso">
           <option value="">Selecione uma data primeiro</option>
         </select>
       </div>
     </div>
 
-    <button id="btn">Confirmar Agendamento</button>
+    <button id="btn" type="button">Confirmar Agendamento</button>
   </div>
 
   <section id="sucessoAgendamento" class="success-panel" aria-live="polite" hidden>
@@ -1196,6 +1237,8 @@
     function mostrarAviso(mensagem, tipo = "erro") {
       aviso.innerText = mensagem;
       aviso.className = `aviso ${tipo === "aviso" ? "aviso-tipo" : tipo}`;
+      // Erros usam alert; avisos e sucesso usam status para não interromper a navegação.
+      aviso.setAttribute("role", tipo === "erro" ? "alert" : "status");
       aviso.style.display = "block";
     }
 
@@ -1207,6 +1250,8 @@
       const toast = document.createElement("div");
       toast.className = `toast ${tipo === "aviso" ? "aviso-tipo" : tipo}`;
       toast.textContent = mensagem;
+      // O papel muda conforme a gravidade para leitores de tela anunciarem erros com prioridade.
+      toast.setAttribute("role", tipo === "erro" ? "alert" : "status");
       toastContainer.appendChild(toast);
 
       setTimeout(() => {
@@ -1216,36 +1261,30 @@
 
     async function fetchApiJson(url, options = {}) {
       const requestUrl = url.startsWith("http") ? url : `${API_BASE_URL.replace(/\/$/, "")}${url}`;
-      console.debug("fetchApiJson requestUrl:", requestUrl);
       const resposta = await fetch(requestUrl, options);
       const texto = await resposta.text();
       const contentType = (resposta.headers.get("content-type") || "").toLowerCase();
 
-      if (!resposta.ok) {
-        let mensagemDetalhe = texto.trim().slice(0, 200);
-        if (!mensagemDetalhe) {
-          mensagemDetalhe = `${resposta.status} ${resposta.statusText}`;
-        }
-
-        try {
-          const json = JSON.parse(texto);
-          throw new Error(json.mensagem || mensagemDetalhe);
-        } catch (_err) {
-          throw new Error(`Erro ${resposta.status}: ${mensagemDetalhe}`);
-        }
-      }
-
+      // A API deve responder JSON; se não responder, mostramos uma falha clara para a equipe conferir o backend.
       if (!contentType.includes("application/json")) {
         throw new Error(
           "Resposta inesperada do servidor. Verifique se o backend está ativo e se você abriu o site via servidor HTTP."
         );
       }
 
+      let resultado;
+
       try {
-        return JSON.parse(texto);
+        resultado = JSON.parse(texto);
       } catch (err) {
         throw new Error(`Resposta JSON inválida do servidor: ${texto.slice(0, 160)}`);
       }
+
+      if (!resposta.ok) {
+        throw new Error(resultado.mensagem || `Erro ${resposta.status}: ${resposta.statusText}`);
+      }
+
+      return resultado;
     }
 
     // ===============================
@@ -1309,6 +1348,8 @@
       botao.disabled = carregando;
       botao.innerText = carregando ? textoCarregando : textoNormal;
       botao.classList.toggle("is-loading", carregando);
+      // aria-busy deixa claro que a ação ainda está em andamento sem criar outro componente.
+      botao.setAttribute("aria-busy", carregando ? "true" : "false");
     }
 
     // ===============================
@@ -1392,6 +1433,38 @@
       return String(valor || "").replace(/\D/g, "");
     }
 
+    function numeroTemDdiBrasil(valor) {
+      // Telefone BR: so considera 55 como DDI quando existem DDI + DDD + numero local.
+      const numero = limparTelefone(valor);
+      return numero.startsWith("55") && numero.length > 11;
+    }
+
+    function removerDdiBrasilSeInformado(valor) {
+      // Telefone BR: preserva numeros locais com DDD 55 e remove apenas o DDI 55 real.
+      const numero = limparTelefone(valor);
+      return numeroTemDdiBrasil(numero) ? numero.slice(2) : numero;
+    }
+
+    // ===============================
+    // FUNÇÃO: DATA ISO LOCAL
+    // Formata datas sem depender de UTC, evitando min errado em fusos diferentes.
+    // ===============================
+    function formatarDataIsoLocal(data) {
+      const ano = data.getFullYear();
+      const mes = String(data.getMonth() + 1).padStart(2, "0");
+      const dia = String(data.getDate()).padStart(2, "0");
+
+      return `${ano}-${mes}-${dia}`;
+    }
+
+    // ===============================
+    // FUNÇÃO: RESTRIÇÕES NATIVAS DA AGENDA
+    // Impede datas passadas no seletor antes da validação completa do servidor.
+    // ===============================
+    function aplicarRestricoesDataAgendamento() {
+      inputData.min = formatarDataIsoLocal(new Date());
+    }
+
     // ===============================
     // FUNÇÕES: VALIDAÇÃO EM TEMPO REAL
     // Orientam o jovem antes do envio final do agendamento.
@@ -1400,6 +1473,8 @@
       elementoAjuda.textContent = mensagem;
       elementoAjuda.className = `campo-ajuda ${tipo}`;
       campo.classList.toggle("campo-invalido", tipo === "erro");
+      // aria-invalid sincroniza a validação visual com leitores de tela.
+      campo.setAttribute("aria-invalid", tipo === "erro" ? "true" : "false");
     }
 
     function validarNomeTempoReal() {
@@ -1464,18 +1539,18 @@
 
         variantes.add(n);
 
-        // Se tem 55, também testa sem 55
-        if (n.startsWith("55")) {
-          variantes.add(n.slice(2));
+        // Telefone BR: so trata 55 como DDI quando o numero tem DDI + DDD + telefone.
+        if (numeroTemDdiBrasil(n)) {
+          variantes.add(removerDdiBrasilSeInformado(n));
         } else {
-          // Se não tem 55, também testa com 55
+          // Se nao tem DDI, tambem testa com 55 para manter compatibilidade com registros antigos.
           variantes.add("55" + n);
         }
       }
 
       adicionar(numero);
 
-      const sem55 = numero.startsWith("55") ? numero.slice(2) : numero;
+      const sem55 = removerDdiBrasilSeInformado(numero);
 
       adicionar(sem55);
 
@@ -1597,6 +1672,12 @@
       const dataStr = inputData.value;
       const horario = selectHorario.value;
 
+      // Validação nativa cobre campos vazios e formato de telefone antes das mensagens customizadas.
+      if (!inputNome.reportValidity() || !inputTelefone.reportValidity() || !inputData.reportValidity() || !selectHorario.reportValidity()) {
+        mostrarToast("Confira os campos destacados antes de confirmar.", "aviso");
+        return;
+      }
+
       // ===============================
       // VALIDAÇÃO SIMPLES DOS CAMPOS
       // ===============================
@@ -1631,33 +1712,11 @@
           throw new Error(resultadoAgendamento.mensagem || "Erro ao salvar agendamento.");
         }
 
-        const agendamento = resultadoAgendamento.agendamento || {};
+        const notificacaoOk = Boolean(resultadoAgendamento.whatsappNotificacaoEnviado);
 
-        // ===============================
-        // NOTIFICAR O BOT NO WHATSAPP
-        //
-        // Se o bot local estiver offline,
-        // o agendamento continua salvo,
-        // mas aparece aviso no console.
-        // ===============================
-        let notificacaoOk = true;
-
-        try {
-          await fetchApiJson("/notificar", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              nome: agendamento.nome || nome,
-              telefone: agendamento.telefone || telefone,
-              data: agendamento.data || dataStr,
-              horario: agendamento.horario || horario
-            })
-          });
-        } catch (zapError) {
-          notificacaoOk = false;
-          console.warn("Agendamento salvo, mas a notificação no WhatsApp falhou:", zapError);
+        if (!notificacaoOk) {
           mostrarToast(
-            "Agendamento salvo, mas não foi possível notificar por WhatsApp. Tente novamente em alguns minutos.",
+            "Agendamento salvo, mas a equipe precisa conferir a notificação no WhatsApp.",
             "aviso"
           );
         }
@@ -1687,6 +1746,7 @@
     }
 
     carregarTemaSalvo();
+    aplicarRestricoesDataAgendamento();
     verificarProtocoloLocal();
     carregarConfiguracoesPublicas();
     btnTema.addEventListener("click", alternarTema);
@@ -1705,6 +1765,9 @@
       ajudaTelefone.textContent = "";
       inputNome.classList.remove("campo-invalido");
       inputTelefone.classList.remove("campo-invalido");
+      // Ao reabrir o formulário, limpamos também o estado acessível dos campos.
+      inputNome.setAttribute("aria-invalid", "false");
+      inputTelefone.setAttribute("aria-invalid", "false");
       inputNome.focus();
     });
   </script>

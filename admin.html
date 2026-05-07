@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - LabStudio CRJ FLEXAL</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23070a16'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='18'%20fill='%2322d3ee'/%3E%3Cpath%20d='M25%2041V20h18v6H31v15z'%20fill='white'/%3E%3C/svg%3E">
+  <!-- Acelera a primeira conexão com o CDN dos ícones sem mudar a identidade visual. -->
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -511,10 +513,82 @@
     =============================== */
     .form-cadastro {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(4, minmax(240px, 1fr));
+      gap: 16px;
       margin-top: 14px;
-      align-items: end;
+      align-items: start;
+      justify-items: stretch;
+      align-content: start;
+      grid-auto-rows: minmax(0, auto);
+      grid-auto-flow: dense;
+    }
+
+    .form-cadastro > .grupo {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      min-height: 1px;
+      width: 100%;
+    }
+
+    .config-horarios-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 68px;
+      align-items: center;
+      padding: 8px;
+      border: 1px solid var(--soft-border);
+      border-radius: 10px;
+      background: var(--item-bg);
+      width: 100%;
+    }
+
+    .config-horarios-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-top: 10px;
+      width: 100%;
+      max-width: 100%;
+    }
+
+    .config-horarios-form input {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .config-horarios-form button {
+      width: auto;
+      min-width: 0;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1180px) {
+      .form-cadastro {
+        grid-template-columns: repeat(3, minmax(220px, 1fr));
+      }
+    }
+
+    @media (max-width: 900px) {
+      .form-cadastro {
+        grid-template-columns: repeat(2, minmax(220px, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .form-cadastro {
+        grid-template-columns: 1fr;
+      }
+
+      .config-horarios-form {
+        grid-template-columns: 1fr;
+      }
+
+      .config-horarios-form button {
+        width: 100%;
+      }
     }
 
     .form-ajuda {
@@ -1261,6 +1335,57 @@
       letter-spacing: 0;
     }
 
+    /* ===============================
+       ÁREAS PRIORITÁRIAS DA EQUIPE
+       Intenção: destacar blocos que a equipe precisa revisar primeiro, sem mudar dados ou regras.
+    =============================== */
+    .priority-panel {
+      position: relative;
+      overflow: hidden;
+      border-color: rgba(34, 211, 238, 0.22);
+    }
+
+    /* A faixa lateral cria hierarquia visual mantendo a identidade escura/translúcida do painel. */
+    .priority-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      background: var(--accent);
+      opacity: 0.9;
+    }
+
+    .priority-panel > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .priority-panel-warning::before {
+      background: var(--warning);
+    }
+
+    .priority-panel-danger::before {
+      background: var(--danger);
+    }
+
+    .priority-panel-success::before {
+      background: var(--success);
+    }
+
+    .priority-panel-info::before {
+      background: var(--accent);
+    }
+
+    /* Texto de apoio curto orienta a ação da equipe sem criar uma nova funcionalidade. */
+    .priority-note {
+      width: 100%;
+      margin: 2px 0 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--soft-border);
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.28);
+    }
+
     .admin-brand-mark {
       width: 44px;
       height: 44px;
@@ -1679,6 +1804,99 @@
     }
 
     /* ===============================
+       ESTADOS VISUAIS PADRONIZADOS
+       Intenção: deixar loading, erro, sucesso, aviso e vazio com leitura consistente sem alterar fluxos.
+    =============================== */
+    .toast {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      border-left: 4px solid rgba(34, 211, 238, 0.62);
+    }
+
+    /* Ícones por tipo ajudam a equipe reconhecer o retorno rapidamente sem ler todo o texto. */
+    .toast::before {
+      content: "\f05a";
+      margin-top: 2px;
+      font-family: "Font Awesome 6 Free";
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    .toast.sucesso {
+      border-color: rgba(34, 197, 94, 0.5);
+      border-left-color: rgba(34, 197, 94, 0.82);
+      background: linear-gradient(135deg, rgba(20, 83, 45, 0.34), var(--toast-bg));
+    }
+
+    .toast.sucesso::before {
+      content: "\f058";
+      color: #86efac;
+    }
+
+    .toast.erro {
+      border-color: rgba(239, 68, 68, 0.55);
+      border-left-color: rgba(239, 68, 68, 0.86);
+      background: linear-gradient(135deg, rgba(127, 29, 29, 0.34), var(--toast-bg));
+    }
+
+    .toast.erro::before {
+      content: "\f071";
+      color: #fca5a5;
+    }
+
+    .toast.aviso {
+      border-color: rgba(245, 158, 11, 0.55);
+      border-left-color: rgba(245, 158, 11, 0.9);
+      background: linear-gradient(135deg, rgba(113, 63, 18, 0.32), var(--toast-bg));
+    }
+
+    .toast.aviso::before {
+      content: "\f06a";
+      color: #fcd34d;
+    }
+
+    /* Vazio padronizado: mantém a tela calma quando não há dados ou quando uma lista está carregando. */
+    .vazio {
+      border-style: dashed;
+      background:
+        linear-gradient(180deg, rgba(15, 23, 42, 0.42), rgba(15, 23, 42, 0.22));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .vazio strong {
+      font-size: 0.98rem;
+      line-height: 1.35;
+    }
+
+    .vazio span {
+      max-width: 52ch;
+      margin: 0 auto;
+    }
+
+    /* Chips de status ficam com altura e peso visual parecidos em listas, calendário e cards. */
+    .status {
+      min-height: 30px;
+      padding: 6px 10px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    /* Loading padronizado: evita clique repetido e mantém o spinner alinhado ao texto do botão. */
+    button.is-loading {
+      pointer-events: none;
+      justify-content: center;
+    }
+
+    button.is-loading::after {
+      flex: 0 0 auto;
+    }
+
+    /* Disabled fora de loading fica claramente inativo sem parecer erro ou ação perigosa. */
+    button:disabled:not(.is-loading) {
+      filter: saturate(0.72);
+    }
+
+    /* ===============================
        MODAIS DO ADMIN
        Substituem prompts/confirms do navegador por dialogos de vidro.
     =============================== */
@@ -1870,7 +2088,7 @@
 </head>
 
 <body>
-  <div id="toastContainer" class="toast-container" aria-live="polite"></div>
+  <div id="toastContainer" class="toast-container" role="status" aria-live="polite" aria-atomic="false"></div>
 
   <div id="modalAdminOverlay" class="modal-admin-overlay" aria-hidden="true">
     <div class="modal-admin-card" role="dialog" aria-modal="true" aria-labelledby="modalAdminTitulo">
@@ -1901,15 +2119,17 @@
 
       <div class="grupo">
         <label for="emailAdmin">Email</label>
-        <input type="email" id="emailAdmin" placeholder="admin@exemplo.com" autocomplete="username">
+        <!-- required deixa o navegador bloquear envio vazio antes da autenticação no Supabase. -->
+        <input type="email" id="emailAdmin" placeholder="admin@exemplo.com" autocomplete="username" required spellcheck="false">
       </div>
 
       <div class="grupo">
         <label for="senhaAdmin">Senha</label>
-        <input type="password" id="senhaAdmin" placeholder="Digite a senha" autocomplete="current-password">
+        <!-- required reduz erro operacional da equipe sem mudar a regra real de login. -->
+        <input type="password" id="senhaAdmin" placeholder="Digite a senha" autocomplete="current-password" required>
       </div>
 
-      <button id="btnEntrar" style="width: 100%; margin-top: 16px;">
+      <button id="btnEntrar" type="button" style="width: 100%; margin-top: 16px;">
         Entrar
       </button>
 
@@ -1932,7 +2152,7 @@
 
       <div class="topo-acoes">
         <button id="btnTema" class="btn-tema" type="button" aria-label="Alternar tema">Escuro</button>
-        <button id="btnSair" class="btn-sair">Sair</button>
+        <button id="btnSair" class="btn-sair" type="button">Sair</button>
       </div>
     </div>
 
@@ -1940,58 +2160,78 @@
          NAVEGAÇÃO INTERNA DO PAINEL
          As abas evitam uma tela única muito longa.
     =============================== -->
-    <div class="nav-abas">
-      <button class="aba-botao ativa" data-tab="dashboard"><i class="fa-solid fa-chart-line" aria-hidden="true"></i>Dashboard</button>
-      <button class="aba-botao" data-tab="agendamentos"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i>Agendamentos</button>
-      <button class="aba-botao" data-tab="calendario"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i>Calendário</button>
-      <button class="aba-botao" data-tab="usuarios"><i class="fa-solid fa-users" aria-hidden="true"></i>Usuários</button>
-      <button class="aba-botao" data-tab="relatorios"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i>Relatórios</button>
-      <button class="aba-botao" data-tab="configuracoes"><i class="fa-solid fa-gear" aria-hidden="true"></i>Configurações</button>
+    <!-- ARIA nas abas mantém a navegação clara para a equipe e para leitores de tela. -->
+    <div class="nav-abas" role="tablist" aria-label="Áreas do painel administrativo">
+      <button id="tab-dashboard" class="aba-botao ativa" type="button" role="tab" aria-selected="true" aria-controls="aba-dashboard" data-tab="dashboard"><i class="fa-solid fa-chart-line" aria-hidden="true"></i>Dashboard</button>
+      <button id="tab-agendamentos" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-agendamentos" data-tab="agendamentos"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i>Agendamentos</button>
+      <button id="tab-calendario" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-calendario" data-tab="calendario"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i>Calendário</button>
+      <button id="tab-usuarios" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-usuarios" data-tab="usuarios"><i class="fa-solid fa-users" aria-hidden="true"></i>Usuários</button>
+      <button id="tab-relatorios" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-relatorios" data-tab="relatorios"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i>Relatórios</button>
+      <button id="tab-configuracoes" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-configuracoes" data-tab="configuracoes"><i class="fa-solid fa-gear" aria-hidden="true"></i>Configurações</button>
     </div>
 
     <!-- ===============================
          ABA 1: DASHBOARD
          Mostra apenas uma visão rápida do funcionamento.
     =============================== -->
-    <section id="aba-dashboard" class="aba-painel ativa">
+    <section id="aba-dashboard" class="aba-painel ativa" role="tabpanel" aria-labelledby="tab-dashboard">
       <h2 class="titulo-aba"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Dashboard</h2>
       <p class="descricao-aba">Visão rápida para acompanhar o que precisa de atenção hoje.</p>
 
       <div id="painelResumo" class="painel-resumo">
-        <div class="vazio">Carregando resumo...</div>
+        <div class="vazio">Buscando resumo...</div>
       </div>
 
-      <div class="painel-pendencias">
+      <!-- Área prioritária: pendências exigem conferência diária antes de registrar faltas. -->
+      <div class="painel-pendencias priority-panel priority-panel-warning">
         <div class="pendencias-topo">
-          <h2><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Pendências de verificação</h2>
+          <h2><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Pendências para revisar</h2>
 
+          <!-- Texto operacional: "registrar" deixa claro que o botão grava faltas pendentes no sistema. -->
           <button id="btnProcessarPendencias" class="btn-falta">
-            Processar faltas pendentes
+            Registrar faltas pendentes
           </button>
         </div>
 
+        <div class="form-ajuda priority-note">
+          Confira agendamentos passados que ainda precisam de presença ou falta antes de processar em lote.
+        </div>
+
         <div id="conteudoPendencias">
-          <div class="vazio">Carregando pendências...</div>
+          <!-- Texto operacional: loading curto informa que a lista prioritária está sendo consultada. -->
+          <div class="vazio">Buscando pendências...</div>
         </div>
       </div>
 
-      <div class="painel-usuarios">
+      <!-- Área prioritária: bloqueios afetam o acesso do jovem ao agendamento e devem ficar visíveis. -->
+      <div class="painel-usuarios priority-panel priority-panel-danger">
         <div class="usuarios-topo">
-          <h2><i class="fa-solid fa-user-lock" aria-hidden="true"></i> Usuários bloqueados</h2>
+          <h2><i class="fa-solid fa-user-lock" aria-hidden="true"></i> Jovens bloqueados</h2>
+        </div>
+
+        <div class="form-ajuda priority-note">
+          Acompanhe quem está impedido de agendar e regularize somente após conferência da equipe.
         </div>
 
         <div id="conteudoBloqueados">
-          <div class="vazio">Carregando usuários bloqueados...</div>
+          <!-- Texto operacional: usa "jovens" para manter a linguagem do CRJ no painel. -->
+          <div class="vazio">Buscando jovens bloqueados...</div>
         </div>
       </div>
 
-      <div class="painel-pendencias">
+      <!-- Área prioritária: próximos agendamentos ajudam a equipe organizar recepção e preparação do estúdio. -->
+      <div class="painel-pendencias priority-panel priority-panel-info">
         <div class="pendencias-topo">
-          <h2><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Próximos agendamentos</h2>
+          <h2><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Próximos horários</h2>
+        </div>
+
+        <div class="form-ajuda priority-note">
+          Veja os atendimentos mais próximos para preparar a agenda, a equipe e o espaço do LabStudio.
         </div>
 
         <div id="dashboardAgendamentos">
-          <div class="vazio">Carregando próximos agendamentos...</div>
+          <!-- Texto operacional: aproxima a mensagem do nome visual "Próximos horários". -->
+          <div class="vazio">Buscando próximos horários...</div>
         </div>
       </div>
     </section>
@@ -2000,7 +2240,7 @@
          ABA 2: AGENDAMENTOS
          Concentra filtros e lista completa de agendamentos.
     =============================== -->
-    <section id="aba-agendamentos" class="aba-painel">
+    <section id="aba-agendamentos" class="aba-painel" role="tabpanel" aria-labelledby="tab-agendamentos" hidden>
       <h2 class="titulo-aba"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Agendamentos</h2>
       <p class="descricao-aba">Consulte, filtre e atualize o status dos agendamentos.</p>
 
@@ -2027,7 +2267,8 @@
         </div>
 
         <button id="btnFiltrar">Filtrar</button>
-        <button id="btnLimpar" class="btn-secundario">Limpar</button>
+        <!-- Texto operacional: deixa claro que a ação remove apenas filtros, não dados do sistema. -->
+        <button id="btnLimpar" class="btn-secundario">Limpar filtros</button>
       </div>
 
       <div id="listaAgendamentos"></div>
@@ -2037,13 +2278,13 @@
          ABA 3: CALENDÁRIO
          Visualiza a ocupação mensal usando a configuração dinâmica.
     =============================== -->
-    <section id="aba-calendario" class="aba-painel">
+    <section id="aba-calendario" class="aba-painel" role="tabpanel" aria-labelledby="tab-calendario" hidden>
       <h2 class="titulo-aba"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i> Calendário</h2>
       <p class="descricao-aba">Acompanhe a agenda do mês, veja disponibilidade por dia e acesse os detalhes de cada horário.</p>
 
       <div class="painel-usuarios calendario-shell">
         <div class="calendario-toolbar">
-          <h2 id="calendarioTituloMes">Carregando mês...</h2>
+          <h2 id="calendarioTituloMes">Buscando mês...</h2>
 
           <div class="calendario-acoes">
             <button id="btnCalendarioAnterior" class="btn-secundario" type="button" title="Mês anterior"><i class="fa-solid fa-chevron-left" aria-hidden="true"></i>Mês anterior</button>
@@ -2071,7 +2312,7 @@
         </div>
 
         <div id="calendarioGrade" class="calendario-grade">
-          <div class="vazio">Carregando calendário...</div>
+          <div class="vazio">Buscando calendário...</div>
         </div>
       </div>
 
@@ -2086,21 +2327,23 @@
          ABA 4: USUÁRIOS
          Mantém cadastro, edição e ações de bloqueio.
     =============================== -->
-    <section id="aba-usuarios" class="aba-painel">
+    <section id="aba-usuarios" class="aba-painel" role="tabpanel" aria-labelledby="tab-usuarios" hidden>
       <h2 class="titulo-aba"><i class="fa-solid fa-users" aria-hidden="true"></i> Usuários</h2>
       <p class="descricao-aba">Cadastre jovens, edite dados, acompanhe faltas e controle bloqueios.</p>
 
-      <div class="painel-usuarios">
+      <!-- Área prioritária: cadastros pendentes são o primeiro passo para liberar novos agendamentos. -->
+      <div class="painel-usuarios priority-panel priority-panel-success">
         <div class="usuarios-topo">
-          <h2><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Cadastros online pendentes</h2>
+          <h2><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Cadastros para análise</h2>
         </div>
 
-        <div class="form-ajuda">
-          Analise os cadastros enviados pelo formulário online antes de liberar o agendamento.
+        <div class="form-ajuda priority-note">
+          Confira os dados enviados online e aprove apenas quem já pode acessar o agendamento do LabStudio.
         </div>
 
         <div id="conteudoCadastrosOnline">
-          <div class="vazio">Carregando cadastros online pendentes...</div>
+          <!-- Texto operacional: reforça que estes cadastros aguardam análise da equipe. -->
+          <div class="vazio">Buscando cadastros para análise...</div>
         </div>
       </div>
 
@@ -2113,22 +2356,23 @@
           Cadastre jovens diretamente pelo painel. O telefone pode ser digitado com ou sem +55, com ou sem traços.
         </div>
 
+        <!-- Validações nativas reduzem retrabalho da equipe antes das regras completas em JavaScript/Supabase. -->
         <div class="form-cadastro form-cadastro-usuario">
           <div class="grupo">
             <label for="novoNome">Nome</label>
-            <input type="text" id="novoNome" placeholder="Ex: MC Jovem">
+            <input type="text" id="novoNome" placeholder="Ex: MC Jovem" autocomplete="name" maxlength="100" required>
             <div id="ajudaNovoNome" class="campo-ajuda"></div>
           </div>
 
           <div class="grupo">
             <label for="novoTelefone">WhatsApp</label>
-            <input type="text" id="novoTelefone" placeholder="Ex: 27999999999">
+            <input type="tel" id="novoTelefone" placeholder="Ex: 27999999999" autocomplete="tel" inputmode="numeric" maxlength="18" pattern="[0-9\s()+-]{10,18}" required>
             <div id="ajudaNovoTelefone" class="campo-ajuda"></div>
           </div>
 
           <div class="grupo">
             <label for="novaDataNascimento">Data de nascimento</label>
-            <input type="date" id="novaDataNascimento">
+            <input type="date" id="novaDataNascimento" required>
             <div id="ajudaNovaDataNascimento" class="campo-ajuda"></div>
           </div>
 
@@ -2148,7 +2392,7 @@
             </select>
           </div>
 
-          <button id="btnSalvarUsuario" class="btn-salvar">
+          <button id="btnSalvarUsuario" class="btn-salvar" type="button">
             Salvar usuário
           </button>
         </div>
@@ -2160,7 +2404,8 @@
         </div>
 
         <div id="conteudoUsuarios">
-          <div class="vazio">Carregando usuários...</div>
+          <!-- Retorno padronizado: evita impressão de tela parada enquanto a lista de jovens abre. -->
+          <div class="vazio">Buscando usuários cadastrados...</div>
         </div>
       </div>
     </section>
@@ -2169,12 +2414,12 @@
          ABA 5: RELATÓRIOS
          Consolida rankings e totais gerais.
     =============================== -->
-    <section id="aba-relatorios" class="aba-painel">
+    <section id="aba-relatorios" class="aba-painel" role="tabpanel" aria-labelledby="tab-relatorios" hidden>
       <h2 class="titulo-aba"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Relatórios</h2>
       <p class="descricao-aba">Acompanhe números gerais, presença, faltas, cancelamentos e usuários.</p>
 
       <div id="painelRelatorios" class="painel-resumo">
-        <div class="vazio">Carregando relatórios...</div>
+        <div class="vazio">Buscando relatórios...</div>
       </div>
 
       <!-- ===============================
@@ -2187,7 +2432,7 @@
         </div>
 
         <div id="conteudoLogsAdmin">
-          <div class="vazio">Carregando logs administrativos...</div>
+          <div class="vazio">Buscando logs...</div>
         </div>
       </div>
     </section>
@@ -2196,7 +2441,7 @@
          ABA 6: CONFIGURAÇÕES
          Nesta primeira etapa, mostra a configuração central em modo leitura.
     =============================== -->
-    <section id="aba-configuracoes" class="aba-painel">
+    <section id="aba-configuracoes" class="aba-painel" role="tabpanel" aria-labelledby="tab-configuracoes" hidden>
       <h2 class="titulo-aba"><i class="fa-solid fa-gear" aria-hidden="true"></i> Configurações</h2>
       <p class="descricao-aba">Consulte e ajuste as regras locais da v2.0, como dias de funcionamento, horários, faixa etária, faltas, link público e observações internas.</p>
 
@@ -2206,7 +2451,7 @@
         </div>
 
         <div id="conteudoConfiguracoes">
-          <div class="vazio">Carregando configurações...</div>
+          <div class="vazio">Buscando configurações...</div>
         </div>
       </div>
     </section>
@@ -2386,9 +2631,15 @@
     // Exibe mensagens rápidas sem interromper o fluxo do painel.
     // ===============================
     function mostrarToast(mensagem, tipo = "erro") {
+      // Retorno padronizado: evita toast vazio e limita tipos aos estados visuais existentes.
+      const tipoSeguro = ["sucesso", "erro", "aviso"].includes(tipo) ? tipo : "erro";
+      const mensagemSegura = String(mensagem || "Não foi possível concluir a ação. Tente novamente.");
+
       const toast = document.createElement("div");
-      toast.className = `toast ${tipo}`;
-      toast.textContent = mensagem;
+      toast.className = `toast ${tipoSeguro}`;
+      toast.textContent = mensagemSegura;
+      // O papel muda conforme a gravidade para leitores de tela anunciarem erros com prioridade.
+      toast.setAttribute("role", tipoSeguro === "erro" ? "alert" : "status");
       toastContainer.appendChild(toast);
 
       setTimeout(() => {
@@ -2406,6 +2657,10 @@
       botao.disabled = carregando;
       botao.innerText = carregando ? textoCarregando : textoNormal;
       botao.classList.toggle("is-loading", carregando);
+      // aria-busy deixa claro que a ação administrativa ainda está em andamento.
+      botao.setAttribute("aria-busy", carregando ? "true" : "false");
+      // Retorno padronizado: aria-disabled acompanha disabled para tecnologia assistiva.
+      botao.setAttribute("aria-disabled", carregando ? "true" : "false");
     }
 
     // ===============================
@@ -2413,11 +2668,15 @@
     // Cria blocos mais amigáveis para listas sem resultados.
     // ===============================
     function mensagemVazio(titulo, descricao) {
+      // Retorno padronizado: garante que erro/lista vazia nunca apareça sem texto útil para a equipe.
+      const tituloSeguro = titulo || "Nenhum dado para exibir.";
+      const descricaoSegura = descricao || "Atualize a página ou tente novamente em instantes.";
+
       return `
         <div class="vazio">
           <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
-          <strong>${escaparHtml(titulo)}</strong>
-          <span>${escaparHtml(descricao)}</span>
+          <strong>${escaparHtml(tituloSeguro)}</strong>
+          <span>${escaparHtml(descricaoSegura)}</span>
         </div>
       `;
     }
@@ -2668,7 +2927,14 @@
       try {
         const resposta = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/configuracoes-publicas`);
         const texto = await resposta.text();
-        const resultado = JSON.parse(texto);
+        // Retorno de API: trata resposta vazia ou fora de JSON sem quebrar o painel inteiro.
+        let resultado = {};
+
+        try {
+          resultado = texto ? JSON.parse(texto) : {};
+        } catch (_err) {
+          throw new Error("A configuração pública retornou uma resposta inválida.");
+        }
 
         if (!resposta.ok || !resultado.config) {
           throw new Error(resultado.mensagem || "Configuração pública indisponível.");
@@ -2710,6 +2976,20 @@
       }
 
       return Boolean(data);
+    }
+
+    async function obterCabecalhosAdminJson() {
+      const { data, error } = await client.auth.getSession();
+      const token = data && data.session && data.session.access_token;
+
+      if (error || !token) {
+        throw new Error("Sessão administrativa expirada. Entre novamente.");
+      }
+
+      return {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      };
     }
 
     // ===============================
@@ -2786,11 +3066,17 @@
       const abaFinal = abaExiste ? nomeAba : "dashboard";
 
       botoesAbas.forEach(botao => {
-        botao.classList.toggle("ativa", botao.dataset.tab === abaFinal);
+        const abaAtiva = botao.dataset.tab === abaFinal;
+        botao.classList.toggle("ativa", abaAtiva);
+        // Mantém a navegação por abas compreensível para leitores de tela.
+        botao.setAttribute("aria-selected", abaAtiva ? "true" : "false");
       });
 
       paineisAbas.forEach(painel => {
-        painel.classList.toggle("ativa", painel.id === `aba-${abaFinal}`);
+        const painelAtivo = painel.id === `aba-${abaFinal}`;
+        painel.classList.toggle("ativa", painelAtivo);
+        // hidden acompanha a classe visual para o painel inativo não entrar na navegação.
+        painel.hidden = !painelAtivo;
       });
 
       localStorage.setItem("labstudio_admin_aba", abaFinal);
@@ -2805,6 +3091,12 @@
       const senhaDigitada = senhaAdmin.value.trim();
 
       limparErroLogin();
+
+      // Validação nativa cobre email mal formatado antes de chamar o Supabase.
+      if (!emailAdmin.reportValidity() || !senhaAdmin.reportValidity()) {
+        mostrarToast("Confira email e senha antes de entrar.", "aviso");
+        return;
+      }
 
       if (!emailDigitado || !senhaDigitada) {
         mostrarErroLogin("Digite email e senha.");
@@ -3040,15 +3332,6 @@
 
       return dataObjeto.toLocaleString("pt-BR");
     }
-
-    // ===============================
-    // FIM DA PARTE 1
-    // Continue colando a PARTE 2 logo abaixo desta linha.
-    // ===============================
-        // ===============================
-    // INÍCIO DA PARTE 2
-    // Continue exatamente após o fim da PARTE 1.
-    // ===============================
 
     // ===============================
     // FUNÇÃO: CLASSE VISUAL DO STATUS DO AGENDAMENTO
@@ -3353,7 +3636,7 @@
               data-agendamento-id="${escaparHtml(agendamento.id)}"
               ${desabilitarCancelar ? "disabled" : ""}
             >
-              Cancelar
+              Cancelar com motivo
             </button>
 
             <button
@@ -3533,8 +3816,8 @@
       if (!calendarioGrade || !calendarioDetalhe || !calendarioTituloMes) return;
 
       calendarioTituloMes.textContent = nomeMesCalendario(calendarioMesAtual);
-      calendarioGrade.innerHTML = '<div class="vazio" style="grid-column: 1 / -1;">Carregando calendário...</div>';
-      calendarioDetalhe.innerHTML = '<div class="vazio">Carregando detalhes do calendário...</div>';
+      calendarioGrade.innerHTML = '<div class="vazio" style="grid-column: 1 / -1;">Buscando calendário...</div>';
+      calendarioDetalhe.innerHTML = '<div class="vazio">Buscando detalhes do calendário...</div>';
 
       try {
         const ano = calendarioMesAtual.getFullYear();
@@ -3566,10 +3849,13 @@
       } catch (err) {
         console.error("Erro ao carregar calendário:", err);
         calendarioAgendamentosMes = [];
+        // Retorno padronizado: calendário também usa mensagemVazio quando a consulta de agendamentos do mês falha.
         calendarioGrade.innerHTML = `
-          <div class="vazio" style="grid-column: 1 / -1;">
-            <strong>Erro ao carregar calendário.</strong>
-            <span>${escaparHtml(err.message || "Não foi possível buscar agendamentos do mês.")}</span>
+          <div style="grid-column: 1 / -1;">
+            ${mensagemVazio(
+              "Não foi possível carregar calendário.",
+              `A consulta de agendamentos do mês falhou. Detalhe técnico: ${err.message || "sem detalhe informado"}`
+            )}
           </div>
         `;
         calendarioDetalhe.innerHTML = mensagemVazio(
@@ -3829,6 +4115,18 @@
       return String(valor || "").replace(/\D/g, "");
     }
 
+    function numeroTemDdiBrasil(valor) {
+      // Telefone BR: so considera 55 como DDI quando existem DDI + DDD + numero local.
+      const numero = limparTelefone(valor);
+      return numero.startsWith("55") && numero.length > 11;
+    }
+
+    function removerDdiBrasilSeInformado(valor) {
+      // Telefone BR: preserva numeros locais com DDD 55 e remove apenas o DDI 55 real.
+      const numero = limparTelefone(valor);
+      return numeroTemDdiBrasil(numero) ? numero.slice(2) : numero;
+    }
+
     // ===============================
     // FUNÇÕES: VALIDAÇÃO EM TEMPO REAL DO CADASTRO MANUAL
     // Ajuda a equipe a identificar erros antes de salvar o usuário.
@@ -3917,16 +4215,18 @@
 
         variantes.add(n);
 
-        if (n.startsWith("55")) {
-          variantes.add(n.slice(2));
+        // Telefone BR: so trata 55 como DDI quando o numero tem DDI + DDD + telefone.
+        if (numeroTemDdiBrasil(n)) {
+          variantes.add(removerDdiBrasilSeInformado(n));
         } else {
+          // Se nao tem DDI, tambem testa com 55 para manter compatibilidade com registros antigos.
           variantes.add("55" + n);
         }
       }
 
       adicionar(numero);
 
-      const sem55 = numero.startsWith("55") ? numero.slice(2) : numero;
+      const sem55 = removerDdiBrasilSeInformado(numero);
 
       adicionar(sem55);
 
@@ -4020,8 +4320,6 @@
     async function buscarUsuarioPorTelefone(telefone) {
       const variantesDigitadas = gerarVariantesTelefone(telefone);
 
-      console.log("🔎 Variantes do telefone:", variantesDigitadas);
-
       const { data: usuarios, error } = await client
         .from("usuarios")
         .select("*");
@@ -4039,10 +4337,8 @@
         );
       });
 
-      if (usuarioEncontrado) {
-        console.log("✅ Usuário encontrado:", usuarioEncontrado.nome, usuarioEncontrado.telefone);
-      } else {
-        console.warn("❌ Usuário não encontrado para o telefone:", telefone);
+      if (!usuarioEncontrado) {
+        console.warn("Usuário não encontrado para o telefone informado.");
       }
 
       return usuarioEncontrado || null;
@@ -4172,13 +4468,6 @@
         return false;
       }
 
-      console.log("✅ Usuário atualizado:", {
-        nome: usuario.nome,
-        presencas: novasPresencas,
-        faltas: novasFaltas,
-        status: novoStatus
-      });
-
       return true;
     }
 
@@ -4195,6 +4484,12 @@
       const dataNascimento = novaDataNascimento.value;
       const status = novoStatus.value;
       const cadastrado = novoCadastrado.value === "true";
+
+      // Validação nativa aponta campos obrigatórios antes da validação customizada do painel.
+      if (!novoNome.reportValidity() || !novoTelefone.reportValidity() || !novaDataNascimento.reportValidity()) {
+        mostrarToast("Confira os campos obrigatórios do novo usuário.", "aviso");
+        return;
+      }
 
       if (!validarCadastroManualTempoReal() || !nome || !telefoneLimpo || !dataNascimento) {
         mostrarToast("Preencha nome, telefone e data de nascimento antes de salvar.", "aviso");
@@ -4278,15 +4573,23 @@
     // Monta resumo geral, ranking de presença, ranking de faltas e bloqueados.
     // ===============================
     async function carregarResumoRanking() {
-      painelResumo.innerHTML = '<div class="vazio">Carregando resumo...</div>';
+      // Retorno padronizado: informa que o resumo está sendo buscado antes das consultas do Supabase.
+      painelResumo.innerHTML = '<div class="vazio">Buscando resumo do painel...</div>';
 
       const { data: agendamentos, error: erroAgendamentos } = await client
         .from("agendamentos")
         .select("*");
 
       if (erroAgendamentos) {
-        painelResumo.innerHTML = `<div class="vazio">Erro ao carregar resumo: ${erroAgendamentos.message}</div>`;
-        painelRelatorios.innerHTML = `<div class="vazio">Erro ao carregar relatórios: ${erroAgendamentos.message}</div>`;
+        // Retorno padronizado: mantém resumo e relatórios com mensagem compreensível se a agenda falhar.
+        painelResumo.innerHTML = mensagemVazio(
+          "Não foi possível carregar o resumo.",
+          `A consulta de agendamentos falhou. Detalhe técnico: ${erroAgendamentos.message}`
+        );
+        painelRelatorios.innerHTML = mensagemVazio(
+          "Relatórios indisponíveis no momento.",
+          `A consulta de agendamentos falhou. Detalhe técnico: ${erroAgendamentos.message}`
+        );
         return;
       }
 
@@ -4295,8 +4598,15 @@
         .select("*");
 
       if (erroUsuarios) {
-        painelResumo.innerHTML = `<div class="vazio">Erro ao carregar usuários: ${erroUsuarios.message}</div>`;
-        painelRelatorios.innerHTML = `<div class="vazio">Erro ao carregar usuários: ${erroUsuarios.message}</div>`;
+        // Retorno padronizado: deixa claro que o problema está na base de usuários.
+        painelResumo.innerHTML = mensagemVazio(
+          "Não foi possível carregar dados de usuários.",
+          `O resumo depende da lista de usuários. Detalhe técnico: ${erroUsuarios.message}`
+        );
+        painelRelatorios.innerHTML = mensagemVazio(
+          "Relatórios de usuários indisponíveis.",
+          `A consulta de usuários falhou. Detalhe técnico: ${erroUsuarios.message}`
+        );
         return;
       }
 
@@ -4452,7 +4762,8 @@
     // Lista os registros recentes de auditoria na aba Relatórios.
     // ===============================
     async function carregarLogsAdmin() {
-      conteudoLogsAdmin.innerHTML = '<div class="vazio">Carregando logs administrativos...</div>';
+      // Retorno padronizado: loading da auditoria usa a mesma linguagem de busca das listas.
+      conteudoLogsAdmin.innerHTML = '<div class="vazio">Buscando logs administrativos...</div>';
 
       const { data, error } = await client
         .from("admin_logs")
@@ -4461,7 +4772,11 @@
         .limit(30);
 
       if (error) {
-        conteudoLogsAdmin.innerHTML = `<div class="vazio">Erro ao carregar logs administrativos: ${error.message}</div>`;
+        // Retorno padronizado: auditoria não fica em branco quando a consulta falha.
+        conteudoLogsAdmin.innerHTML = mensagemVazio(
+          "Não foi possível carregar logs administrativos.",
+          `As ações principais continuam funcionando. Detalhe técnico: ${error.message}`
+        );
         return;
       }
 
@@ -4654,15 +4969,17 @@
 
       try {
         const totalAgendamentos = await contarAgendamentosPorHorario(horarioLimpo);
+        // Confirmação perigosa: avisa quando remover um horário pode afetar a agenda futura sem apagar registros antigos.
         const avisoAgendamentos = totalAgendamentos > 0
-          ? `\n\nExistem ${totalAgendamentos} agendamento(s) neste horário. Remover pode ocultar este horário da agenda futura, mas não apaga agendamentos existentes.`
+          ? `\n\nAtenção: existem ${totalAgendamentos} agendamento(s) neste horário. A remoção pode tirar esse horário da agenda futura, mas não apaga os agendamentos já criados.`
           : "";
         const confirmar = await confirmarAcaoAdmin(
-          "Remover horário",
-          `Remover o horário ${horarioLimpo} da configuração v2-local?${avisoAgendamentos}`,
+          "Remover horário da agenda",
+          `Remover ${horarioLimpo} dos horários disponíveis da configuração v2-local?${avisoAgendamentos}\n\nDepois da remoção, revise o preview e clique em "Salvar configurações" para aplicar.`,
           {
             tipo: "aviso",
-            textoConfirmar: "Remover horário"
+            textoConfirmar: "Remover horário",
+            textoCancelar: "Manter horário"
           }
         );
 
@@ -4985,7 +5302,20 @@
       document.getElementById("configObservacaoInterna").value = config.observacao_interna || "";
     }
 
-    function restaurarPadraoLocalConfiguracoes() {
+    async function restaurarPadraoLocalConfiguracoes() {
+      // Confirmação perigosa: restaurar padrão sobrescreve o formulário atual, mas só aplica depois de salvar.
+      const confirmar = await confirmarAcaoAdmin(
+        "Restaurar padrão local?",
+        "Isso vai substituir os campos do formulário pelo padrão local do LabStudio. Nada será salvo automaticamente; revise tudo e clique em \"Salvar configurações\" para aplicar.",
+        {
+          tipo: "aviso",
+          textoConfirmar: "Restaurar formulário",
+          textoCancelar: "Manter edição"
+        }
+      );
+
+      if (!confirmar) return;
+
       preencherFormularioConfiguracoes({
         ...CONFIG_ADMIN_FALLBACK,
         observacao_interna: configLabStudio.observacao_interna || ""
@@ -5108,7 +5438,7 @@
     // Busca a configuração e renderiza visualização ou edição.
     // ===============================
     async function carregarConfiguracoesLabStudio() {
-      conteudoConfiguracoes.innerHTML = '<div class="vazio">Carregando configurações...</div>';
+      conteudoConfiguracoes.innerHTML = '<div class="vazio">Buscando configurações...</div>';
 
       try {
         await carregarConfiguracoesPublicas();
@@ -5149,7 +5479,8 @@
     // Mostra área específica para desbloquear usuários manualmente.
     // ===============================
     async function carregarUsuariosBloqueados() {
-      conteudoBloqueados.innerHTML = '<div class="vazio">Carregando usuários bloqueados...</div>';
+      // Texto operacional: loading usa "jovens" para combinar com a linguagem visível do dashboard.
+      conteudoBloqueados.innerHTML = '<div class="vazio">Buscando jovens bloqueados...</div>';
 
       const { data, error } = await client
         .from("usuarios")
@@ -5158,7 +5489,11 @@
         .order("nome", { ascending: true });
 
       if (error) {
-        conteudoBloqueados.innerHTML = `<div class="vazio">Erro ao carregar bloqueados: ${error.message}</div>`;
+        // Texto operacional: erro explica o impacto para a rotina da equipe.
+        conteudoBloqueados.innerHTML = mensagemVazio(
+          "Não foi possível carregar jovens bloqueados.",
+          `A equipe pode revisar as outras áreas enquanto isso. Detalhe técnico: ${error.message}`
+        );
         return;
       }
 
@@ -5167,9 +5502,10 @@
       );
 
       if (bloqueadosFiltrados.length === 0) {
+        // Texto operacional: vazio confirma que não há bloqueio exigindo ação agora.
         conteudoBloqueados.innerHTML = mensagemVazio(
-          "Nenhum usuário bloqueado.",
-          "Ótimo: não há jovens bloqueados nos filtros atuais."
+          "Nenhum jovem bloqueado no momento.",
+          "Não há bloqueios nos filtros atuais."
         );
         return;
       }
@@ -5215,14 +5551,6 @@
         conteudoBloqueados.appendChild(item);
       });
 
-      // ===============================
-      // FIM DA PARTE 2
-      // Continue colando a PARTE 3 logo abaixo desta linha.
-      // ===============================
-            // ===============================
-      // INÍCIO DA PARTE 3
-      // Continue exatamente após o fim da PARTE 2.
-      // ===============================
     }
 
     // ===============================
@@ -5230,7 +5558,8 @@
     // Lista solicitações enviadas pelo cadastro.html para análise da equipe.
     // ===============================
     async function carregarCadastrosOnlinePendentes() {
-      conteudoCadastrosOnline.innerHTML = '<div class="vazio">Carregando cadastros online pendentes...</div>';
+      // Texto operacional: loading fala diretamente da fila de análise, não de um estado técnico.
+      conteudoCadastrosOnline.innerHTML = '<div class="vazio">Buscando cadastros para análise...</div>';
 
       const { data, error } = await client
         .from("usuarios")
@@ -5239,7 +5568,11 @@
         .order("cadastro_online_em", { ascending: true });
 
       if (error) {
-        conteudoCadastrosOnline.innerHTML = `<div class="vazio">Erro ao carregar cadastros online: ${error.message}</div>`;
+        // Texto operacional: erro deixa claro qual fila não pôde ser aberta.
+        conteudoCadastrosOnline.innerHTML = mensagemVazio(
+          "Não foi possível carregar cadastros para análise.",
+          `Tente atualizar o painel antes de aprovar ou rejeitar cadastros. Detalhe técnico: ${error.message}`
+        );
         return;
       }
 
@@ -5253,9 +5586,10 @@
         .filter(usuario => usuarioCombinaComBusca(usuario));
 
       if (pendentes.length === 0) {
+        // Texto operacional: vazio confirma que a equipe não tem novos cadastros para decidir.
         conteudoCadastrosOnline.innerHTML = mensagemVazio(
           "Tudo em dia por aqui.",
-          "Não há cadastros online pendentes de análise no momento."
+          "Não há cadastros aguardando análise no momento."
         );
         return;
       }
@@ -5280,8 +5614,8 @@
           </div>
 
           <div class="acoes">
-            <button class="btn-presenca">Aprovar cadastro</button>
-            <button class="btn-cancelar">Rejeitar cadastro</button>
+            <button class="btn-presenca">Aprovar e avisar</button>
+            <button class="btn-cancelar">Rejeitar com motivo</button>
           </div>
         `;
 
@@ -5308,18 +5642,19 @@
       const usuarioId = usuario.id;
       const nomeUsuario = usuario.nome;
 
+      // Texto operacional: aprovação online libera o cadastro e tenta enviar o link pelo WhatsApp.
       const confirmar = await confirmarAcaoAdmin(
-        "Aprovar cadastro online",
-        `Aprovar cadastro online de ${nomeUsuario || "este usuário"}? A mensagem com o link será enviada pelo WhatsApp.`,
+        "Aprovar cadastro e avisar",
+        `Aprovar o cadastro de ${nomeUsuario || "este jovem"} e enviar o link de agendamento pelo WhatsApp?`,
         {
           tipo: "sucesso",
-          textoConfirmar: "Aprovar cadastro"
+          textoConfirmar: "Aprovar e avisar"
         }
       );
 
       if (!confirmar) return;
 
-      definirLoadingBotao(botao, true, "Aprovando...", "Aprovar cadastro");
+      definirLoadingBotao(botao, true, "Aprovando...", "Aprovar e avisar");
 
       try {
         const { error } = await client
@@ -5332,7 +5667,7 @@
           .eq("id", usuarioId);
 
         if (error) {
-          mostrarToast("Erro ao aprovar cadastro: " + error.message, "erro");
+          mostrarToast("Não foi possível aprovar o cadastro: " + error.message, "erro");
           return;
         }
 
@@ -5347,9 +5682,10 @@
         // NOTIFICAR APROVAÇÃO PELO WHATSAPP
         // O servidor local usa o bot conectado para enviar o link de agendamento.
         // ===============================
+        const cabecalhosAdmin = await obterCabecalhosAdminJson();
         const resposta = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/notificar-aprovacao`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: cabecalhosAdmin,
           body: JSON.stringify({
             nome: usuario.nome,
             telefone: usuario.telefone
@@ -5360,23 +5696,26 @@
         let resultadoNotificacao = {};
 
         try {
+          // Retorno de API: tenta usar a mensagem estruturada do servidor quando existir.
           resultadoNotificacao = textoResposta ? JSON.parse(textoResposta) : {};
         } catch (_err) {
+          // Retorno de API: preserva parte da resposta bruta para não esconder falhas do bot/servidor.
           resultadoNotificacao = {
             mensagem: textoResposta.slice(0, 160)
           };
         }
 
         if (!resposta.ok) {
-          throw new Error(resultadoNotificacao.mensagem || `Bot retornou erro ${resposta.status}.`);
+          // Retorno de API: mantém o status HTTP quando o servidor não envia mensagem legível.
+          throw new Error(resultadoNotificacao.mensagem || `O bot respondeu com erro HTTP ${resposta.status}.`);
         }
 
-        mostrarToast("Cadastro aprovado. A mensagem com o link foi enviada pelo WhatsApp.", "sucesso");
+        mostrarToast("Cadastro aprovado e link enviado pelo WhatsApp.", "sucesso");
       } catch (zapError) {
         console.warn("Cadastro aprovado, mas a mensagem no WhatsApp falhou:", zapError);
-        mostrarToast(`Cadastro aprovado, mas não consegui enviar a mensagem pelo WhatsApp: ${zapError.message}`, "aviso");
+        mostrarToast(`Cadastro aprovado, mas o WhatsApp não confirmou o envio: ${zapError.message}`, "aviso");
       } finally {
-        definirLoadingBotao(botao, false, "Aprovando...", "Aprovar cadastro");
+        definirLoadingBotao(botao, false, "Aprovando...", "Aprovar e avisar");
       }
 
       recarregarPainel();
@@ -5387,17 +5726,20 @@
     // Usa status bloqueado para manter compatibilidade com as regras atuais.
     // ===============================
     async function rejeitarCadastroOnline(usuarioId, nomeUsuario, botao = null) {
+      // Confirmação perigosa: rejeitar bloqueia o cadastro online e exige motivo auditável para a equipe.
       const dadosRejeicao = await solicitarCamposAdmin({
-        titulo: "Rejeitar cadastro online",
-        descricao: `Informe o motivo da rejeição de ${nomeUsuario || "este usuário"}.`,
+        titulo: "Rejeitar cadastro com motivo",
+        descricao: `Rejeitar ${nomeUsuario || "este jovem"} vai impedir a liberação do agendamento pelo cadastro online. Informe um motivo claro para consulta futura.`,
         tipo: "perigo",
-        textoConfirmar: "Rejeitar cadastro",
+        textoConfirmar: "Rejeitar e registrar motivo",
+        textoCancelar: "Manter cadastro pendente",
         campos: [
           {
             id: "motivo",
             label: "Motivo da rejeição",
             type: "textarea",
-            required: true
+            required: true,
+            placeholder: "Ex: dados incompletos, idade fora da faixa, contato inválido..."
           }
         ]
       });
@@ -5411,7 +5753,7 @@
         return;
       }
 
-      definirLoadingBotao(botao, true, "Rejeitando...", "Rejeitar cadastro");
+      definirLoadingBotao(botao, true, "Rejeitando...", "Rejeitar com motivo");
 
       try {
         const { error } = await client
@@ -5424,7 +5766,7 @@
           .eq("id", usuarioId);
 
         if (error) {
-          mostrarToast("Erro ao rejeitar cadastro: " + error.message, "erro");
+          mostrarToast("Não foi possível rejeitar o cadastro: " + error.message, "erro");
           return;
         }
 
@@ -5435,10 +5777,10 @@
           `Rejeitou o cadastro online de ${nomeUsuario || "usuário sem nome"}. Motivo: ${motivoLimpo}.`
         );
 
-        mostrarToast("Cadastro rejeitado com sucesso!", "sucesso");
+        mostrarToast("Cadastro rejeitado e motivo registrado.", "sucesso");
         recarregarPainel();
       } finally {
-        definirLoadingBotao(botao, false, "Rejeitando...", "Rejeitar cadastro");
+        definirLoadingBotao(botao, false, "Rejeitando...", "Rejeitar com motivo");
       }
     }
 
@@ -5447,7 +5789,8 @@
     // Mostra cadastrados, faltas, presenças e status.
     // ===============================
     async function carregarUsuariosCadastrados() {
-      conteudoUsuarios.innerHTML = '<div class="vazio">Carregando usuários...</div>';
+      // Retorno padronizado: loading da lista completa usa o mesmo padrão das áreas prioritárias.
+      conteudoUsuarios.innerHTML = '<div class="vazio">Buscando usuários cadastrados...</div>';
 
       const { data, error } = await client
         .from("usuarios")
@@ -5455,7 +5798,11 @@
         .order("nome", { ascending: true });
 
       if (error) {
-        conteudoUsuarios.innerHTML = `<div class="vazio">Erro ao carregar usuários: ${error.message}</div>`;
+        // Retorno padronizado: falha de usuários aparece como estado explicativo, não como tela vazia.
+        conteudoUsuarios.innerHTML = mensagemVazio(
+          "Não foi possível carregar usuários cadastrados.",
+          `Revise a conexão e tente atualizar o painel. Detalhe técnico: ${error.message}`
+        );
         return;
       }
 
@@ -5464,8 +5811,9 @@
       );
 
       if (usuariosFiltrados.length === 0) {
+        // Retorno padronizado: lista vazia informa se a equipe deve cadastrar ou ajustar filtro.
         conteudoUsuarios.innerHTML = mensagemVazio(
-          "Nenhum usuário encontrado.",
+          "Nenhum jovem encontrado.",
           "Cadastre um novo jovem ou ajuste os filtros de busca."
         );
         return;
@@ -5502,7 +5850,7 @@
             ${
               estaBloqueado
                 ? `<button class="btn-desbloquear">Desbloquear e zerar faltas</button>`
-                : `<button class="btn-bloquear">Bloquear usuário</button>`
+                : `<button class="btn-bloquear">Bloquear acesso</button>`
             }
 
             <button class="btn-secundario">Zerar faltas</button>
@@ -5750,12 +6098,14 @@
     // faltas = 0
     // ===============================
     async function desbloquearUsuario(usuarioId, nomeUsuario, botao = null) {
+      // Confirmação perigosa: desbloqueio reativa acesso e zera faltas na mesma ação.
       const confirmar = await confirmarAcaoAdmin(
-        "Desbloquear usuário",
-        `Desbloquear ${nomeUsuario || "este usuário"}?\n\nIsso vai mudar o status para "ativo" e zerar as faltas.`,
+        "Desbloquear e zerar faltas",
+        `Desbloquear ${nomeUsuario || "este jovem"} agora?\n\nImpacto: o status volta para "ativo", as faltas serão zeradas e o jovem poderá voltar a receber o link e agendar pelo site.`,
         {
           tipo: "sucesso",
-          textoConfirmar: "Desbloquear"
+          textoConfirmar: "Desbloquear e zerar",
+          textoCancelar: "Manter bloqueado"
         }
       );
 
@@ -5772,7 +6122,7 @@
         .eq("id", usuarioId);
 
       if (error) {
-        mostrarToast("Erro ao desbloquear usuário: " + error.message, "erro");
+        mostrarToast("Não foi possível desbloquear e zerar faltas: " + error.message, "erro");
         definirLoadingBotao(botao, false, "Desbloqueando...", "Desbloquear e zerar faltas");
         return;
       }
@@ -5784,7 +6134,7 @@
         `Desbloqueou ${nomeUsuario || "usuário sem nome"} e zerou as faltas.`
       );
 
-      mostrarToast("Usuário desbloqueado com sucesso!", "sucesso");
+      mostrarToast("Jovem desbloqueado e faltas zeradas.", "sucesso");
       definirLoadingBotao(botao, false, "Desbloqueando...", "Desbloquear e zerar faltas");
       recarregarPainel();
     }
@@ -5794,18 +6144,20 @@
     // Útil caso a equipe precise impedir acesso sem esperar duas faltas.
     // ===============================
     async function bloquearUsuario(usuarioId, nomeUsuario, botao = null) {
+      // Confirmação perigosa: bloqueio impede acesso ao agendamento e ao link enviado pelo bot.
       const confirmar = await confirmarAcaoAdmin(
-        "Bloquear usuário",
-        `Bloquear ${nomeUsuario || "este usuário"} manualmente?\n\nEle não poderá receber o link pelo bot nem agendar pelo site.`,
+        "Bloquear acesso",
+        `Bloquear o acesso de ${nomeUsuario || "este jovem"} agora?\n\nImpacto: ele não poderá receber o link pelo bot nem agendar pelo site. O histórico de agendamentos, presenças e faltas não será apagado.`,
         {
           tipo: "perigo",
-          textoConfirmar: "Bloquear"
+          textoConfirmar: "Bloquear acesso",
+          textoCancelar: "Manter acesso"
         }
       );
 
       if (!confirmar) return;
 
-      definirLoadingBotao(botao, true, "Bloqueando...", "Bloquear usuário");
+      definirLoadingBotao(botao, true, "Bloqueando...", "Bloquear acesso");
 
       const { error } = await client
         .from("usuarios")
@@ -5815,8 +6167,8 @@
         .eq("id", usuarioId);
 
       if (error) {
-        mostrarToast("Erro ao bloquear usuário: " + error.message, "erro");
-        definirLoadingBotao(botao, false, "Bloqueando...", "Bloquear usuário");
+        mostrarToast("Não foi possível bloquear o acesso: " + error.message, "erro");
+        definirLoadingBotao(botao, false, "Bloqueando...", "Bloquear acesso");
         return;
       }
 
@@ -5827,8 +6179,8 @@
         `Bloqueou manualmente ${nomeUsuario || "usuário sem nome"}.`
       );
 
-      mostrarToast("Usuário bloqueado com sucesso!", "sucesso");
-      definirLoadingBotao(botao, false, "Bloqueando...", "Bloquear usuário");
+      mostrarToast("Acesso bloqueado para este jovem.", "sucesso");
+      definirLoadingBotao(botao, false, "Bloqueando...", "Bloquear acesso");
       recarregarPainel();
     }
 
@@ -5837,12 +6189,14 @@
     // Se o usuário estiver bloqueado, também volta para ativo.
     // ===============================
     async function zerarFaltasUsuario(usuarioId, nomeUsuario, botao = null) {
+      // Confirmação perigosa: zerar faltas também reativa o cadastro caso ele esteja bloqueado.
       const confirmar = await confirmarAcaoAdmin(
-        "Zerar faltas",
-        `Zerar faltas de ${nomeUsuario || "este usuário"}?\n\nSe estiver bloqueado, ele também voltará para ativo.`,
+        "Zerar faltas do jovem",
+        `Zerar faltas de ${nomeUsuario || "este jovem"} agora?\n\nImpacto: o contador de faltas vai voltar para 0. Se estiver bloqueado, o status também voltará para "ativo".`,
         {
           tipo: "aviso",
-          textoConfirmar: "Zerar faltas"
+          textoConfirmar: "Zerar faltas",
+          textoCancelar: "Manter faltas"
         }
       );
 
@@ -5859,7 +6213,7 @@
         .eq("id", usuarioId);
 
       if (error) {
-        mostrarToast("Erro ao zerar faltas: " + error.message, "erro");
+        mostrarToast("Não foi possível zerar faltas: " + error.message, "erro");
         definirLoadingBotao(botao, false, "Zerando...", "Zerar faltas");
         return;
       }
@@ -5871,7 +6225,7 @@
         `Zerou faltas de ${nomeUsuario || "usuário sem nome"} e definiu status como ativo.`
       );
 
-      mostrarToast("Faltas zeradas com sucesso!", "sucesso");
+      mostrarToast("Faltas zeradas e cadastro ativo.", "sucesso");
       definirLoadingBotao(botao, false, "Zerando...", "Zerar faltas");
       recarregarPainel();
     }
@@ -5927,7 +6281,8 @@
     // Mostra agendamentos antigos que ainda estão como "agendado".
     // ===============================
     async function carregarPendencias() {
-      conteudoPendencias.innerHTML = '<div class="vazio">Carregando pendências...</div>';
+      // Texto operacional: loading curto para a fila de conferência diária.
+      conteudoPendencias.innerHTML = '<div class="vazio">Buscando pendências...</div>';
 
       const { data, error } = await client
         .from("agendamentos")
@@ -5937,7 +6292,11 @@
         .order("horario", { ascending: true });
 
       if (error) {
-        conteudoPendencias.innerHTML = `<div class="vazio">Erro ao carregar pendências: ${error.message}</div>`;
+        // Texto operacional: erro informa que a fila prioritária não pôde ser aberta.
+        conteudoPendencias.innerHTML = mensagemVazio(
+          "Não foi possível carregar pendências.",
+          `A equipe ainda pode revisar agendamentos pela aba principal. Detalhe técnico: ${error.message}`
+        );
         return;
       }
 
@@ -5946,8 +6305,9 @@
         .filter(item => agendamentoCombinaComBusca(item));
 
       if (pendencias.length === 0) {
+        // Texto operacional: vazio confirma que não há pendência vencida para ação manual.
         conteudoPendencias.innerHTML = mensagemVazio(
-          "Nenhuma pendência encontrada.",
+          "Nenhuma pendência para revisar.",
           "Os agendamentos antigos já estão resolvidos ou não há itens vencidos."
         );
         return;
@@ -6005,7 +6365,8 @@
     // Busca os agendamentos no Supabase e monta os cards.
     // ===============================
     async function carregarAgendamentos() {
-      lista.innerHTML = '<div class="vazio">Carregando agendamentos...</div>';
+      // Retorno padronizado: loading orienta que filtros e agenda estão sendo consultados.
+      lista.innerHTML = '<div class="vazio">Buscando agendamentos...</div>';
 
       let query = client
         .from("agendamentos")
@@ -6024,7 +6385,11 @@
       const { data, error } = await query;
 
       if (error) {
-        lista.innerHTML = `<div class="vazio">Erro ao carregar: ${error.message}</div>`;
+        // Retorno padronizado: erro de agendamentos informa impacto e preserva detalhe técnico.
+        lista.innerHTML = mensagemVazio(
+          "Não foi possível carregar agendamentos.",
+          `Confira a conexão e tente novamente. Detalhe técnico: ${error.message}`
+        );
         return;
       }
 
@@ -6033,9 +6398,10 @@
       );
 
       if (!agendamentosFiltrados || agendamentosFiltrados.length === 0) {
+        // Texto operacional: vazio orienta a equipe a revisar filtros antes de assumir falta de agenda.
         lista.innerHTML = mensagemVazio(
-          "Nenhum agendamento encontrado.",
-          "Quando houver agendamentos compatíveis com os filtros, eles aparecerão aqui."
+          "Nenhum agendamento encontrado com os filtros atuais.",
+          "Ajuste os filtros ou aguarde novos agendamentos."
         );
         return;
       }
@@ -6081,7 +6447,7 @@
             </button>
 
             <button class="btn-cancelar" ${desabilitarCancelar ? "disabled" : ""}>
-              Cancelar
+              Cancelar com motivo
             </button>
 
             <button class="btn-editar" ${desabilitarReagendar ? "disabled" : ""}>
@@ -6120,7 +6486,8 @@
     // Mostra poucos itens para a tela inicial não virar uma lista completa.
     // ===============================
     async function carregarAgendamentosDashboard() {
-      dashboardAgendamentos.innerHTML = '<div class="vazio">Carregando próximos agendamentos...</div>';
+      // Texto operacional: usa o mesmo termo do bloco visual "Próximos horários".
+      dashboardAgendamentos.innerHTML = '<div class="vazio">Buscando próximos horários...</div>';
 
       const hoje = new Date().toISOString().split("T")[0];
 
@@ -6134,15 +6501,20 @@
         .limit(5);
 
       if (error) {
-        dashboardAgendamentos.innerHTML = `<div class="vazio">Erro ao carregar próximos agendamentos: ${error.message}</div>`;
+        // Texto operacional: erro informa que a agenda rápida do dashboard não abriu.
+        dashboardAgendamentos.innerHTML = mensagemVazio(
+          "Não foi possível carregar próximos horários.",
+          `Use a aba Agendamentos para tentar a consulta completa. Detalhe técnico: ${error.message}`
+        );
         return;
       }
 
       const proximos = data || [];
 
       if (proximos.length === 0) {
+        // Texto operacional: vazio confirma que não há atendimento futuro nos próximos registros.
         dashboardAgendamentos.innerHTML = mensagemVazio(
-          "Nenhum próximo agendamento.",
+          "Nenhum próximo horário agendado.",
           "A agenda futura está livre nos próximos registros carregados."
         );
         return;
@@ -6600,18 +6972,20 @@
     // Processa automaticamente faltas com mais de 24h.
     // ===============================
     async function processarFaltasPendentes() {
+      // Confirmação perigosa: ação em lote registra faltas e pode bloquear jovens pelo limite configurado.
       const confirmar = await confirmarAcaoAdmin(
-        "Processar faltas pendentes",
-        "Processar automaticamente faltas pendentes?\n\nSó serão marcados como falta os agendamentos que passaram há mais de 24 horas e ainda estão como agendados.",
+        "Registrar faltas pendentes",
+        `Registrar automaticamente falta nos agendamentos pendentes?\n\nImpacto: só serão marcados como falta os horários que passaram há mais de 24 horas e ainda estão como "agendado". Jovens que atingirem o limite de faltas configurado podem ser bloqueados pelas regras atuais.`,
         {
           tipo: "aviso",
-          textoConfirmar: "Processar faltas"
+          textoConfirmar: "Registrar faltas pendentes",
+          textoCancelar: "Revisar manualmente"
         }
       );
 
       if (!confirmar) return;
 
-      definirLoadingBotao(btnProcessarPendencias, true, "Processando...", "Processar faltas pendentes");
+      definirLoadingBotao(btnProcessarPendencias, true, "Registrando...", "Registrar faltas pendentes");
 
       try {
         const { data, error } = await client
@@ -6620,7 +6994,7 @@
           .eq("status", "agendado");
 
         if (error) {
-          mostrarToast("Erro ao buscar pendências: " + error.message, "erro");
+          mostrarToast("Não foi possível buscar pendências: " + error.message, "erro");
           return;
         }
 
@@ -6629,7 +7003,7 @@
         );
 
         if (pendencias24h.length === 0) {
-          mostrarToast("Nenhuma pendência com mais de 24h para processar.", "aviso");
+          mostrarToast("Nenhuma pendência com mais de 24h para registrar.", "aviso");
           return;
         }
 
@@ -6680,14 +7054,14 @@
           `Processou faltas pendentes com mais de 24h. Faltas processadas: ${processados}; ignorados: ${ignorados}.`
         );
 
-        mostrarToast(`Processamento concluído. Faltas processadas: ${processados}; ignorados: ${ignorados}.`, "sucesso");
+        mostrarToast(`Registro concluído. Faltas registradas: ${processados}; ignorados: ${ignorados}.`, "sucesso");
 
         recarregarPainel();
 
       } catch (err) {
-        mostrarToast("Erro ao processar pendências: " + err.message, "erro");
+        mostrarToast("Não foi possível registrar faltas pendentes: " + err.message, "erro");
       } finally {
-        definirLoadingBotao(btnProcessarPendencias, false, "Processando...", "Processar faltas pendentes");
+        definirLoadingBotao(btnProcessarPendencias, false, "Registrando...", "Registrar faltas pendentes");
       }
     }
 
@@ -6696,17 +7070,20 @@
     // Exige motivo e salva na coluna observacao.
     // ===============================
     async function cancelarAgendamento(agendamentoId, botao = null) {
+      // Confirmação perigosa: cancelamento altera o status do agendamento e exige motivo registrado.
       const dadosCancelamento = await solicitarCamposAdmin({
-        titulo: "Cancelar agendamento",
-        descricao: "Informe o motivo do cancelamento.\nEx: jovem avisou com antecedência, evento interno, problema técnico, falta de equipe...",
+        titulo: "Cancelar agendamento com motivo",
+        descricao: "Cancelar muda o status para \"cancelado\" e impede marcar presença ou falta depois. Informe o motivo; ele ficará registrado no agendamento.",
         tipo: "perigo",
-        textoConfirmar: "Cancelar agendamento",
+        textoConfirmar: "Cancelar e registrar motivo",
+        textoCancelar: "Manter agendamento",
         campos: [
           {
             id: "motivo",
             label: "Motivo do cancelamento",
             type: "textarea",
-            required: true
+            required: true,
+            placeholder: "Ex: jovem avisou com antecedência, evento interno, problema técnico, falta de equipe..."
           }
         ]
       });
@@ -6716,11 +7093,11 @@
       const motivoLimpo = dadosCancelamento.motivo.trim();
 
       if (!motivoLimpo) {
-        mostrarToast("Para cancelar, informe um motivo.", "aviso");
+        mostrarToast("Informe o motivo para cancelar o agendamento.", "aviso");
         return;
       }
 
-      definirLoadingBotao(botao, true, "Cancelando...", "Cancelar");
+      definirLoadingBotao(botao, true, "Cancelando...", "Cancelar com motivo");
 
       try {
         const agendamento = await buscarAgendamentoPorId(agendamentoId);
@@ -6746,7 +7123,7 @@
           .eq("id", agendamentoId);
 
         if (error) {
-          mostrarToast("Erro ao cancelar: " + error.message, "erro");
+          mostrarToast("Não foi possível cancelar o agendamento: " + error.message, "erro");
           return;
         }
 
@@ -6757,13 +7134,13 @@
           `Cancelou agendamento de ${agendamento.nome || "jovem sem nome"} em ${formatarData(agendamento.data)} às ${agendamento.horario || "-"}. Motivo: ${motivoLimpo}.`
         );
 
-        mostrarToast("Agendamento cancelado com motivo registrado!", "sucesso");
+        mostrarToast("Agendamento cancelado e motivo registrado.", "sucesso");
         recarregarPainel();
 
       } catch (err) {
-        mostrarToast("Erro ao cancelar: " + err.message, "erro");
+        mostrarToast("Não foi possível cancelar o agendamento: " + err.message, "erro");
       } finally {
-        definirLoadingBotao(botao, false, "Cancelando...", "Cancelar");
+        definirLoadingBotao(botao, false, "Cancelando...", "Cancelar com motivo");
       }
     }
 
