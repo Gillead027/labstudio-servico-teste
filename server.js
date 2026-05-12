@@ -2537,20 +2537,47 @@ Obrigado pelo cadastro!`;
 // AUTOATENDIMENTO DO WHATSAPP
 // Detecta palavras-chave e decide se envia o link.
 // ===============================
+const TEMPO_GATILHO_LABSTUDIO_MS = 30 * 60 * 1000;
+const gatilhosLabStudioPorContato = new Map();
+
 function mensagemContemGatilhoLabStudio(mensagemNormalizada) {
   // Gatilhos operacionais restritos ao LabStudio, com ou sem acento.
   const gatilhos = [
+    "agendar",
+    "agendamento",
     "labstudio",
     "estudio",
-    "labstúdio",
     "studio",
-    "stúdio",
-    "estúdio",
     "gravar",
+    "gravacao",
     "musica"
   ];
 
   return gatilhos.some((gatilho) => mensagemNormalizada.includes(gatilho));
+}
+
+function registrarGatilhoLabStudio(contato) {
+  // Memória temporária por contato: só conversas que acionaram gatilho podem receber respostas do bot.
+  if (!contato) return;
+
+  gatilhosLabStudioPorContato.set(contato, Date.now());
+}
+
+function conversaTemGatilhoRecente(contato) {
+  // A janela de 30 minutos evita que erros ou orientações sejam enviados para quem não chamou o LabStudio.
+  if (!contato) return false;
+
+  const acionadoEm = gatilhosLabStudioPorContato.get(contato);
+
+  if (!acionadoEm) return false;
+
+  const gatilhoAindaValido = Date.now() - acionadoEm <= TEMPO_GATILHO_LABSTUDIO_MS;
+
+  if (!gatilhoAindaValido) {
+    gatilhosLabStudioPorContato.delete(contato);
+  }
+
+  return gatilhoAindaValido;
 }
 
 async function processarMensagemWhatsApp(msg) {
@@ -2583,23 +2610,12 @@ async function processarMensagemWhatsApp(msg) {
       .replace(/\s+/g, " ")
       .trim();
 
-    // Palavras que ativam o atendimento do LabStudio.
-    const gatilhos = [
-      "labstudio",
-      "labstúdio",
-      "estudio",
-      "estúdio",
-      "stúdio",
-      "gravar",
-      "música"
-    ];
-
-    const encontrouGatilho =
-      mensagemContemGatilhoLabStudio(mensagemNormalizada) ||
-      gatilhos.some((palavra) => mensagemRecebida.includes(palavra));
+    const encontrouGatilho = mensagemContemGatilhoLabStudio(mensagemNormalizada);
 
     // Se não encontrou gatilho, não faz nada.
     if (!encontrouGatilho) return;
+
+    registrarGatilhoLabStudio(msg.from);
 
     // O número é mascarado para manter diagnóstico sem expor telefone completo.
     console.log(`📩 Gatilho recebido de: ${mascararNumeroWhatsApp(msg.from)}`);
@@ -2616,19 +2632,22 @@ async function processarMensagemWhatsApp(msg) {
     if (error) {
       console.log("❌ Erro ao consultar cadastro:", error.message);
 
-      await client.sendMessage(
-        msg.from,
-        "No momento não consegui consultar seu cadastro. Tente novamente mais tarde ou procure a equipe do CRJ."
-      );
+      if (conversaTemGatilhoRecente(msg.from)) {
+        await client.sendMessage(
+          msg.from,
+          "No momento não consegui consultar seu cadastro. Tente novamente mais tarde ou procure a equipe do CRJ."
+        );
+      }
 
       return;
     }
 
     // Se não encontrar o usuário, envia o link para cadastro online.
     if (!usuario) {
-      await client.sendMessage(
-        msg.from,
-        `Olá! Para agendar o LabStudio CRJ FLEXAL, é necessário estar cadastrado no CRJ.
+      if (conversaTemGatilhoRecente(msg.from)) {
+        await client.sendMessage(
+          msg.from,
+          `Olá! Para agendar o LabStudio CRJ FLEXAL, é necessário estar cadastrado no CRJ.
 
 Identificamos que este número ainda não consta em nosso cadastro.
 
@@ -2636,7 +2655,8 @@ Você pode realizar seu cadastro online pelo link abaixo:
 ${PUBLIC_SITE_URL}/cadastro.html
 
 Após o envio, aguarde a análise da equipe do CRJ.`
-      );
+        );
+      }
 
       console.log(`❌ Usuário não cadastrado. Variantes testadas: ${variantesMensagem.length}.`);
 
@@ -2651,14 +2671,16 @@ Após o envio, aguarde a análise da equipe do CRJ.`
 
     // Se estiver bloqueado ou tiver faltas no limite configurado.
     if (statusUsuario === "bloqueado" || faltasUsuario >= config.limite_faltas_bloqueio) {
-      await client.sendMessage(
-        msg.from,
-        `Olá, ${usuario.nome || "jovem"}.
+      if (conversaTemGatilhoRecente(msg.from)) {
+        await client.sendMessage(
+          msg.from,
+          `Olá, ${usuario.nome || "jovem"}.
 
 No momento, seu acesso ao agendamento do LabStudio está bloqueado por faltas anteriores.
 
 📍 Procure presencialmente a equipe do CRJ para regularizar sua situação.`
-      );
+        );
+      }
 
       console.log(`🚫 Usuário bloqueado: ${mascararNumeroWhatsApp(usuario.telefone)}`);
 
@@ -2667,10 +2689,12 @@ No momento, seu acesso ao agendamento do LabStudio está bloqueado por faltas an
 
     // Se o cadastro online existe, mas ainda não foi aprovado pela equipe.
     if (statusUsuario === "pendente" || usuario.cadastrado === false) {
-      await client.sendMessage(
-        msg.from,
-        "Seu cadastro online foi recebido e está aguardando análise da equipe do CRJ. Assim que for aprovado, você poderá solicitar o agendamento pelo WhatsApp."
-      );
+      if (conversaTemGatilhoRecente(msg.from)) {
+        await client.sendMessage(
+          msg.from,
+          "Seu cadastro online foi recebido e está aguardando análise da equipe do CRJ. Assim que for aprovado, você poderá solicitar o agendamento pelo WhatsApp."
+        );
+      }
 
       console.log(`⏳ Usuário pendente de aprovação: ${mascararNumeroWhatsApp(usuario.telefone)}`);
 
@@ -2682,14 +2706,16 @@ No momento, seu acesso ao agendamento do LabStudio está bloqueado por faltas an
     // Bloqueia antes de enviar o link quando o cadastro está incompleto.
     // ===============================
     if (!usuario.data_nascimento) {
-      await client.sendMessage(
-        msg.from,
-        `Olá, ${usuario.nome || "jovem"}.
+      if (conversaTemGatilhoRecente(msg.from)) {
+        await client.sendMessage(
+          msg.from,
+          `Olá, ${usuario.nome || "jovem"}.
 
 Seu cadastro precisa ser atualizado com a data de nascimento antes de acessar o agendamento do LabStudio.
 
 📍 Procure presencialmente a equipe do CRJ para atualizar seu cadastro.`
-      );
+        );
+      }
 
       console.log(`⚠️ Usuário sem data de nascimento: ${mascararNumeroWhatsApp(usuario.telefone)}`);
 
@@ -2697,14 +2723,16 @@ Seu cadastro precisa ser atualizado com a data de nascimento antes de acessar o 
     }
 
     if (!idadePermitida(usuario.data_nascimento, config)) {
-      await client.sendMessage(
-        msg.from,
-        `Olá, ${usuario.nome || "jovem"}.
+      if (conversaTemGatilhoRecente(msg.from)) {
+        await client.sendMessage(
+          msg.from,
+          `Olá, ${usuario.nome || "jovem"}.
 
 ${mensagemFaixaEtaria(config)}
 
 📍 Procure presencialmente a equipe do CRJ para mais orientações.`
-      );
+        );
+      }
 
       console.log(`🚫 Usuário fora da faixa etária: ${mascararNumeroWhatsApp(usuario.telefone)}`);
 
@@ -2728,7 +2756,9 @@ Orientações importantes:
 
 Aguardamos você para realizar sua gravação! 🔥`;
 
-    await client.sendMessage(msg.from, resposta);
+    if (conversaTemGatilhoRecente(msg.from)) {
+      await client.sendMessage(msg.from, resposta);
+    }
 
     console.log(
       `✅ Auto-resposta enviada para usuário cadastrado: ${usuario.nome} - ${usuario.telefone}`
@@ -2737,7 +2767,7 @@ Aguardamos você para realizar sua gravação! 🔥`;
     console.error("❌ Erro inesperado ao processar mensagem do WhatsApp:", err);
 
     try {
-      if (msg && msg.from) {
+      if (msg && msg.from && conversaTemGatilhoRecente(msg.from)) {
         await client.sendMessage(
           msg.from,
           "No momento tive um problema ao processar sua mensagem. Tente novamente mais tarde ou procure a equipe do CRJ."
