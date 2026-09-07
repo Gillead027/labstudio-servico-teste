@@ -3,11 +3,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "http://2.24.74.57:3002/api/:path*"
+      "destination": "http://srv1961553.hstgr.cloud:3001/api/:path*"
     },
     {
       "source": "/notificar-aprovacao",
-      "destination": "http://2.24.74.57:3002/notificar-aprovacao"
+      "destination": "http://srv1961553.hstgr.cloud:3001/notificar-aprovacao"
     }
   ]
 }
