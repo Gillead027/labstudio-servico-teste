@@ -491,6 +491,8 @@ const client = new Client({
 // Usamos isso para saber se o WhatsApp já está pronto.
 // ===============================
 let botPronto = false;
+// Momento da última conexão; a divulgação espera o WhatsApp Web estabilizar depois disso.
+let botProntoDesde = null;
 
 // ===============================
 // CONTROLE DO QR CODE
@@ -1428,6 +1430,7 @@ client.on("code", (code) => {
 
 client.on("ready", () => {
   botPronto = true;
+  botProntoDesde = Date.now();
 
   // Quando conecta, limpamos o QR para não deixar QR antigo disponível.
   qrAtualTexto = null;
@@ -2872,6 +2875,8 @@ const DIVULGACAO_DIAS_TOLERANCIA = 3;
 // Intervalo aleatório entre mensagens para não parecer disparo em massa.
 const DIVULGACAO_INTERVALO_MIN_MS = 45 * 1000;
 const DIVULGACAO_INTERVALO_MAX_MS = 120 * 1000;
+// Espera depois de o WhatsApp conectar antes de começar a enviar.
+const DIVULGACAO_ESPERA_APOS_CONECTAR_MS = 3 * 60 * 1000;
 
 // Serviços divulgados na mensagem. Edite esta lista para mudar as ofertas.
 const DIVULGACAO_SERVICOS = [
@@ -3017,13 +3022,27 @@ async function buscarEnviosDoCiclo(ciclo) {
   return data || [];
 }
 
-async function registrarEnvioDivulgacao({ usuarioId, ciclo, status, erro = null }) {
+// Reserva o envio ANTES de mandar a mensagem: se não der para gravar, não envia.
+// Assim uma falha no banco nunca faz a mesma pessoa receber duas vezes.
+async function reservarEnvioDivulgacao(usuarioId, ciclo) {
   const { error } = await supabase
     .from("divulgacao_envios")
-    .insert([{ usuario_id: usuarioId, ciclo, status, erro }]);
+    .insert([{ usuario_id: usuarioId, ciclo, status: "erro", erro: "envio em andamento" }]);
 
   if (error) {
     throw error;
+  }
+}
+
+async function concluirEnvioDivulgacao({ usuarioId, ciclo, status, erro = null }) {
+  const { error } = await supabase
+    .from("divulgacao_envios")
+    .update({ status, erro, enviado_em: new Date().toISOString() })
+    .eq("usuario_id", usuarioId)
+    .eq("ciclo", ciclo);
+
+  if (error) {
+    console.error("❌ Não consegui atualizar o registro da divulgação:", error.message);
   }
 
   if (status === "enviado") {
@@ -3034,8 +3053,25 @@ async function registrarEnvioDivulgacao({ usuarioId, ciclo, status, erro = null 
   }
 }
 
+// Libera a reserva quando a falha foi do navegador do bot, para tentar de novo na próxima verificação.
+async function liberarReservaDivulgacao(usuarioId, ciclo) {
+  await supabase
+    .from("divulgacao_envios")
+    .delete()
+    .eq("usuario_id", usuarioId)
+    .eq("ciclo", ciclo);
+}
+
+// Falhas do Chrome/WhatsApp Web (não do número da pessoa): a mensagem não saiu e vale tentar depois.
+function erroTemporarioDoNavegador(erro) {
+  return /detached Frame|Session closed|Target closed|Protocol error|Execution context was destroyed/i.test(String(erro && erro.message || erro));
+}
+
 async function executarCicloDivulgacao() {
   if (!DIVULGACAO_ATIVA || divulgacaoEmAndamento || !botPronto) return;
+
+  // Logo após conectar, o WhatsApp Web ainda recarrega a página; espera estabilizar.
+  if (!botProntoDesde || Date.now() - botProntoDesde < DIVULGACAO_ESPERA_APOS_CONECTAR_MS) return;
 
   const ciclo = obterCicloDivulgacaoAtual();
   if (!ciclo) return;
@@ -3058,20 +3094,27 @@ async function executarCicloDivulgacao() {
         return;
       }
 
-      let status = "enviado";
-      let erro = null;
+      // Se a reserva falhar, o erro interrompe o ciclo sem enviar nada.
+      await reservarEnvioDivulgacao(usuario.id, ciclo);
 
       try {
         const destino = await resolverDestinoWhatsApp(usuario.telefone);
         await client.sendMessage(destino, montarMensagemDivulgacao(usuario.nome));
+        await concluirEnvioDivulgacao({ usuarioId: usuario.id, ciclo, status: "enviado" });
         console.log(`✅ Divulgação enviada para ${mascararNumeroWhatsApp(destino)}.`);
       } catch (envioError) {
-        status = "erro";
-        erro = String(envioError.message || envioError).slice(0, 300);
+        const erro = String(envioError.message || envioError).slice(0, 300);
+
+        if (erroTemporarioDoNavegador(envioError)) {
+          await liberarReservaDivulgacao(usuario.id, ciclo);
+          console.warn(`⏸️ WhatsApp Web instável (${erro}); divulgação continua na próxima verificação.`);
+          return;
+        }
+
+        await concluirEnvioDivulgacao({ usuarioId: usuario.id, ciclo, status: "erro", erro });
         console.warn(`⚠️ Falha na divulgação para ${mascararNumeroWhatsApp(usuario.telefone)}:`, erro);
       }
 
-      await registrarEnvioDivulgacao({ usuarioId: usuario.id, ciclo, status, erro });
       await esperar(intervaloAleatorioDivulgacao());
     }
 
