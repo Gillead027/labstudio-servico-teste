@@ -601,18 +601,7 @@ function verificarTokenQr(req, res) {
   const tokenRecebido = String(req.query.token || "");
 
   if (!segredoConfere(tokenRecebido, QR_PAGE_TOKEN)) {
-    res.status(403).send(`
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-          <title>Acesso negado</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; padding: 32px;">
-          <h2>Acesso negado</h2>
-          <p>Token inválido ou ausente.</p>
-        </body>
-      </html>
-    `);
+    res.status(403).send(paginaAvisoBot("Acesso negado", "Link inválido ou incompleto. Use o link da página de conexão com o token."));
 
     return false;
   }
@@ -635,6 +624,120 @@ function escaparAtributoHtml(valor) {
     .replace(/>/g, "&gt;");
 }
 
+// ===============================
+// VISUAL DAS PÁGINAS DO BOT (QR, PAREAMENTO E AVISOS)
+// Mesmo estilo do site: papel + tinta, tipografia de pôster, cores chapadas.
+// ===============================
+const ESTILO_PAGINAS_BOT = `
+  :root {
+    --papel: #F6F4EF; --branco: #FFFFFF; --tinta: #1C1B19; --tinta-2: #57534E;
+    --amarelo: #FFD948; --roxo: #B9A4FF; --verde: #B6E36B; --rec: #FF3B2F;
+    --borda: 1.5px solid var(--tinta); --sombra-dura: 6px 6px 0 var(--tinta);
+    --quart: cubic-bezier(0.25, 1, 0.5, 1); --expo: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+    background: var(--papel); color: var(--tinta);
+    font-family: "Schibsted Grotesk", system-ui, sans-serif; line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .cartao {
+    width: min(760px, 100%); background: var(--branco); border: var(--borda);
+    border-radius: 16px; box-shadow: var(--sombra-dura); padding: 28px;
+  }
+  .topo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .status { white-space: nowrap; }
+  .marca { display: flex; align-items: baseline; gap: 8px; }
+  .marca strong { font-family: "Big Shoulders Display", sans-serif; font-weight: 900; font-size: 1.6rem; text-transform: uppercase; line-height: 1; }
+  .marca span { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--tinta-2); }
+  .status {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border: var(--borda);
+    border-radius: 999px; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .status::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: #A8A29E; }
+  .status[data-status="conectado"]::before { background: #2F9E44; }
+  .status[data-status="aguardando_qr"]::before { background: var(--rec); animation: pulsar 1.6s var(--quart) infinite; }
+  @keyframes pulsar { 0% { box-shadow: 0 0 0 0 rgba(255,59,47,.55); } 70% { box-shadow: 0 0 0 9px rgba(255,59,47,0); } 100% { box-shadow: 0 0 0 0 rgba(255,59,47,0); } }
+  h1 {
+    margin: 0 0 8px; font-family: "Big Shoulders Display", sans-serif; font-weight: 900;
+    font-size: clamp(2.8rem, 8vw, 4.4rem); line-height: 0.9; text-transform: uppercase;
+  }
+  h2 { margin: 0 0 6px; font-size: 1.05rem; }
+  p { margin: 0 0 12px; }
+  .lead { color: var(--tinta-2); margin-bottom: 22px; }
+  .pequeno { font-size: 0.85rem; color: var(--tinta-2); }
+  .grade { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+  .bloco { border: var(--borda); border-radius: 14px; padding: 20px; }
+  .bloco-qr { background: var(--papel); text-align: center; }
+  .bloco-codigo { background: var(--roxo); }
+  .qr-moldura { display: inline-block; padding: 12px; background: var(--branco); border: var(--borda); border-radius: 12px; margin-bottom: 10px; }
+  .qr-moldura img { display: block; width: min(260px, 100%); height: auto; transition: opacity 0.3s ease; }
+  .qr-moldura img.trocando { opacity: 0.25; }
+  label { display: block; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin: 12px 0 4px; }
+  input {
+    width: 100%; padding: 8px 0 10px; border: 0; border-bottom: var(--borda); border-radius: 0;
+    background: transparent; color: var(--tinta); font: 500 1.1rem "Schibsted Grotesk", system-ui, sans-serif; outline: none;
+  }
+  input:focus { border-bottom: 3px solid var(--tinta); }
+  .botao {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 16px;
+    padding: 14px 18px; border: var(--borda); border-radius: 999px; background: var(--tinta); color: var(--papel);
+    font: 700 0.98rem "Schibsted Grotesk", system-ui, sans-serif; text-decoration: none; cursor: pointer;
+    position: relative; overflow: hidden; isolation: isolate; transition: color 0.35s ease, transform 0.2s var(--quart);
+  }
+  .botao::before { content: ""; position: absolute; inset: 0; z-index: -1; background: var(--amarelo); transform: translateY(101%); transition: transform 0.5s var(--expo); }
+  .botao:hover { color: var(--tinta); }
+  .botao:hover::before { transform: none; }
+  .botao:active { transform: scale(0.98); }
+  .botao-secundario { background: var(--branco); color: var(--tinta); }
+  .aviso { border: var(--borda); border-radius: 14px; padding: 20px; background: var(--amarelo); }
+  .aviso.ok { background: var(--verde); }
+  .codigo {
+    margin: 8px 0 18px; padding: 18px; border: var(--borda); border-radius: 14px; background: var(--amarelo);
+    font-family: "Big Shoulders Display", sans-serif; font-weight: 900; font-size: clamp(2.6rem, 10vw, 4.2rem);
+    letter-spacing: 0.08em; text-align: center; line-height: 1;
+  }
+  ol { margin: 0 0 16px; padding: 0; list-style: none; border-top: var(--borda); }
+  ol li { padding: 10px 0; border-bottom: var(--borda); }
+  code { font-family: ui-monospace, monospace; background: var(--papel); padding: 2px 6px; border-radius: 6px; }
+  @media (max-width: 640px) { .grade { grid-template-columns: 1fr; } .cartao { padding: 20px; box-shadow: 4px 4px 0 var(--tinta); } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+`;
+
+function paginaBotHtml({ titulo, corpo, script = "", status = "" }) {
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex" />
+  <title>${titulo} · LabStudio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@900&family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>${ESTILO_PAGINAS_BOT}</style>
+</head>
+<body>
+  <main class="cartao">
+    <div class="topo">
+      <div class="marca"><strong>LabStudio</strong><span>Bot WhatsApp</span></div>
+      ${status ? `<span class="status" id="statusBot" data-status="${status}">${status === "conectado" ? "Conectado" : status === "aguardando_qr" ? "Aguardando leitura" : "Iniciando"}</span>` : ""}
+    </div>
+    ${corpo}
+  </main>
+  ${script ? `<script>${script}</script>` : ""}
+</body>
+</html>`;
+}
+
+function paginaAvisoBot(titulo, mensagem) {
+  return paginaBotHtml({
+    titulo,
+    corpo: `<h1>${titulo}</h1><div class="aviso"><p>${mensagem}</p></div>`
+  });
+}
+
 app.get("/qr", limitarQrPublico, (req, res) => {
   if (!verificarTokenQr(req, res)) return;
 
@@ -643,353 +746,72 @@ app.get("/qr", limitarQrPublico, (req, res) => {
   const tokenFormulario = escaparAtributoHtml(QR_PAGE_TOKEN);
   const qrImagemUrl = `${baseUrl}/qr.png?token=${token}&t=${Date.now()}`;
   const status = botPronto ? "conectado" : qrAtualTexto ? "aguardando_qr" : "iniciando";
+  const horaQr = qrGeradoEm ? new Date(qrGeradoEm).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "";
 
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="pt-BR">
-      <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>QR Code WhatsApp - LabStudio</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  let corpo;
 
-        <style>
-          * {
-            box-sizing: border-box;
-          }
+  if (botPronto) {
+    corpo = `
+      <h1>Conectado.</h1>
+      <div class="aviso ok">
+        <h2>WhatsApp do CRJ conectado</h2>
+        <p>O bot já está respondendo e enviando mensagens. Pode fechar esta página.</p>
+      </div>`;
+  } else {
+    const blocoQr = qrAtualTexto
+      ? `
+        <div class="qr-moldura"><img id="qrImagem" src="${qrImagemUrl}" alt="QR Code para conectar o WhatsApp" /></div>
+        <p class="pequeno" id="qrHora">Gerado às ${horaQr} · troca sozinho quando renovar</p>`
+      : `
+        <div class="aviso"><p><strong>Preparando o QR…</strong></p><p class="pequeno">O bot está iniciando. Esta página atualiza sozinha.</p></div>`;
 
-          :root {
-            --primary: #6366f1;
-            --accent: #22d3ee;
-            --surface: rgba(15, 23, 42, 0.72);
-            --surface-strong: rgba(30, 41, 59, 0.92);
-            --border: rgba(148, 163, 184, 0.24);
-            --text: #f8fafc;
-            --muted: #b6c2d6;
-            --success: #22c55e;
-            --warning: #f59e0b;
-          }
+    corpo = `
+      <h1>Conectar WhatsApp</h1>
+      <p class="lead">No celular do CRJ: WhatsApp Business → Aparelhos conectados → Conectar um aparelho.</p>
+      <div class="grade">
+        <section class="bloco bloco-qr">
+          <h2>Escanear QR</h2>
+          ${blocoQr}
+        </section>
+        <section class="bloco bloco-codigo">
+          <h2>Ou entrar com código</h2>
+          <p class="pequeno">Use se a câmera não ler o QR. No WhatsApp, escolha "Conectar com número de telefone".</p>
+          <form method="GET" action="/pairing-code">
+            <input type="hidden" name="token" value="${tokenFormulario}" />
+            <label for="phone">WhatsApp do bot (com DDD)</label>
+            <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="Ex: 27999999999" required />
+            <button class="botao" type="submit">Gerar código</button>
+          </form>
+        </section>
+      </div>`;
+  }
 
-          body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: "Poppins", "Segoe UI", sans-serif;
-            background:
-              radial-gradient(circle at top left, rgba(99, 102, 241, 0.25), transparent 32rem),
-              linear-gradient(145deg, #020617 0%, #0f172a 52%, #111827 100%);
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-          }
-
-          .card {
-            width: 100%;
-            max-width: 780px;
-            background: linear-gradient(180deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.96));
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 30px;
-            text-align: left;
-            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255,255,255,0.06);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
-          }
-
-          .brand-lockup {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            min-height: 50px;
-            margin-bottom: 22px;
-            padding: 0.45rem 0.78rem;
-            border: 1px solid var(--border);
-            border-radius: 999px;
-            background: rgba(15, 23, 42, 0.34);
-            box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 44px rgba(0,0,0,0.18);
-          }
-
-          .brand-mark {
-            width: 40px;
-            height: 40px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            color: #fff;
-            background:
-              radial-gradient(circle at 30% 20%, rgba(255,255,255,0.5), transparent 24px),
-              linear-gradient(135deg, var(--primary), var(--accent));
-            box-shadow: 0 16px 42px rgba(34, 211, 238, 0.22);
-          }
-
-          .brand-lockup strong,
-          .brand-lockup small {
-            display: block;
-            line-height: 1.05;
-          }
-
-          .brand-lockup strong {
-            font-size: 0.96rem;
-            font-weight: 800;
-          }
-
-          .brand-lockup small {
-            margin-top: 3px;
-            color: var(--muted);
-            font-size: 0.72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-          }
-
-          h1 {
-            margin: 0 0 10px;
-            font-size: clamp(2rem, 5vw, 3.8rem);
-            line-height: 0.98;
-            letter-spacing: 0;
-          }
-
-          p {
-            color: var(--muted);
-            line-height: 1.5;
-          }
-
-          .lead {
-            max-width: 620px;
-            margin: 0 0 18px;
-            font-size: 1rem;
-          }
-
-          .status {
-            display: inline-block;
-            margin: 8px 0 22px;
-            padding: 9px 13px;
-            border-radius: 999px;
-            font-size: 14px;
-            color: var(--text);
-            background: var(--surface);
-            border: 1px solid var(--border);
-          }
-
-          .pairing-card {
-            margin: 0 0 20px;
-            padding: 20px;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            background: var(--surface);
-            text-align: left;
-          }
-
-          .pairing-card h2 {
-            margin: 0 0 6px;
-            font-size: 1.1rem;
-            color: #ffffff;
-          }
-
-          .pairing-form {
-            display: grid;
-            gap: 10px;
-            margin-top: 12px;
-          }
-
-          .pairing-form label {
-            color: #f9fafb;
-            font-size: 13px;
-            font-weight: 700;
-          }
-
-          .pairing-form input {
-            width: 100%;
-            min-height: 44px;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            background: rgba(15, 23, 42, 0.92);
-            color: #f9fafb;
-            padding: 11px 13px;
-            font-size: 16px;
-            outline: none;
-          }
-
-          .pairing-form input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
-          }
-
-          .pairing-form button {
-            min-height: 46px;
-            border: 0;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: #ffffff;
-            cursor: pointer;
-            font-weight: 800;
-            box-shadow: 0 16px 34px rgba(79, 70, 229, 0.28);
-          }
-
-          .qr-box {
-            background: #ffffff;
-            padding: 14px;
-            border-radius: 16px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            margin: 12px 0;
-            box-shadow: 0 18px 46px rgba(2, 6, 23, 0.32);
-          }
-
-          .qr-box img {
-            width: 280px;
-            max-width: 100%;
-            height: auto;
-            display: block;
-          }
-
-          .success {
-            background: rgba(20, 83, 45, 0.58);
-            color: #dcfce7;
-            border: 1px solid rgba(34, 197, 94, 0.35);
-            border-radius: 16px;
-            padding: 16px;
-            margin-top: 18px;
-          }
-
-          .warning {
-            background: rgba(113, 63, 18, 0.58);
-            color: #fffbeb;
-            border: 1px solid rgba(245, 158, 11, 0.36);
-            border-radius: 16px;
-            padding: 16px;
-            margin-top: 18px;
-          }
-
-          .small {
-            font-size: 13px;
-            color: #9ca3af;
-            margin-top: 18px;
-          }
-
-          .button {
-            display: inline-block;
-            margin-top: 16px;
-            padding: 11px 16px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
-            text-decoration: none;
-            font-weight: bold;
-            box-shadow: 0 16px 34px rgba(79, 70, 229, 0.28);
-          }
-
-          code {
-            background: #111827;
-            border: 1px solid #374151;
-            border-radius: 8px;
-            padding: 2px 6px;
-          }
-
-          @media (max-width: 640px) {
-            body {
-              padding: 14px;
-              align-items: flex-start;
+  // Acompanha o /status: troca o QR quando ele renova e recarrega ao conectar.
+  const script = `
+    (function () {
+      var statusInicial = ${JSON.stringify(status)};
+      var qrInicial = ${JSON.stringify(qrGeradoEm || "")};
+      var imagemBase = ${JSON.stringify(`${baseUrl}/qr.png?token=${token}`)};
+      setInterval(function () {
+        fetch("/status", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (s) {
+          var agora = s.botPronto ? "conectado" : s.temQrDisponivel ? "aguardando_qr" : "iniciando";
+          if (agora !== statusInicial) { location.reload(); return; }
+          if (s.qrGeradoEm && s.qrGeradoEm !== qrInicial) {
+            qrInicial = s.qrGeradoEm;
+            var img = document.getElementById("qrImagem");
+            if (img) {
+              img.classList.add("trocando");
+              img.onload = function () { img.classList.remove("trocando"); };
+              img.src = imagemBase + "&t=" + Date.now();
             }
-
-            .card {
-              padding: 22px;
-              border-radius: 18px;
-            }
-
-            .qr-box img {
-              width: 230px;
-            }
+            var hora = document.getElementById("qrHora");
+            if (hora) hora.textContent = "Renovado às " + new Date(s.qrGeradoEm).toLocaleTimeString("pt-BR") + " · troca sozinho quando renovar";
           }
-        </style>
-      </head>
+        }).catch(function () {});
+      }, 4000);
+    })();`;
 
-      <body>
-        <main class="card">
-          <div class="brand-lockup">
-            <span class="brand-mark"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
-            <span>
-              <strong>LabStudio</strong>
-              <small>CRJ FLEXAL</small>
-            </span>
-          </div>
-
-          <h1>Conectar WhatsApp</h1>
-          <p class="lead">Use codigo de pareamento ou QR Code para conectar o celular do CRJ ao bot do LabStudio.</p>
-
-          <div class="status">
-            Status: <strong>${status}</strong>
-          </div>
-
-          ${
-            botPronto
-              ? ""
-              : `
-                <section class="pairing-card">
-                  <h2>Entrar com código</h2>
-                  <p>Digite o WhatsApp do celular do CRJ com DDD. O servidor vai gerar um código para conectar sem escanear QR.</p>
-
-                  <form class="pairing-form" method="GET" action="/pairing-code">
-                    <input type="hidden" name="token" value="${tokenFormulario}" />
-
-                    <label for="phone">WhatsApp do bot</label>
-                    <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="Ex: 27999999999" required />
-
-                    <button type="submit">Gerar código de pareamento</button>
-                  </form>
-
-                  <p class="small">No WhatsApp: Aparelhos conectados -> Conectar aparelho -> Conectar com número de telefone.</p>
-                </section>
-              `
-          }
-
-          ${
-            botPronto
-              ? `
-                <div class="success">
-                  <strong>✅ WhatsApp conectado.</strong>
-                  <p>O bot já está pronto para enviar e receber mensagens.</p>
-                </div>
-              `
-              : qrAtualTexto
-                ? `
-                  <div class="qr-box">
-                    <img src="${qrImagemUrl}" alt="QR Code WhatsApp" />
-                  </div>
-
-                  <p class="small">
-                    QR gerado em: ${qrGeradoEm ? new Date(qrGeradoEm).toLocaleString("pt-BR") : "não informado"}
-                  </p>
-
-                  <a class="button" href="${baseUrl}/qr?token=${token}">
-                    Atualizar QR
-                  </a>
-
-                  <p class="small">
-                    Se o QR expirar, aguarde alguns segundos e atualize esta página.
-                  </p>
-                `
-                : `
-                  <div class="warning">
-                    <strong>⏳ Nenhum QR disponível ainda.</strong>
-                    <p>O bot ainda está iniciando ou tentando restaurar uma sessão salva.</p>
-                    <p>Atualize a página em alguns segundos.</p>
-                  </div>
-
-                  <a class="button" href="${baseUrl}/qr?token=${token}">
-                    Atualizar página
-                  </a>
-                `
-          }
-        </main>
-      </body>
-    </html>
-  `);
+  res.send(paginaBotHtml({ titulo: "Conectar WhatsApp", corpo, script: botPronto ? "" : script, status }));
 });
 
 // ===============================
@@ -1035,37 +857,13 @@ app.get("/pairing-code", limitarPareamento, async (req, res) => {
   const phone = req.query.phone;
 
   if (!phone) {
-    return res.status(400).send(`
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-          <title>Telefone obrigatorio</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; padding: 32px;">
-          <h2>Telefone obrigatorio</h2>
-          <p>Informe o telefone na URL usando o parametro <strong>phone</strong>.</p>
-          <p>Exemplo: <code>/pairing-code?token=SEU_TOKEN&amp;phone=5527999999999</code></p>
-        </body>
-      </html>
-    `);
+    return res.status(400).send(paginaAvisoBot("Telefone obrigatório", "Volte para a página de conexão e informe o WhatsApp do bot com DDD."));
   }
 
   const phoneNumber = normalizarTelefonePareamentoBrasil(phone);
 
   if (!phoneNumber) {
-    return res.status(400).send(`
-      <html>
-        <head>
-          <meta charset="UTF-8" />
-          <title>Telefone invalido</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; padding: 32px;">
-          <h2>Telefone invalido</h2>
-          <p>Informe um WhatsApp brasileiro com DDD. O sistema adiciona o DDI 55 automaticamente.</p>
-          <p>Exemplo: <code>27999999999</code></p>
-        </body>
-      </html>
-    `);
+    return res.status(400).send(paginaAvisoBot("Telefone inválido", "Informe um WhatsApp brasileiro com DDD, por exemplo 27999999999. O 55 é adicionado sozinho."));
   }
 
   try {
@@ -1077,222 +875,23 @@ app.get("/pairing-code", limitarPareamento, async (req, res) => {
     // Não exibimos o código no terminal para evitar vazamento em logs de produção.
     console.log(`🔐 Código de pareamento gerado para ${mascararNumeroWhatsApp(phoneNumber)}.`);
 
-    res.send(`
-      <!DOCTYPE html>
-      <html lang="pt-BR">
-        <head>
-          <meta charset="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <title>Código de Pareamento WhatsApp - LabStudio</title>
-          <link rel="preconnect" href="https://fonts.googleapis.com">
-          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-          <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
-          <style>
-            * {
-              box-sizing: border-box;
-            }
-
-            :root {
-              --primary: #6366f1;
-              --accent: #22d3ee;
-              --surface: rgba(15, 23, 42, 0.72);
-              --border: rgba(148, 163, 184, 0.24);
-              --text: #f8fafc;
-              --muted: #b6c2d6;
-            }
-
-            body {
-              margin: 0;
-              min-height: 100vh;
-              font-family: "Poppins", "Segoe UI", sans-serif;
-              background:
-                radial-gradient(circle at top left, rgba(99, 102, 241, 0.25), transparent 32rem),
-                linear-gradient(145deg, #020617 0%, #0f172a 52%, #111827 100%);
-              color: var(--text);
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              padding: 24px;
-            }
-
-            .card {
-              width: 100%;
-              max-width: 620px;
-              background: linear-gradient(180deg, rgba(30, 41, 59, 0.94), rgba(15, 23, 42, 0.96));
-              border: 1px solid var(--border);
-              border-radius: 24px;
-              padding: 30px;
-              text-align: left;
-              box-shadow: 0 28px 80px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255,255,255,0.06);
-              backdrop-filter: blur(18px);
-              -webkit-backdrop-filter: blur(18px);
-            }
-
-            .brand-lockup {
-              display: inline-flex;
-              align-items: center;
-              gap: 12px;
-              min-height: 50px;
-              margin-bottom: 22px;
-              padding: 0.45rem 0.78rem;
-              border: 1px solid var(--border);
-              border-radius: 999px;
-              background: rgba(15, 23, 42, 0.34);
-              box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 44px rgba(0,0,0,0.18);
-            }
-
-            .brand-mark {
-              width: 40px;
-              height: 40px;
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              border-radius: 8px;
-              color: #fff;
-              background:
-                radial-gradient(circle at 30% 20%, rgba(255,255,255,0.5), transparent 24px),
-                linear-gradient(135deg, var(--primary), var(--accent));
-              box-shadow: 0 16px 42px rgba(34, 211, 238, 0.22);
-            }
-
-            .brand-lockup strong,
-            .brand-lockup small {
-              display: block;
-              line-height: 1.05;
-            }
-
-            .brand-lockup strong {
-              font-size: 0.96rem;
-              font-weight: 800;
-            }
-
-            .brand-lockup small {
-              margin-top: 3px;
-              color: var(--muted);
-              font-size: 0.72rem;
-              font-weight: 700;
-              text-transform: uppercase;
-            }
-
-            h1 {
-              margin: 0 0 10px;
-              font-size: clamp(2rem, 5vw, 3.6rem);
-              line-height: 0.98;
-              letter-spacing: 0;
-            }
-
-            p {
-              color: var(--muted);
-              line-height: 1.5;
-            }
-
-            .code {
-              margin: 24px 0 18px;
-              padding: 24px 18px;
-              border-radius: 18px;
-              background: #ffffff;
-              color: #111827;
-              text-align: center;
-              font-size: clamp(2.2rem, 9vw, 4.5rem);
-              line-height: 1;
-              font-weight: 900;
-              letter-spacing: 4px;
-              word-break: break-word;
-              box-shadow: 0 18px 46px rgba(2, 6, 23, 0.32);
-            }
-
-            .instructions {
-              text-align: left;
-              background: var(--surface);
-              border: 1px solid var(--border);
-              border-radius: 16px;
-              padding: 18px;
-              margin-top: 18px;
-            }
-
-            .instructions ol {
-              margin: 0;
-              padding-left: 22px;
-              color: #d1d5db;
-              line-height: 1.6;
-            }
-
-            .small {
-              font-size: 13px;
-              color: #9ca3af;
-              margin-top: 18px;
-            }
-
-            .button {
-              display: inline-block;
-              margin-top: 18px;
-              padding: 11px 16px;
-              border-radius: 12px;
-              background: linear-gradient(135deg, var(--primary), var(--accent));
-              color: white;
-              text-decoration: none;
-              font-weight: 800;
-              box-shadow: 0 16px 34px rgba(79, 70, 229, 0.28);
-            }
-
-            code {
-              background: #111827;
-              border: 1px solid var(--border);
-              border-radius: 8px;
-              color: #f9fafb;
-              padding: 2px 6px;
-            }
-
-            @media (max-width: 640px) {
-              body {
-                padding: 14px;
-                align-items: flex-start;
-              }
-
-              .card {
-                padding: 22px;
-                border-radius: 18px;
-              }
-            }
-          </style>
-        </head>
-
-        <body>
-          <main class="card">
-            <div class="brand-lockup">
-              <span class="brand-mark"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
-              <span>
-                <strong>LabStudio</strong>
-                <small>CRJ FLEXAL</small>
-              </span>
-            </div>
-
-            <h1>Código de Pareamento</h1>
-            <p>Use este código no WhatsApp do celular do CRJ para vincular o bot do LabStudio.</p>
-
-            <div class="code">${code}</div>
-
-            <div class="instructions">
-              <ol>
-                <li>Abra o WhatsApp no celular.</li>
-                <li>Vá em <strong>Aparelhos conectados</strong>.</li>
-                <li>Toque em <strong>Conectar aparelho</strong>.</li>
-                <li>Escolha a opção para conectar com número de telefone e informe o código acima.</li>
-              </ol>
-            </div>
-
-            <p class="small">Telefone: <code>${phoneNumber}</code></p>
-            <p class="small">Gerado em: ${new Date(codigoPareamentoGeradoEm).toLocaleString("pt-BR")}</p>
-            <a class="button" href="/qr?token=${encodeURIComponent(QR_PAGE_TOKEN)}">Voltar para conexão</a>
-          </main>
-        </body>
-      </html>
-    `);
+    res.send(paginaBotHtml({
+      titulo: "Código de pareamento",
+      corpo: `
+        <h1>Seu código</h1>
+        <p class="lead">Digite este código no WhatsApp do celular do CRJ.</p>
+        <div class="codigo">${code}</div>
+        <ol>
+          <li>01 · Abra o WhatsApp Business no celular do CRJ</li>
+          <li>02 · Vá em <strong>Aparelhos conectados → Conectar um aparelho</strong></li>
+          <li>03 · Toque em <strong>Conectar com número de telefone</strong> e digite o código</li>
+        </ol>
+        <p class="pequeno">Telefone: <code>${phoneNumber}</code> · gerado às ${new Date(codigoPareamentoGeradoEm).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo" })}</p>
+        <a class="botao botao-secundario" href="/qr?token=${encodeURIComponent(QR_PAGE_TOKEN)}">Voltar para a conexão</a>`
+    }));
   } catch (err) {
     console.error("❌ Erro ao gerar código de pareamento:", err);
-    res.status(500).send("Erro ao gerar codigo de pareamento.");
+    res.status(500).send(paginaAvisoBot("Não deu certo", "Não consegui gerar o código agora. Volte e tente de novo em alguns segundos, ou use o QR."));
   }
 });
 
