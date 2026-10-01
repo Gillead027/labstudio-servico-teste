@@ -2378,6 +2378,13 @@ app.post("/api/agendar", limitarRequisicoes({
       return responderErroApi(res, 500, "Erro ao salvar agendamento.", error);
     }
 
+    // Divulgação: quem agenda passa a receber os lembretes quinzenais. Falha aqui não afeta o agendamento.
+    try {
+      await marcarUsuarioComoJaUsouEstudio(usuario.id);
+    } catch (marcacaoError) {
+      console.warn("⚠️ Agendamento salvo, mas não consegui marcar o jovem como já usou o estúdio:", marcacaoError.message || marcacaoError);
+    }
+
     let whatsappNotificacaoEnviado = false;
     let destinoNotificacao = null;
 
@@ -2610,6 +2617,12 @@ async function processarMensagemWhatsApp(msg) {
       .replace(/\s+/g, " ")
       .trim();
 
+    // Descadastro da divulgação: tratado antes dos gatilhos para não responder com o link de agendamento.
+    if (mensagemPedeSairDaDivulgacao(mensagemNormalizada)) {
+      await processarPedidoSairDivulgacao(msg);
+      return;
+    }
+
     const encontrouGatilho = mensagemContemGatilhoLabStudio(mensagemNormalizada);
 
     // Se não encontrou gatilho, não faz nada.
@@ -2839,6 +2852,325 @@ app.post("/notificar-aprovacao", exigirAdminSupabase, async (req, res) => {
       erro: "falha_ao_enviar",
       mensagem: err.message || "Falha desconhecida ao enviar aprovação pelo WhatsApp."
     });
+  }
+});
+
+// ===============================
+// DIVULGAÇÃO QUINZENAL
+// Dia 1 e dia 15, a partir das 11h (Brasília), o bot lembra quem já usou o estúdio
+// que o LabStudio continua de portas abertas. Quem responder SAIR não recebe mais.
+// Liga/desliga pelo .env: DIVULGACAO_ATIVA=true
+// Precisa do SQL em supabase/divulgacao.sql.
+// ===============================
+const DIVULGACAO_ATIVA = String(process.env.DIVULGACAO_ATIVA || "").toLowerCase() === "true";
+const DIVULGACAO_DIAS = [1, 15];
+const DIVULGACAO_HORA_INICIO = 11;
+// Não envia à noite: se o envio atrasar, para às 19h e continua no dia seguinte.
+const DIVULGACAO_HORA_FIM = 19;
+// Se o bot ficar fora do ar no dia do envio, ainda recupera o ciclo até 3 dias depois.
+const DIVULGACAO_DIAS_TOLERANCIA = 3;
+// Intervalo aleatório entre mensagens para não parecer disparo em massa.
+const DIVULGACAO_INTERVALO_MIN_MS = 45 * 1000;
+const DIVULGACAO_INTERVALO_MAX_MS = 120 * 1000;
+
+// Serviços divulgados na mensagem. Edite esta lista para mudar as ofertas.
+const DIVULGACAO_SERVICOS = [
+  "🎙️ Gravação de voz e música",
+  "🎬 Produção de clipes"
+];
+
+let divulgacaoEmAndamento = false;
+
+function obterAgoraSaoPaulo() {
+  const partes = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hourCycle: "h23"
+    })
+      .formatToParts(new Date())
+      .map((parte) => [parte.type, parte.value])
+  );
+
+  return {
+    ano: Number(partes.year),
+    mes: Number(partes.month),
+    dia: Number(partes.day),
+    hora: Number(partes.hour)
+  };
+}
+
+// Retorna o ciclo em andamento (ex.: "2026-10-15") ou null fora da janela de envio.
+function obterCicloDivulgacaoAtual(agora = obterAgoraSaoPaulo()) {
+  const diaCiclo = [...DIVULGACAO_DIAS].reverse().find((dia) => agora.dia >= dia);
+
+  if (!diaCiclo) return null;
+  if (agora.dia - diaCiclo > DIVULGACAO_DIAS_TOLERANCIA) return null;
+  if (agora.hora < DIVULGACAO_HORA_INICIO || agora.hora >= DIVULGACAO_HORA_FIM) return null;
+
+  const mes = String(agora.mes).padStart(2, "0");
+  const dia = String(diaCiclo).padStart(2, "0");
+
+  return `${agora.ano}-${mes}-${dia}`;
+}
+
+function obterProximoEnvioDivulgacao(agora = obterAgoraSaoPaulo()) {
+  const proximoDia = DIVULGACAO_DIAS.find((dia) => dia > agora.dia || (dia === agora.dia && agora.hora < DIVULGACAO_HORA_INICIO));
+  let ano = agora.ano;
+  let mes = agora.mes;
+  let dia = proximoDia;
+
+  if (!dia) {
+    dia = DIVULGACAO_DIAS[0];
+    mes += 1;
+
+    if (mes > 12) {
+      mes = 1;
+      ano += 1;
+    }
+  }
+
+  return `${String(dia).padStart(2, "0")}/${String(mes).padStart(2, "0")}/${ano} às ${DIVULGACAO_HORA_INICIO}h`;
+}
+
+function primeiroNome(nome) {
+  const primeiro = String(nome || "").trim().split(/\s+/)[0];
+  return primeiro || "jovem";
+}
+
+function montarMensagemDivulgacao(nome) {
+  const servicos = DIVULGACAO_SERVICOS.join("\n");
+
+  // Duas aberturas alternadas para as mensagens não ficarem todas idênticas.
+  const aberturas = [
+    `Olá, ${primeiroNome(nome)}! Tudo certo? 🎶\n\nAqui é o LabStudio do CRJ Flexal. Passando para lembrar que o estúdio continua de portas abertas para você!`,
+    `E aí, ${primeiroNome(nome)}! 🎶\n\nO LabStudio do CRJ Flexal está com horários disponíveis e a gente quer te ver produzindo de novo!`
+  ];
+  const abertura = aberturas[Math.floor(Math.random() * aberturas.length)];
+
+  return `${abertura}
+
+Aqui você pode contar com:
+${servicos}
+
+Tudo 100% gratuito: o LabStudio faz parte do CRJ, um programa público voltado para as juventudes.
+
+📍 Escolha seu horário:
+${PUBLIC_SITE_URL}/
+
+Se não quiser mais receber estes lembretes, responda SAIR.`;
+}
+
+function esperar(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function intervaloAleatorioDivulgacao() {
+  return DIVULGACAO_INTERVALO_MIN_MS + Math.floor(Math.random() * (DIVULGACAO_INTERVALO_MAX_MS - DIVULGACAO_INTERVALO_MIN_MS));
+}
+
+async function marcarUsuarioComoJaUsouEstudio(usuarioId) {
+  if (!usuarioId) return;
+
+  const { error } = await supabase
+    .from("usuarios")
+    .update({ ja_usou_estudio: true })
+    .eq("id", usuarioId)
+    .eq("ja_usou_estudio", false);
+
+  if (error) {
+    throw error;
+  }
+}
+
+async function buscarDestinatariosDivulgacao() {
+  const { data, error } = await supabase
+    .from("usuarios")
+    .select("id, nome, telefone, status")
+    .eq("ja_usou_estudio", true)
+    .eq("aceita_divulgacao", true)
+    .order("id", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).filter((usuario) =>
+    String(usuario.status || "ativo").toLowerCase() !== "bloqueado" &&
+    limparTelefone(usuario.telefone)
+  );
+}
+
+async function buscarEnviosDoCiclo(ciclo) {
+  const { data, error } = await supabase
+    .from("divulgacao_envios")
+    .select("usuario_id, status")
+    .eq("ciclo", ciclo);
+
+  if (error) {
+    throw error;
+  }
+
+  return data || [];
+}
+
+async function registrarEnvioDivulgacao({ usuarioId, ciclo, status, erro = null }) {
+  const { error } = await supabase
+    .from("divulgacao_envios")
+    .insert([{ usuario_id: usuarioId, ciclo, status, erro }]);
+
+  if (error) {
+    throw error;
+  }
+
+  if (status === "enviado") {
+    await supabase
+      .from("usuarios")
+      .update({ ultima_divulgacao_em: new Date().toISOString() })
+      .eq("id", usuarioId);
+  }
+}
+
+async function executarCicloDivulgacao() {
+  if (!DIVULGACAO_ATIVA || divulgacaoEmAndamento || !botPronto) return;
+
+  const ciclo = obterCicloDivulgacaoAtual();
+  if (!ciclo) return;
+
+  divulgacaoEmAndamento = true;
+
+  try {
+    const destinatarios = await buscarDestinatariosDivulgacao();
+    const jaProcessados = new Set((await buscarEnviosDoCiclo(ciclo)).map((envio) => envio.usuario_id));
+    const pendentes = destinatarios.filter((usuario) => !jaProcessados.has(usuario.id));
+
+    if (!pendentes.length) return;
+
+    console.log(`📣 Divulgação do ciclo ${ciclo}: ${pendentes.length} envio(s) pendente(s).`);
+
+    for (const usuario of pendentes) {
+      // Interrompe se o WhatsApp cair ou a janela de horário acabar; o restante sai na próxima verificação.
+      if (!botPronto || obterCicloDivulgacaoAtual() !== ciclo) {
+        console.log(`⏸️ Divulgação do ciclo ${ciclo} pausada; continua na próxima janela.`);
+        return;
+      }
+
+      let status = "enviado";
+      let erro = null;
+
+      try {
+        const destino = await resolverDestinoWhatsApp(usuario.telefone);
+        await client.sendMessage(destino, montarMensagemDivulgacao(usuario.nome));
+        console.log(`✅ Divulgação enviada para ${mascararNumeroWhatsApp(destino)}.`);
+      } catch (envioError) {
+        status = "erro";
+        erro = String(envioError.message || envioError).slice(0, 300);
+        console.warn(`⚠️ Falha na divulgação para ${mascararNumeroWhatsApp(usuario.telefone)}:`, erro);
+      }
+
+      await registrarEnvioDivulgacao({ usuarioId: usuario.id, ciclo, status, erro });
+      await esperar(intervaloAleatorioDivulgacao());
+    }
+
+    console.log(`🏁 Divulgação do ciclo ${ciclo} concluída.`);
+  } catch (err) {
+    console.error("❌ Erro na divulgação quinzenal:", err.message || err);
+  } finally {
+    divulgacaoEmAndamento = false;
+  }
+}
+
+// Verifica a cada 5 minutos se há envio pendente; não envia nada fora do dia/horário.
+setInterval(executarCicloDivulgacao, 5 * 60 * 1000).unref();
+
+function mensagemPedeSairDaDivulgacao(mensagemNormalizada) {
+  return ["sair", "parar", "pare"].includes(mensagemNormalizada);
+}
+
+async function processarPedidoSairDivulgacao(msg) {
+  const { usuario, error } = await buscarUsuarioPorWhatsApp(msg);
+
+  if (error || !usuario) return;
+
+  const { data: atualizados, error: erroAtualizacao } = await supabase
+    .from("usuarios")
+    .update({ aceita_divulgacao: false })
+    .eq("id", usuario.id)
+    .eq("aceita_divulgacao", true)
+    .select("id");
+
+  if (erroAtualizacao) {
+    console.error("❌ Não consegui registrar o pedido de SAIR da divulgação:", erroAtualizacao.message);
+    return;
+  }
+
+  // Só confirma para quem estava recebendo, para não responder qualquer "sair" de conversa comum.
+  if (!atualizados || !atualizados.length) return;
+
+  await client.sendMessage(
+    msg.from,
+    `Pronto, ${primeiroNome(usuario.nome)}! Você não vai mais receber os lembretes do LabStudio.
+
+O agendamento continua normal: é só mandar "agendar" quando quiser gravar. 🎙️`
+  );
+
+  console.log(`🔕 Divulgação desativada a pedido de ${mascararNumeroWhatsApp(msg.from)}.`);
+}
+
+// ===============================
+// ROTAS ADMIN DA DIVULGAÇÃO
+// ===============================
+const limitarTesteDivulgacao = limitarRequisicoes({
+  janelaMs: 10 * 60 * 1000,
+  maximo: 5,
+  nome: "teste-divulgacao"
+});
+
+app.get("/api/divulgacao/resumo", exigirAdminSupabase, async (req, res) => {
+  try {
+    const destinatarios = await buscarDestinatariosDivulgacao();
+    const agora = obterAgoraSaoPaulo();
+    const ultimoDiaCiclo = [...DIVULGACAO_DIAS].reverse().find((dia) => agora.dia >= dia) || DIVULGACAO_DIAS[0];
+    const ultimoCiclo = `${agora.ano}-${String(agora.mes).padStart(2, "0")}-${String(ultimoDiaCiclo).padStart(2, "0")}`;
+    const envios = await buscarEnviosDoCiclo(ultimoCiclo);
+
+    return res.json({
+      ok: true,
+      ativa: DIVULGACAO_ATIVA,
+      botPronto,
+      emAndamento: divulgacaoEmAndamento,
+      totalDestinatarios: destinatarios.length,
+      proximoEnvio: obterProximoEnvioDivulgacao(agora),
+      ultimoCiclo,
+      enviadosUltimoCiclo: envios.filter((envio) => envio.status === "enviado").length,
+      errosUltimoCiclo: envios.filter((envio) => envio.status === "erro").length,
+      exemploMensagem: montarMensagemDivulgacao("Fulano")
+    });
+  } catch (err) {
+    return responderErroApi(res, 500, "Não consegui carregar a divulgação. Confira se o SQL supabase/divulgacao.sql foi executado.", err);
+  }
+});
+
+app.post("/api/divulgacao/teste", limitarTesteDivulgacao, exigirAdminSupabase, async (req, res) => {
+  try {
+    const destino = normalizarNumeroWhatsApp(BOT_NOTIFY_NUMBER);
+
+    if (!destino) {
+      return responderErroApi(res, 503, "BOT_NOTIFY_NUMBER não configurado no servidor.");
+    }
+
+    if (!botPronto) {
+      return responderErroApi(res, 503, "WhatsApp ainda não está pronto para enviar mensagens.");
+    }
+
+    await client.sendMessage(destino, `🧪 TESTE DA DIVULGAÇÃO (só você recebeu)\n\n${montarMensagemDivulgacao("Fulano")}`);
+
+    return res.json({ ok: true, destino: mascararNumeroWhatsApp(destino) });
+  } catch (err) {
+    return responderErroApi(res, 500, "Falha ao enviar o teste da divulgação.", err);
   }
 });
 

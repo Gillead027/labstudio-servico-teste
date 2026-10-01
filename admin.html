@@ -508,6 +508,21 @@
       margin-bottom: 10px;
     }
 
+    .usuario-ja-usou {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .usuario-ja-usou input {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
     /* ===============================
        FORMULÁRIO DE CADASTRO DE USUÁRIO
     =============================== */
@@ -2392,9 +2407,36 @@
             </select>
           </div>
 
+          <div class="grupo">
+            <label for="novoJaUsouEstudio">Já usou o estúdio?</label>
+            <select id="novoJaUsouEstudio">
+              <option value="false">Não</option>
+              <option value="true">Sim (recebe a divulgação)</option>
+            </select>
+          </div>
+
           <button id="btnSalvarUsuario" class="btn-salvar" type="button">
             Salvar usuário
           </button>
+        </div>
+      </div>
+
+      <!-- Divulgação quinzenal: lembrete automático no dia 1 e 15 para quem já usou o estúdio. -->
+      <div class="painel-usuarios">
+        <div class="usuarios-topo">
+          <h2><i class="fa-solid fa-bullhorn" aria-hidden="true"></i> Divulgação automática</h2>
+        </div>
+
+        <div class="form-ajuda">
+          Todo dia 1 e 15, às 11h, o bot manda um lembrete para quem está marcado como <strong>"Já usou o estúdio"</strong>. Quem responder SAIR deixa de receber.
+        </div>
+
+        <div id="conteudoDivulgacao">
+          <div class="vazio">Buscando dados da divulgação...</div>
+        </div>
+
+        <div class="acoes">
+          <button id="btnTesteDivulgacao" class="btn-secundario" type="button">Enviar teste para o número da equipe</button>
         </div>
       </div>
 
@@ -2575,6 +2617,9 @@
     const novoStatus = document.getElementById("novoStatus");
     const novoCadastrado = document.getElementById("novoCadastrado");
     const btnSalvarUsuario = document.getElementById("btnSalvarUsuario");
+    const novoJaUsouEstudio = document.getElementById("novoJaUsouEstudio");
+    const conteudoDivulgacao = document.getElementById("conteudoDivulgacao");
+    const btnTesteDivulgacao = document.getElementById("btnTesteDivulgacao");
     const ajudaNovoNome = document.getElementById("ajudaNovoNome");
     const ajudaNovoTelefone = document.getElementById("ajudaNovoTelefone");
     const ajudaNovaDataNascimento = document.getElementById("ajudaNovaDataNascimento");
@@ -4484,6 +4529,7 @@
       const dataNascimento = novaDataNascimento.value;
       const status = novoStatus.value;
       const cadastrado = novoCadastrado.value === "true";
+      const jaUsouEstudio = novoJaUsouEstudio.value === "true";
 
       // Validação nativa aponta campos obrigatórios antes da validação customizada do painel.
       if (!novoNome.reportValidity() || !novoTelefone.reportValidity() || !novaDataNascimento.reportValidity()) {
@@ -4533,6 +4579,7 @@
             data_nascimento: dataNascimento,
             cadastrado: cadastrado,
             status: status,
+            ja_usou_estudio: jaUsouEstudio,
             faltas: 0,
             presencas: 0
           }]);
@@ -4552,6 +4599,7 @@
         novaDataNascimento.value = "";
         novoStatus.value = "ativo";
         novoCadastrado.value = "true";
+        novoJaUsouEstudio.value = "false";
         ajudaNovoNome.textContent = "";
         ajudaNovoTelefone.textContent = "";
         ajudaNovaDataNascimento.textContent = "";
@@ -5841,8 +5889,14 @@
             🧾 Cadastrado: ${estaCadastrado ? "Sim" : "Não"}<br>
             ✅ Presenças: ${Number(usuario.presencas || 0)}<br>
             ⚠️ Faltas: ${Number(usuario.faltas || 0)}<br>
-            🚦 Status: ${escaparHtml(usuario.status || "ativo")}
+            🚦 Status: ${escaparHtml(usuario.status || "ativo")}<br>
+            📣 Divulgação: ${textoDivulgacaoUsuario(usuario)}
           </div>
+
+          <label class="usuario-ja-usou">
+            <input type="checkbox" class="chk-ja-usou" ${usuario.ja_usou_estudio === true ? "checked" : ""}>
+            Já usou o estúdio
+          </label>
 
           <div class="acoes">
             <button class="btn-editar">Editar usuário</button>
@@ -5893,8 +5947,134 @@
           alterarCadastroUsuario(usuario.id, usuario.nome, !estaCadastrado, btnCadastro);
         });
 
+        const chkJaUsou = item.querySelector(".chk-ja-usou");
+        chkJaUsou.addEventListener("change", () => {
+          alterarJaUsouEstudio(usuario, chkJaUsou);
+        });
+
         conteudoUsuarios.appendChild(item);
       });
+    }
+
+    // ===============================
+    // DIVULGAÇÃO QUINZENAL
+    // Marca quem já usou o estúdio e mostra o resumo dos lembretes automáticos.
+    // ===============================
+    function textoDivulgacaoUsuario(usuario) {
+      if (usuario.ja_usou_estudio !== true) return "não recebe (não usou o estúdio)";
+      if (usuario.aceita_divulgacao === false) return "não recebe (pediu para sair)";
+      if (String(usuario.status || "").toLowerCase() === "bloqueado") return "não recebe (bloqueado)";
+      return "recebe";
+    }
+
+    async function alterarJaUsouEstudio(usuario, checkbox) {
+      const novoValor = checkbox.checked;
+      checkbox.disabled = true;
+
+      const { error } = await client
+        .from("usuarios")
+        .update({ ja_usou_estudio: novoValor })
+        .eq("id", usuario.id);
+
+      checkbox.disabled = false;
+
+      if (error) {
+        checkbox.checked = !novoValor;
+        mostrarToast("Não foi possível atualizar: " + error.message, "erro");
+        return;
+      }
+
+      usuario.ja_usou_estudio = novoValor;
+
+      await registrarLogAdmin(
+        novoValor ? "marcar_ja_usou_estudio" : "desmarcar_ja_usou_estudio",
+        "usuarios",
+        usuario.id,
+        `${novoValor ? "Marcou" : "Desmarcou"} ${usuario.nome || "usuário sem nome"} como já usou o estúdio.`
+      );
+
+      mostrarToast(
+        novoValor
+          ? `${usuario.nome || "Jovem"} vai receber a divulgação.`
+          : `${usuario.nome || "Jovem"} não vai mais receber a divulgação.`,
+        "sucesso"
+      );
+      recarregarPainel();
+    }
+
+    async function carregarResumoDivulgacao() {
+      conteudoDivulgacao.innerHTML = '<div class="vazio">Buscando dados da divulgação...</div>';
+
+      try {
+        const cabecalhosAdmin = await obterCabecalhosAdminJson();
+        const resposta = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/divulgacao/resumo`, {
+          headers: cabecalhosAdmin
+        });
+        const resumo = await resposta.json().catch(() => ({}));
+
+        if (!resposta.ok) {
+          throw new Error(resumo.mensagem || `Erro HTTP ${resposta.status}.`);
+        }
+
+        const situacao = !resumo.ativa
+          ? "⏸️ Desligada no servidor (DIVULGACAO_ATIVA)"
+          : resumo.emAndamento
+            ? "📤 Enviando agora"
+            : "✅ Ligada";
+
+        conteudoDivulgacao.innerHTML = `
+          <div class="usuario-info">
+            Situação: ${escaparHtml(situacao)}<br>
+            👥 Vão receber: <strong>${Number(resumo.totalDestinatarios || 0)}</strong> jovem(ns)<br>
+            📅 Próximo envio: ${escaparHtml(resumo.proximoEnvio || "-")}<br>
+            📊 Ciclo ${escaparHtml(formatarData(resumo.ultimoCiclo))}: ${Number(resumo.enviadosUltimoCiclo || 0)} enviada(s), ${Number(resumo.errosUltimoCiclo || 0)} com erro
+            ${resumo.botPronto ? "" : "<br>⚠️ WhatsApp do bot desconectado: nenhum envio sai até reconectar."}
+          </div>
+          <details class="form-ajuda">
+            <summary>Ver exemplo da mensagem</summary>
+            <div style="white-space: pre-wrap; margin-top: 8px;">${escaparHtml(resumo.exemploMensagem || "")}</div>
+          </details>
+        `;
+      } catch (err) {
+        conteudoDivulgacao.innerHTML = mensagemVazio(
+          "Não foi possível carregar a divulgação.",
+          `Detalhe técnico: ${err.message}`
+        );
+      }
+    }
+
+    async function enviarTesteDivulgacao() {
+      const confirmar = await confirmarAcaoAdmin(
+        "Enviar teste da divulgação",
+        "Enviar a mensagem de divulgação só para o número da equipe (o mesmo que recebe os avisos de novos agendamentos)?",
+        {
+          tipo: "info",
+          textoConfirmar: "Enviar teste"
+        }
+      );
+
+      if (!confirmar) return;
+
+      definirLoadingBotao(btnTesteDivulgacao, true, "Enviando...", "Enviar teste para o número da equipe");
+
+      try {
+        const cabecalhosAdmin = await obterCabecalhosAdminJson();
+        const resposta = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/divulgacao/teste`, {
+          method: "POST",
+          headers: cabecalhosAdmin
+        });
+        const resultado = await resposta.json().catch(() => ({}));
+
+        if (!resposta.ok) {
+          throw new Error(resultado.mensagem || `Erro HTTP ${resposta.status}.`);
+        }
+
+        mostrarToast(`Teste enviado para ${resultado.destino}.`, "sucesso");
+      } catch (err) {
+        mostrarToast("Falha ao enviar o teste: " + err.message, "erro");
+      } finally {
+        definirLoadingBotao(btnTesteDivulgacao, false, "Enviando...", "Enviar teste para o número da equipe");
+      }
     }
 
     // ===============================
@@ -5909,6 +6089,8 @@
       const cadastradoAtual = usuario.cadastrado === true ? "sim" : "nao";
       const faltasAtuais = Number(usuario.faltas || 0);
       const presencasAtuais = Number(usuario.presencas || 0);
+      const jaUsouEstudioAtual = usuario.ja_usou_estudio === true ? "sim" : "nao";
+      const aceitaDivulgacaoAtual = usuario.aceita_divulgacao === false ? "nao" : "sim";
 
       // ===============================
       // COLETA DOS NOVOS DADOS
@@ -5976,6 +6158,26 @@
             min: "0",
             step: "1",
             value: String(presencasAtuais)
+          },
+          {
+            id: "jaUsouEstudio",
+            label: "Já usou o estúdio?",
+            type: "select",
+            value: jaUsouEstudioAtual,
+            options: [
+              { value: "sim", label: "Sim" },
+              { value: "nao", label: "Não" }
+            ]
+          },
+          {
+            id: "aceitaDivulgacao",
+            label: "Recebe a divulgação? (vira \"Não\" quando a pessoa responde SAIR)",
+            type: "select",
+            value: aceitaDivulgacaoAtual,
+            options: [
+              { value: "sim", label: "Sim" },
+              { value: "nao", label: "Não" }
+            ]
           }
         ]
       });
@@ -6065,7 +6267,9 @@
             status: statusLimpo,
             cadastrado: cadastradoLimpo === "sim",
             faltas: faltasNumero,
-            presencas: presencasNumero
+            presencas: presencasNumero,
+            ja_usou_estudio: dadosEdicao.jaUsouEstudio === "sim",
+            aceita_divulgacao: dadosEdicao.aceitaDivulgacao === "sim"
           })
           .eq("id", usuario.id);
 
@@ -6559,6 +6763,7 @@
       carregarUsuariosBloqueados();
       carregarCadastrosOnlinePendentes();
       carregarUsuariosCadastrados();
+      carregarResumoDivulgacao();
       carregarAgendamentos();
       carregarAgendamentosDashboard();
       carregarCalendario();
@@ -7228,6 +7433,10 @@
     // ===============================
     btnSalvarUsuario.addEventListener("click", () => {
       cadastrarNovoUsuario();
+    });
+
+    btnTesteDivulgacao.addEventListener("click", () => {
+      enviarTesteDivulgacao();
     });
 
     novoNome.addEventListener("input", validarNovoNomeTempoReal);

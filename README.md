@@ -121,3 +121,18 @@ Nao versionar:
 - `.wwebjs_cache/`
 - `tokens/`
 - chaves, sessoes ou credenciais reais
+
+## Divulgação Quinzenal
+
+Todo dia 1 e 15, a partir das 11h (Brasília), o bot manda um lembrete pelo WhatsApp para os jovens marcados como **"Já usou o estúdio"** no painel admin.
+
+- Quem agenda pelo site é marcado automaticamente; a equipe também pode marcar/desmarcar no card do jovem.
+- Envio lento (45 a 120 segundos entre mensagens), só entre 11h e 19h. Se o bot ficar fora do ar, o ciclo é recuperado em até 3 dias.
+- Quem responder **SAIR** deixa de receber (pode ser reativado em "Editar usuário").
+- Os serviços divulgados ficam na lista `DIVULGACAO_SERVICOS` do `server.js`.
+
+Para ativar:
+
+1. Rode `supabase/divulgacao.sql` no SQL Editor do Supabase.
+2. No `.env` da VPS, defina `DIVULGACAO_ATIVA=true` e reinicie o servidor.
+3. No painel admin (aba Usuários → Divulgação automática), use **Enviar teste** para ver a mensagem no número da equipe.
