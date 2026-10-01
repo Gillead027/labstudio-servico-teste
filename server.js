@@ -6,6 +6,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const crypto = require("crypto");
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const QRCode = require("qrcode");
 const { createClient } = require("@supabase/supabase-js");
@@ -146,6 +147,8 @@ if (PUBLIC_BOT_URL && PUBLIC_BOT_URL.includes("localhost")) {
 // ===============================
 const app = express();
 app.set("trust proxy", 1);
+// Não revela a tecnologia do servidor no cabeçalho X-Powered-By.
+app.disable("x-powered-by");
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -157,27 +160,47 @@ app.use((req, res, next) => {
 
 const rateLimitMemoria = new Map();
 
+// O site chega pela Vercel: req.ip é o IP da Vercel (igual para todos os visitantes).
+// O IP real do visitante vem no cabeçalho que a Vercel adiciona.
+function obterIpVisitante(req) {
+  const ipVercel = String(req.headers["x-vercel-forwarded-for"] || "").split(",")[0].trim();
+  return ipVercel || req.ip || req.socket.remoteAddress || "origem-desconhecida";
+}
+
+function contarRequisicao(chave, janelaMs) {
+  const agora = Date.now();
+  const registro = rateLimitMemoria.get(chave) || { inicio: agora, total: 0 };
+
+  if (agora - registro.inicio > janelaMs) {
+    registro.inicio = agora;
+    registro.total = 0;
+  }
+
+  registro.total += 1;
+  rateLimitMemoria.set(chave, registro);
+  return registro.total;
+}
+
 function limitarRequisicoes({ janelaMs, maximo, nome }) {
   return (req, res, next) => {
-    const agora = Date.now();
-    const ip = req.ip || req.socket.remoteAddress || "origem-desconhecida";
-    const chave = `${nome}:${ip}`;
-    const registro = rateLimitMemoria.get(chave) || { inicio: agora, total: 0 };
+    // Limite por visitante e, como o cabeçalho pode ser forjado em acesso direto,
+    // um teto geral por conexão (10x maior) que segura abuso mesmo assim.
+    const totalVisitante = contarRequisicao(`${nome}:visitante:${obterIpVisitante(req)}`, janelaMs);
+    const totalConexao = contarRequisicao(`${nome}:conexao:${req.ip || "origem-desconhecida"}`, janelaMs);
 
-    if (agora - registro.inicio > janelaMs) {
-      registro.inicio = agora;
-      registro.total = 0;
-    }
-
-    registro.total += 1;
-    rateLimitMemoria.set(chave, registro);
-
-    if (registro.total > maximo) {
+    if (totalVisitante > maximo || totalConexao > maximo * 10) {
       return responderErroApi(res, 429, "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.");
     }
 
     return next();
   };
+}
+
+// Compara segredos em tempo constante para não vazar o token por medição de tempo de resposta.
+function segredoConfere(recebido, esperado) {
+  const a = Buffer.from(String(recebido || ""));
+  const b = Buffer.from(String(esperado || ""));
+  return a.length > 0 && a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
 setInterval(() => {
@@ -577,7 +600,7 @@ function verificarTokenQr(req, res) {
 
   const tokenRecebido = String(req.query.token || "");
 
-  if (tokenRecebido !== QR_PAGE_TOKEN) {
+  if (!segredoConfere(tokenRecebido, QR_PAGE_TOKEN)) {
     res.status(403).send(`
       <html>
         <head>
@@ -1970,6 +1993,32 @@ async function buscarUsuarioPorTelefone(telefone) {
 }
 
 // ===============================
+// LIMITE DE AGENDAMENTOS FUTUROS POR PESSOA
+// Compara pelos 8 últimos dígitos para ignorar +55, DDD e nono dígito.
+// ===============================
+const LIMITE_AGENDAMENTOS_FUTUROS_POR_PESSOA = 2;
+
+async function contarAgendamentosFuturosDoUsuario(telefoneUsuario) {
+  const final = limparTelefone(telefoneUsuario).slice(-8);
+  if (!final) return 0;
+
+  const agora = obterAgoraSaoPaulo();
+  const hoje = `${agora.ano}-${String(agora.mes).padStart(2, "0")}-${String(agora.dia).padStart(2, "0")}`;
+
+  const { data, error } = await supabase
+    .from("agendamentos")
+    .select("telefone")
+    .eq("status", "agendado")
+    .gte("data", hoje);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).filter((agendamento) => limparTelefone(agendamento.telefone).slice(-8) === final).length;
+}
+
+// ===============================
 // FUNÇÃO: BUSCAR HORÁRIOS OCUPADOS
 // Agendamentos cancelados não bloqueiam o horário.
 // ===============================
@@ -2043,7 +2092,7 @@ function verificarTokenInterno(req, res, next) {
     return responderErroApi(res, 503, "Token interno não configurado no servidor.");
   }
 
-  if (tokenRecebido !== INTERNAL_API_TOKEN) {
+  if (!segredoConfere(tokenRecebido, INTERNAL_API_TOKEN)) {
     return responderErroApi(res, 401, "Acesso não autorizado.");
   }
 
@@ -2342,6 +2391,17 @@ app.post("/api/agendar", limitarRequisicoes({
         res,
         403,
         "Seu cadastro ainda não está ativo para agendamento. Procure a equipe do CRJ."
+      );
+    }
+
+    // Impede que alguém ocupe a agenda inteira com o telefone de um jovem.
+    const agendamentosFuturos = await contarAgendamentosFuturosDoUsuario(usuario.telefone);
+
+    if (agendamentosFuturos >= LIMITE_AGENDAMENTOS_FUTUROS_POR_PESSOA) {
+      return responderErroApi(
+        res,
+        409,
+        `Você já tem ${agendamentosFuturos} agendamento(s) marcado(s). Compareça ou cancele com a equipe do CRJ antes de agendar outro.`
       );
     }
 
@@ -2777,7 +2837,7 @@ Aguardamos você para realizar sua gravação! 🔥`;
     }
 
     console.log(
-      `✅ Auto-resposta enviada para usuário cadastrado: ${usuario.nome} - ${usuario.telefone}`
+      `✅ Auto-resposta enviada para usuário cadastrado: ${usuario.nome} - ${mascararNumeroWhatsApp(usuario.telefone)}`
     );
   } catch (err) {
     console.error("❌ Erro inesperado ao processar mensagem do WhatsApp:", err);
