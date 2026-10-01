@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - LabStudio CRJ FLEXAL</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23070a16'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='18'%20fill='%2322d3ee'/%3E%3Cpath%20d='M25%2041V20h18v6H31v15z'%20fill='white'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%231C1B19'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='13'%20fill='%23FFD948'/%3E%3C/svg%3E">
   <!-- Acelera a primeira conexão com o CDN dos ícones sem mudar a identidade visual. -->
   <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
   <style>
@@ -2208,6 +2208,383 @@
         margin-top: 0;
       }
     }
+
+    /* =====================================================================
+       VISUAL LABSTUDIO (papel + tinta)
+       Camada final: redefine as variáveis e tira gradientes, vidro e sombras
+       difusas do painel, no mesmo estilo do site público. Fica por último
+       para valer sobre as regras anteriores sem mexer no HTML nem no JS.
+    ===================================================================== */
+    html,
+    html[data-theme],
+    html[data-theme="light"] {
+      --papel: #F6F4EF;
+      --papel-2: #ECE8DF;
+      --tinta: #1C1B19;
+      --tinta-2: #57534E;
+      --amarelo: #FFD948;
+      --roxo: #B9A4FF;
+      --verde: #B6E36B;
+      --laranja: #FF8A3D;
+      --coral: #FF9A8F;
+      --linha-suave: #D9D3C7;
+      --sombra-dura: 4px 4px 0 var(--tinta);
+      --quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --expo: cubic-bezier(0.16, 1, 0.3, 1);
+
+      --primary: var(--tinta);
+      --primary-hover: #000;
+      --accent: var(--amarelo);
+      --success: #2F6B16;
+      --danger: #C8221A;
+      --warning: var(--laranja);
+      --bg: var(--papel);
+      --page-bg: var(--papel);
+      --card: #FFFFFF;
+      --card-strong: var(--papel-2);
+      --card-gradient: #FFFFFF;
+      --panel-bg: #FFFFFF;
+      --nav-bg: #FFFFFF;
+      --item-bg: var(--papel);
+      --item-hover-bg: var(--papel-2);
+      --empty-bg: var(--papel);
+      --toast-bg: var(--tinta);
+      --obs-bg: #FFF6D6;
+      --text: var(--tinta);
+      --muted: var(--tinta-2);
+      --border: var(--tinta);
+      --input: #FFFFFF;
+      --input-text: var(--tinta);
+      --input-focus-bg: #FFFDF2;
+      --shadow: var(--sombra-dura);
+      --soft-border: var(--tinta);
+      --title-shadow: none;
+      --error-text: #C8221A;
+      --success-text: #2F6B16;
+      --login-error-bg: #FFE4E0;
+      --login-error-border: #C8221A;
+      color-scheme: light;
+    }
+
+    html { background: var(--papel); }
+    body::before { display: none !important; }
+
+    body {
+      font-family: "Schibsted Grotesk", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection { background: var(--amarelo); color: var(--tinta); }
+
+    /* O painel passa a ser só claro. */
+    #btnTema { display: none !important; }
+
+    /* ---------- Títulos com tipografia de pôster ---------- */
+    h1,
+    .titulo-aba,
+    .login-card h1 {
+      font-family: "Big Shoulders Display", "Arial Narrow", sans-serif;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.005em;
+      line-height: 0.95;
+      color: var(--tinta);
+      text-shadow: none;
+    }
+
+    .titulo-aba { font-size: clamp(2.2rem, 4vw, 3.2rem); }
+
+    h2, h3 { color: var(--tinta); }
+
+    .painel-usuarios h2,
+    .usuarios-topo h2 {
+      font-family: "Big Shoulders Display", "Arial Narrow", sans-serif;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: 1.6rem;
+      letter-spacing: 0.01em;
+    }
+
+    /* ---------- Superfícies: branco, borda de tinta e sombra dura ---------- */
+    .login-card,
+    .topo-admin,
+    html[data-theme="light"] .topo-admin,
+    .card,
+    .bloco-resumo,
+    .painel-usuarios,
+    .filtros,
+    .usuario-card,
+    .modal-admin-card,
+    html[data-theme="light"] .modal-admin-card {
+      background: #FFFFFF !important;
+      border: 1.5px solid var(--tinta) !important;
+      border-radius: 14px !important;
+      box-shadow: var(--sombra-dura) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    .card,
+    .usuario-card,
+    .bloco-resumo {
+      transition: transform 0.4s var(--quart), box-shadow 0.4s var(--quart) !important;
+    }
+
+    .card:hover,
+    .usuario-card:hover {
+      transform: translate(-2px, -2px);
+      box-shadow: 6px 6px 0 var(--tinta) !important;
+    }
+
+    /* Itens dentro de painéis: sem sombra, para não empilhar contornos. */
+    .painel-usuarios .usuario-card,
+    .painel-usuarios .card,
+    .item-divulgacao {
+      box-shadow: none !important;
+      border-color: var(--linha-suave) !important;
+      background: var(--papel) !important;
+    }
+
+    .painel-usuarios .usuario-card:hover,
+    .painel-usuarios .card:hover {
+      border-color: var(--tinta) !important;
+      box-shadow: var(--sombra-dura) !important;
+    }
+
+    .bloco-resumo::after { display: none !important; }
+
+    .numero-grande {
+      font-family: "Big Shoulders Display", "Arial Narrow", sans-serif !important;
+      font-weight: 900 !important;
+      font-size: 4.2rem !important;
+      line-height: 0.9 !important;
+      color: var(--tinta) !important;
+    }
+    .bloco-resumo:nth-child(4n+1) { background: var(--amarelo) !important; }
+    .bloco-resumo:nth-child(4n+2) { background: var(--roxo) !important; }
+    .bloco-resumo:nth-child(4n+3) { background: var(--verde) !important; }
+    .metric-fill { background: var(--tinta) !important; }
+
+    .admin-brand-mark {
+      background: var(--tinta) !important;
+      color: var(--amarelo) !important;
+      box-shadow: none !important;
+    }
+
+    /* ---------- Abas ---------- */
+    .aba-botao {
+      border-radius: 999px !important;
+      color: var(--tinta) !important;
+      border: 1.5px solid transparent !important;
+      transition: background 0.25s ease, border-color 0.25s ease, transform 0.3s var(--quart) !important;
+    }
+
+    /* Abas são botões: tira o fundo de tinta da regra geral de botões. */
+    .aba-botao,
+    .aba-botao:hover:not(:disabled) {
+      background: transparent !important;
+      color: var(--tinta) !important;
+      box-shadow: none !important;
+      transform: none;
+    }
+
+    .aba-botao:hover:not(:disabled) { border-color: var(--tinta) !important; background: #FFFFFF !important; }
+
+    /* Caixas de ajuda e o ícone do estado vazio sem os tons de vidro antigos. */
+    .priority-note {
+      background: var(--papel) !important;
+      border: 1.5px solid var(--linha-suave) !important;
+      color: var(--tinta-2) !important;
+    }
+
+    .vazio i {
+      background: var(--amarelo) !important;
+      border: 1.5px solid var(--tinta) !important;
+      color: var(--tinta) !important;
+    }
+
+    .aba-botao.ativa {
+      background: var(--tinta) !important;
+      color: var(--amarelo) !important;
+      border-color: var(--tinta) !important;
+      box-shadow: none !important;
+    }
+
+    /* ---------- Botões: pílula de tinta, preenchem de amarelo no hover ---------- */
+    button {
+      border-radius: 999px !important;
+      border: 1.5px solid var(--tinta) !important;
+      background: var(--tinta) !important;
+      color: var(--papel) !important;
+      font-family: "Schibsted Grotesk", system-ui, sans-serif;
+      font-weight: 700 !important;
+      box-shadow: none !important;
+      transition: background 0.25s ease, color 0.25s ease, transform 0.3s var(--quart), box-shadow 0.3s var(--quart) !important;
+    }
+
+    button:hover:not(:disabled):not(.calendario-dia):not(.aba-botao) {
+      background: var(--amarelo) !important;
+      color: var(--tinta) !important;
+      transform: translate(-2px, -2px);
+      box-shadow: 3px 3px 0 var(--tinta) !important;
+    }
+
+    button:active:not(:disabled) { transform: translate(0, 0) scale(0.98); box-shadow: none !important; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button:focus-visible { outline: 3px solid var(--tinta) !important; outline-offset: 3px; }
+
+    .btn-secundario,
+    .btn-ghost,
+    .modal-admin-fechar {
+      background: #FFFFFF !important;
+      color: var(--tinta) !important;
+    }
+
+    .btn-presenca, .btn-desbloquear, .btn-salvar { background: var(--verde) !important; color: var(--tinta) !important; }
+    .btn-falta { background: var(--laranja) !important; color: var(--tinta) !important; }
+    .btn-cancelar, .btn-bloquear, .btn-sair { background: var(--coral) !important; color: var(--tinta) !important; }
+    .btn-editar, .btn-cadastro { background: var(--roxo) !important; color: var(--tinta) !important; }
+
+    .filtros-rapidos .filtro-rapido { background: #FFFFFF !important; color: var(--tinta) !important; }
+    .filtros-rapidos .filtro-rapido.ativo { background: var(--tinta) !important; color: var(--amarelo) !important; }
+    .aba-botao.ativa:hover { background: var(--tinta) !important; color: var(--amarelo) !important; }
+
+    /* ---------- Campos ---------- */
+    input, select, textarea {
+      background: #FFFFFF !important;
+      color: var(--tinta) !important;
+      border: 1.5px solid var(--tinta) !important;
+      border-radius: 10px !important;
+      font-family: "Schibsted Grotesk", system-ui, sans-serif;
+      transition: box-shadow 0.25s var(--quart) !important;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none !important;
+      box-shadow: 0 0 0 3px var(--amarelo) !important;
+      background: var(--input-focus-bg) !important;
+    }
+
+    input[type="checkbox"] { accent-color: var(--tinta); box-shadow: none !important; }
+
+    /* ---------- Etiquetas de status ---------- */
+    .status { border: 1.5px solid var(--tinta) !important; color: var(--tinta) !important; font-weight: 700 !important; }
+    .status-agendado, .status-pendente { background: var(--amarelo) !important; }
+    .status-compareceu, .status-ativo { background: var(--verde) !important; }
+    .status-faltou { background: var(--laranja) !important; }
+    .status-cancelado { background: var(--papel-2) !important; }
+    .status-bloqueado { background: var(--coral) !important; }
+
+    /* ---------- Calendário ---------- */
+    /* Dias são botões: volta ao quadrado e sem o hover amarelo da regra geral. */
+    .calendario-dia {
+      border: 1.5px solid var(--tinta) !important;
+      border-radius: 12px !important;
+      box-shadow: none !important;
+      color: var(--tinta) !important;
+      background: #FFFFFF !important;
+      align-items: stretch !important;
+      justify-content: flex-start !important;
+      text-align: left;
+    }
+
+    .calendario-dia:hover:not(:disabled) {
+      box-shadow: var(--sombra-dura) !important;
+      transform: translate(-2px, -2px);
+    }
+
+    .calendario-dia.selecionado { box-shadow: 0 0 0 3px var(--amarelo), var(--sombra-dura) !important; }
+
+    .calendario-dia.vazio,
+    .calendario-dia.vazio:hover:not(:disabled) {
+      background: transparent !important;
+      border: 1.5px dashed var(--linha-suave) !important;
+      box-shadow: none !important;
+      transform: none;
+    }
+
+    .calendario-dia .calendario-numero { border: 1.5px solid var(--tinta); }
+
+    /* Celular: 7 colunas de ~45px; os dias encolhem e a frase longa sai (cor e contador já dizem a situação). */
+    @media (max-width: 720px) {
+      .calendario-dia { min-width: 0; overflow: hidden; }
+      .calendario-mensagem-dia { display: none; }
+      .calendario-status-dia { overflow-wrap: anywhere; hyphens: auto; }
+    }
+
+    @media (max-width: 480px) {
+      .calendario-status-dia { display: none; }
+    }
+    .calendario-dia.livre { background: var(--verde) !important; color: var(--tinta) !important; }
+    .calendario-dia.parcial { background: var(--amarelo) !important; color: var(--tinta) !important; }
+    .calendario-dia.lotado, .calendario-dia.bloqueado { background: var(--coral) !important; color: var(--tinta) !important; }
+    .calendario-dia.fora-funcionamento { background: var(--papel-2) !important; color: var(--tinta-2) !important; }
+    .calendario-dia.hoje .calendario-numero { background: var(--tinta) !important; color: var(--amarelo) !important; }
+
+    /* ---------- Avisos, vazios e observações ---------- */
+    .vazio {
+      background: var(--papel) !important;
+      border: 1.5px dashed var(--tinta-2) !important;
+      color: var(--tinta-2) !important;
+    }
+
+    .observacao {
+      background: #FFF6D6 !important;
+      border-left: 4px solid var(--amarelo) !important;
+      color: var(--tinta) !important;
+    }
+
+    /* ---------- Toasts ---------- */
+    .toast {
+      background: var(--tinta) !important;
+      color: var(--papel) !important;
+      border: 1.5px solid var(--tinta) !important;
+      border-radius: 12px !important;
+      box-shadow: 4px 4px 0 rgba(28, 27, 25, 0.25) !important;
+      backdrop-filter: none !important;
+    }
+
+    .toast.sucesso { background: #2F6B16 !important; }
+    .toast.erro { background: #C8221A !important; }
+    .toast.aviso { background: var(--amarelo) !important; color: var(--tinta) !important; }
+
+    /* ---------- Janelas (modais) ---------- */
+    .modal-admin-overlay {
+      background: rgba(28, 27, 25, 0.45) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    .modal-admin-card h2 {
+      font-family: "Big Shoulders Display", "Arial Narrow", sans-serif;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: 2rem !important;
+      line-height: 0.95 !important;
+    }
+
+    .modal-admin-icone,
+    .modal-admin-icone.aviso,
+    .modal-admin-icone.sucesso,
+    .modal-admin-icone.perigo {
+      border: 1.5px solid var(--tinta);
+      box-shadow: none !important;
+      color: var(--tinta) !important;
+    }
+
+    .modal-admin-icone { background: var(--amarelo) !important; }
+    .modal-admin-icone.aviso { background: var(--laranja) !important; }
+    .modal-admin-icone.sucesso { background: var(--verde) !important; }
+    .modal-admin-icone.perigo { background: var(--coral) !important; }
+
+    .situacao.recebe { background: var(--verde) !important; color: var(--tinta) !important; }
+    .situacao.saiu { background: var(--amarelo) !important; color: var(--tinta) !important; }
+    .situacao.bloqueado { background: var(--coral) !important; color: var(--tinta) !important; }
+    .situacao { border: 1.5px solid var(--tinta); }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition: none !important; animation: none !important; }
+    }
   </style>
 </head>
 
@@ -2779,7 +3156,8 @@
     // Aplicam o tema salvo e mantêm a preferência ao recarregar o painel.
     // ===============================
     function aplicarTema(tema) {
-      const temaFinal = tema === "light" ? "light" : "dark";
+      // O painel agora é só claro (visual LabStudio); o botão de tema fica escondido.
+      const temaFinal = "light";
 
       document.documentElement.dataset.theme = temaFinal;
       btnTema.innerText = temaFinal === "light" ? "Claro" : "Escuro";
