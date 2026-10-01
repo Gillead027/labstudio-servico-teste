@@ -508,6 +508,40 @@
       margin-bottom: 10px;
     }
 
+    .filtros-rapidos {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .filtros-rapidos .filtro-rapido {
+      background: var(--item-bg);
+      color: var(--text);
+      border: 1px solid var(--soft-border);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-weight: 600;
+      cursor: pointer;
+      width: auto;
+      margin: 0;
+    }
+
+    .filtros-rapidos .filtro-rapido:hover {
+      background: var(--item-hover-bg);
+    }
+
+    .filtros-rapidos .filtro-rapido.ativo {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .filtros-rapidos .contagem {
+      opacity: 0.75;
+      font-weight: 500;
+    }
+
     .usuario-ja-usou {
       display: inline-flex;
       align-items: center;
@@ -2270,20 +2304,19 @@
           <input type="date" id="filtroData">
         </div>
 
-        <div class="grupo">
-          <label for="filtroStatus">Status do agendamento</label>
-          <select id="filtroStatus">
-            <option value="">Todos</option>
-            <option value="agendado">Agendado</option>
-            <option value="compareceu">Compareceu</option>
-            <option value="faltou">Faltou</option>
-            <option value="cancelado">Cancelado</option>
-          </select>
-        </div>
-
         <button id="btnFiltrar">Filtrar</button>
         <!-- Texto operacional: deixa claro que a ação remove apenas filtros, não dados do sistema. -->
         <button id="btnLimpar" class="btn-secundario">Limpar filtros</button>
+      </div>
+
+      <!-- Filtros rápidos por situação; os números mostram quantos agendamentos há em cada uma. -->
+      <div id="filtrosRapidosAgendamentos" class="filtros-rapidos" role="group" aria-label="Situação dos agendamentos">
+        <button type="button" class="filtro-rapido ativo" data-filtro="todos" aria-pressed="true">Todos <span class="contagem"></span></button>
+        <button type="button" class="filtro-rapido" data-filtro="proximos" aria-pressed="false">Próximos <span class="contagem"></span></button>
+        <button type="button" class="filtro-rapido" data-filtro="finalizados" aria-pressed="false">Finalizados <span class="contagem"></span></button>
+        <button type="button" class="filtro-rapido" data-filtro="remarcados" aria-pressed="false">Remarcados <span class="contagem"></span></button>
+        <button type="button" class="filtro-rapido" data-filtro="faltas" aria-pressed="false">Não compareceram <span class="contagem"></span></button>
+        <button type="button" class="filtro-rapido" data-filtro="cancelados" aria-pressed="false">Cancelados <span class="contagem"></span></button>
       </div>
 
       <div id="listaAgendamentos"></div>
@@ -2598,7 +2631,6 @@
     const dashboardAgendamentos = document.getElementById("dashboardAgendamentos");
     const filtroBusca = document.getElementById("filtroBusca");
     const filtroData = document.getElementById("filtroData");
-    const filtroStatus = document.getElementById("filtroStatus");
     const btnFiltrar = document.getElementById("btnFiltrar");
     const btnLimpar = document.getElementById("btnLimpar");
     const btnProcessarPendencias = document.getElementById("btnProcessarPendencias");
@@ -6568,22 +6600,71 @@
     // FUNÇÃO: CARREGAR AGENDAMENTOS
     // Busca os agendamentos no Supabase e monta os cards.
     // ===============================
+    // ===============================
+    // FILTROS RÁPIDOS DE AGENDAMENTOS
+    // Próximos, finalizados, remarcados, não compareceram e cancelados.
+    // ===============================
+    let filtroRapidoAgendamentos = "todos";
+
+    function hojeSaoPaulo() {
+      return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+    }
+
+    function agendamentoFoiRemarcado(agendamento) {
+      return /^Reagendado de /i.test(String(agendamento.observacao || "").trim());
+    }
+
+    function agendamentoCombinaComFiltroRapido(agendamento, filtro) {
+      const status = agendamento.status || "agendado";
+
+      switch (filtro) {
+        case "proximos":
+          return status === "agendado" && String(agendamento.data || "") >= hojeSaoPaulo();
+        case "finalizados":
+          return status === "compareceu";
+        case "remarcados":
+          return agendamentoFoiRemarcado(agendamento);
+        case "faltas":
+          return status === "faltou";
+        case "cancelados":
+          return status === "cancelado";
+        default:
+          return true;
+      }
+    }
+
+    function atualizarContagensFiltrosRapidos(agendamentos) {
+      document.querySelectorAll("#filtrosRapidosAgendamentos .filtro-rapido").forEach(botao => {
+        const total = agendamentos.filter(item => agendamentoCombinaComFiltroRapido(item, botao.dataset.filtro)).length;
+        botao.querySelector(".contagem").textContent = `(${total})`;
+      });
+    }
+
+    function selecionarFiltroRapidoAgendamentos(filtro) {
+      filtroRapidoAgendamentos = filtro;
+
+      document.querySelectorAll("#filtrosRapidosAgendamentos .filtro-rapido").forEach(botao => {
+        const ativo = botao.dataset.filtro === filtro;
+        botao.classList.toggle("ativo", ativo);
+        botao.setAttribute("aria-pressed", ativo ? "true" : "false");
+      });
+
+      carregarAgendamentos();
+    }
+
     async function carregarAgendamentos() {
       // Retorno padronizado: loading orienta que filtros e agenda estão sendo consultados.
       lista.innerHTML = '<div class="vazio">Buscando agendamentos...</div>';
 
+      // Mais recentes primeiro: novos agendamentos aparecem no topo da lista.
       let query = client
         .from("agendamentos")
         .select("*")
-        .order("data", { ascending: true })
-        .order("horario", { ascending: true });
+        .order("data", { ascending: false })
+        .order("horario", { ascending: false });
 
       if (filtroData.value) {
         query = query.eq("data", filtroData.value);
-      }
-
-      if (filtroStatus.value) {
-        query = query.eq("status", filtroStatus.value);
       }
 
       const { data, error } = await query;
@@ -6597,9 +6678,20 @@
         return;
       }
 
-      const agendamentosFiltrados = (data || []).filter(item =>
+      const agendamentosDaBusca = (data || []).filter(item =>
         agendamentoCombinaComBusca(item)
       );
+
+      atualizarContagensFiltrosRapidos(agendamentosDaBusca);
+
+      let agendamentosFiltrados = agendamentosDaBusca.filter(item =>
+        agendamentoCombinaComFiltroRapido(item, filtroRapidoAgendamentos)
+      );
+
+      // Próximos: o horário mais perto aparece primeiro.
+      if (filtroRapidoAgendamentos === "proximos") {
+        agendamentosFiltrados = agendamentosFiltrados.slice().reverse();
+      }
 
       if (!agendamentosFiltrados || agendamentosFiltrados.length === 0) {
         // Texto operacional: vazio orienta a equipe a revisar filtros antes de assumir falta de agenda.
@@ -7401,8 +7493,19 @@
     btnLimpar.addEventListener("click", () => {
       filtroBusca.value = "";
       filtroData.value = "";
-      filtroStatus.value = "";
+      filtroRapidoAgendamentos = "todos";
+      document.querySelectorAll("#filtrosRapidosAgendamentos .filtro-rapido").forEach(botao => {
+        const ativo = botao.dataset.filtro === "todos";
+        botao.classList.toggle("ativo", ativo);
+        botao.setAttribute("aria-pressed", ativo ? "true" : "false");
+      });
       recarregarPainel();
+    });
+
+    document.querySelectorAll("#filtrosRapidosAgendamentos .filtro-rapido").forEach(botao => {
+      botao.addEventListener("click", () => {
+        selecionarFiltroRapidoAgendamentos(botao.dataset.filtro);
+      });
     });
 
     // ===============================
