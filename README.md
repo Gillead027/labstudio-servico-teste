@@ -124,15 +124,17 @@ Nao versionar:
 
 ## Divulgação Quinzenal
 
-Todo dia 1 e 15, a partir das 11h (Brasília), o bot manda um lembrete pelo WhatsApp para os jovens marcados como **"Já usou o estúdio"** no painel admin.
+Todo dia 1 e 15, a partir das 11h (Brasília), a **API oficial do WhatsApp (Cloud API da Meta)** manda o modelo de mensagem aprovado para os jovens marcados como **"Já usou o estúdio"** no painel admin. O atendimento automático continua no bot `whatsapp-web.js`.
 
 - Quem agenda pelo site é marcado automaticamente; a equipe também pode marcar/desmarcar no card do jovem.
-- Envio lento (45 a 120 segundos entre mensagens), só entre 11h e 19h. Se o bot ficar fora do ar, o ciclo é recuperado em até 3 dias.
-- Quem responder **SAIR** deixa de receber (pode ser reativado em "Editar usuário").
-- Os serviços divulgados ficam na lista `DIVULGACAO_SERVICOS` do `server.js`.
+- Envio só entre 11h e 19h. Se o servidor ficar fora do ar, o ciclo é recuperado em até 3 dias.
+- Quem responder **SAIR** (ou tocar no botão de sair) deixa de receber; pode ser reativado em "Editar usuário".
+- Falhas de entrega informadas pela Meta aparecem no resumo do painel.
 
 Para ativar:
 
 1. Rode `supabase/divulgacao.sql` no SQL Editor do Supabase.
-2. No `.env` da VPS, defina `DIVULGACAO_ATIVA=true` e reinicie o servidor.
-3. No painel admin (aba Usuários → Divulgação automática), use **Enviar teste** para ver a mensagem no número da equipe.
+2. Na Meta, aprove o modelo `labstudio_lembrete` (categoria Marketing, idioma pt_BR, variável `{{1}}` = primeiro nome). O texto está em `DIVULGACAO_TEXTO_MODELO` no `server.js`.
+3. Cadastre o webhook na Meta: `https://SEU_BACKEND/webhook/whatsapp`, campo `messages`.
+4. Preencha as variáveis `WHATSAPP_*` no `.env` da VPS, defina `DIVULGACAO_ATIVA=true` e reinicie.
+5. No painel admin (aba Usuários → Divulgação automática), use **Enviar teste**.

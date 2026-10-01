@@ -23,9 +23,14 @@ create table if not exists public.divulgacao_envios (
   ciclo date not null,
   status text not null check (status in ('enviado', 'erro')),
   erro text,
+  mensagem_id text,
   enviado_em timestamptz not null default now(),
   unique (usuario_id, ciclo)
 );
+
+-- Usado pelo webhook da Meta para marcar falhas de entrega.
+create index if not exists divulgacao_envios_mensagem_id_idx
+  on public.divulgacao_envios (mensagem_id);
 
 -- Só o servidor (service role) grava e lê o histórico.
 alter table public.divulgacao_envios enable row level security;

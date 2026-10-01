@@ -2428,7 +2428,7 @@
         </div>
 
         <div class="form-ajuda">
-          Todo dia 1 e 15, às 11h, o bot manda um lembrete para quem está marcado como <strong>"Já usou o estúdio"</strong>. Quem responder SAIR deixa de receber.
+          Todo dia 1 e 15, às 11h, a API oficial do WhatsApp manda um lembrete para quem está marcado como <strong>"Já usou o estúdio"</strong>. Quem responder SAIR deixa de receber.
         </div>
 
         <div id="conteudoDivulgacao">
@@ -6028,7 +6028,7 @@
             👥 Vão receber: <strong>${Number(resumo.totalDestinatarios || 0)}</strong> jovem(ns)<br>
             📅 Próximo envio: ${escaparHtml(resumo.proximoEnvio || "-")}<br>
             📊 Ciclo ${escaparHtml(formatarData(resumo.ultimoCiclo))}: ${Number(resumo.enviadosUltimoCiclo || 0)} enviada(s), ${Number(resumo.errosUltimoCiclo || 0)} com erro
-            ${resumo.botPronto ? "" : "<br>⚠️ WhatsApp do bot desconectado: nenhum envio sai até reconectar."}
+            ${resumo.apiOficialConfigurada ? "" : "<br>⚠️ API oficial do WhatsApp não configurada no servidor: nenhum envio sai."}
           </div>
           <details class="form-ajuda">
             <summary>Ver exemplo da mensagem</summary>
