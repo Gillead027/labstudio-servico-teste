@@ -6,7 +6,6 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const crypto = require("crypto");
 const { Client, LocalAuth } = require("whatsapp-web.js");
 const QRCode = require("qrcode");
 const { createClient } = require("@supabase/supabase-js");
@@ -238,13 +237,7 @@ app.use(cors({
   }
 }));
 
-app.use(express.json({
-  limit: "20kb",
-  // Guarda o corpo bruto para validar a assinatura do webhook da Meta.
-  verify: (req, res, buf) => {
-    req.rawBody = buf;
-  }
-}));
+app.use(express.json({ limit: "20kb" }));
 
 // ===============================
 // ERROS DE PAYLOAD JSON
@@ -2863,11 +2856,9 @@ app.post("/notificar-aprovacao", exigirAdminSupabase, async (req, res) => {
 });
 
 // ===============================
-// DIVULGAÇÃO QUINZENAL (API OFICIAL DO WHATSAPP)
-// Dia 1 e dia 15, a partir das 11h (Brasília), lembra quem já usou o estúdio
-// que o LabStudio continua de portas abertas. Usa a WhatsApp Cloud API da Meta
-// com o modelo de mensagem aprovado; o atendimento do bot continua no whatsapp-web.js.
-// Quem responder SAIR (ou tocar no botão de sair do modelo) não recebe mais.
+// DIVULGAÇÃO QUINZENAL
+// Dia 1 e dia 15, a partir das 11h (Brasília), o bot lembra quem já usou o estúdio
+// que o LabStudio continua de portas abertas. Quem responder SAIR não recebe mais.
 // Liga/desliga pelo .env: DIVULGACAO_ATIVA=true
 // Precisa do SQL em supabase/divulgacao.sql.
 // ===============================
@@ -2876,40 +2867,19 @@ const DIVULGACAO_DIAS = [1, 15];
 const DIVULGACAO_HORA_INICIO = 11;
 // Não envia à noite: se o envio atrasar, para às 19h e continua no dia seguinte.
 const DIVULGACAO_HORA_FIM = 19;
-// Se o servidor ficar fora do ar no dia do envio, ainda recupera o ciclo até 3 dias depois.
+// Se o bot ficar fora do ar no dia do envio, ainda recupera o ciclo até 3 dias depois.
 const DIVULGACAO_DIAS_TOLERANCIA = 3;
-const DIVULGACAO_INTERVALO_MS = 2000;
+// Intervalo aleatório entre mensagens para não parecer disparo em massa.
+const DIVULGACAO_INTERVALO_MIN_MS = 45 * 1000;
+const DIVULGACAO_INTERVALO_MAX_MS = 120 * 1000;
 
-// Credenciais da WhatsApp Cloud API (Meta). Nunca coloque esses valores no código.
-const WHATSAPP_CLOUD_TOKEN = process.env.WHATSAPP_CLOUD_TOKEN || "";
-const WHATSAPP_CLOUD_PHONE_NUMBER_ID = process.env.WHATSAPP_CLOUD_PHONE_NUMBER_ID || "";
-const WHATSAPP_CLOUD_TEMPLATE = process.env.WHATSAPP_CLOUD_TEMPLATE || "labstudio_lembrete";
-const WHATSAPP_CLOUD_TEMPLATE_IDIOMA = process.env.WHATSAPP_CLOUD_TEMPLATE_IDIOMA || "pt_BR";
-const WHATSAPP_GRAPH_VERSION = process.env.WHATSAPP_GRAPH_VERSION || "v23.0";
-const WHATSAPP_WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || "";
-const WHATSAPP_APP_SECRET = process.env.WHATSAPP_APP_SECRET || "";
-
-// Texto do modelo como foi cadastrado na Meta; serve só para a prévia no painel.
-// Se o modelo for alterado na Meta, atualize aqui também.
-const DIVULGACAO_TEXTO_MODELO = `Olá, {{1}}! Tudo certo? 🎶
-
-Aqui é o LabStudio do CRJ Flexal. Passando para lembrar que o estúdio continua de portas abertas para você!
-
-Aqui você pode contar com:
-🎙️ Gravação de voz e música
-🎬 Produção de clipes
-
-Tudo 100% gratuito: o LabStudio faz parte do CRJ, um programa público voltado para as juventudes.
-
-📍 Escolha seu horário: https://labstudio-servico-teste.vercel.app/
-
-Se não quiser mais receber estes lembretes, responda SAIR.`;
+// Serviços divulgados na mensagem. Edite esta lista para mudar as ofertas.
+const DIVULGACAO_SERVICOS = [
+  "🎙️ Gravação de voz e música",
+  "🎬 Produção de clipes"
+];
 
 let divulgacaoEmAndamento = false;
-
-function divulgacaoOficialConfigurada() {
-  return Boolean(WHATSAPP_CLOUD_TOKEN && WHATSAPP_CLOUD_PHONE_NUMBER_ID);
-}
 
 function obterAgoraSaoPaulo() {
   const partes = Object.fromEntries(
@@ -2971,67 +2941,35 @@ function primeiroNome(nome) {
   return primeiro || "jovem";
 }
 
+function montarMensagemDivulgacao(nome) {
+  const servicos = DIVULGACAO_SERVICOS.join("\n");
+
+  // Duas aberturas alternadas para as mensagens não ficarem todas idênticas.
+  const aberturas = [
+    `Olá, ${primeiroNome(nome)}! Tudo certo? 🎶\n\nAqui é o LabStudio do CRJ Flexal. Passando para lembrar que o estúdio continua de portas abertas para você!`,
+    `E aí, ${primeiroNome(nome)}! 🎶\n\nO LabStudio do CRJ Flexal está com horários disponíveis e a gente quer te ver produzindo de novo!`
+  ];
+  const abertura = aberturas[Math.floor(Math.random() * aberturas.length)];
+
+  return `${abertura}
+
+Aqui você pode contar com:
+${servicos}
+
+Tudo 100% gratuito: o LabStudio faz parte do CRJ, um programa público voltado para as juventudes.
+
+📍 Escolha seu horário:
+${PUBLIC_SITE_URL}/
+
+Se não quiser mais receber estes lembretes, responda SAIR.`;
+}
+
 function esperar(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// A Cloud API espera o número só com dígitos e DDI: 5527999999999.
-function telefoneParaCloudApi(telefone) {
-  const numero = limparTelefone(telefone);
-  if (!numero) return "";
-  return "55" + removerDdiBrasilSeInformado(numero);
-}
-
-async function chamarWhatsAppCloudApi(corpo) {
-  if (!divulgacaoOficialConfigurada()) {
-    throw new Error("WhatsApp Cloud API não configurada (WHATSAPP_CLOUD_TOKEN / WHATSAPP_CLOUD_PHONE_NUMBER_ID).");
-  }
-
-  const resposta = await fetch(
-    `https://graph.facebook.com/${WHATSAPP_GRAPH_VERSION}/${WHATSAPP_CLOUD_PHONE_NUMBER_ID}/messages`,
-    {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${WHATSAPP_CLOUD_TOKEN}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ messaging_product: "whatsapp", ...corpo })
-    }
-  );
-
-  const resultado = await resposta.json().catch(() => ({}));
-
-  if (!resposta.ok) {
-    const erroMeta = resultado.error || {};
-    throw new Error(`Meta ${resposta.status}: ${erroMeta.message || "erro desconhecido"}${erroMeta.code ? ` (código ${erroMeta.code})` : ""}`);
-  }
-
-  return resultado.messages && resultado.messages[0] ? resultado.messages[0].id : null;
-}
-
-function enviarModeloDivulgacao(telefone, nome) {
-  return chamarWhatsAppCloudApi({
-    to: telefoneParaCloudApi(telefone),
-    type: "template",
-    template: {
-      name: WHATSAPP_CLOUD_TEMPLATE,
-      language: { code: WHATSAPP_CLOUD_TEMPLATE_IDIOMA },
-      components: [
-        {
-          type: "body",
-          parameters: [{ type: "text", text: primeiroNome(nome) }]
-        }
-      ]
-    }
-  });
-}
-
-function enviarTextoCloudApi(telefone, texto) {
-  return chamarWhatsAppCloudApi({
-    to: telefoneParaCloudApi(telefone),
-    type: "text",
-    text: { body: texto }
-  });
+function intervaloAleatorioDivulgacao() {
+  return DIVULGACAO_INTERVALO_MIN_MS + Math.floor(Math.random() * (DIVULGACAO_INTERVALO_MAX_MS - DIVULGACAO_INTERVALO_MIN_MS));
 }
 
 async function marcarUsuarioComoJaUsouEstudio(usuarioId) {
@@ -3079,10 +3017,10 @@ async function buscarEnviosDoCiclo(ciclo) {
   return data || [];
 }
 
-async function registrarEnvioDivulgacao({ usuarioId, ciclo, status, erro = null, mensagemId = null }) {
+async function registrarEnvioDivulgacao({ usuarioId, ciclo, status, erro = null }) {
   const { error } = await supabase
     .from("divulgacao_envios")
-    .insert([{ usuario_id: usuarioId, ciclo, status, erro, mensagem_id: mensagemId }]);
+    .insert([{ usuario_id: usuarioId, ciclo, status, erro }]);
 
   if (error) {
     throw error;
@@ -3097,7 +3035,7 @@ async function registrarEnvioDivulgacao({ usuarioId, ciclo, status, erro = null,
 }
 
 async function executarCicloDivulgacao() {
-  if (!DIVULGACAO_ATIVA || divulgacaoEmAndamento || !divulgacaoOficialConfigurada()) return;
+  if (!DIVULGACAO_ATIVA || divulgacaoEmAndamento || !botPronto) return;
 
   const ciclo = obterCicloDivulgacaoAtual();
   if (!ciclo) return;
@@ -3114,27 +3052,27 @@ async function executarCicloDivulgacao() {
     console.log(`📣 Divulgação do ciclo ${ciclo}: ${pendentes.length} envio(s) pendente(s).`);
 
     for (const usuario of pendentes) {
-      // Interrompe se a janela de horário acabar; o restante sai na próxima verificação.
-      if (obterCicloDivulgacaoAtual() !== ciclo) {
+      // Interrompe se o WhatsApp cair ou a janela de horário acabar; o restante sai na próxima verificação.
+      if (!botPronto || obterCicloDivulgacaoAtual() !== ciclo) {
         console.log(`⏸️ Divulgação do ciclo ${ciclo} pausada; continua na próxima janela.`);
         return;
       }
 
       let status = "enviado";
       let erro = null;
-      let mensagemId = null;
 
       try {
-        mensagemId = await enviarModeloDivulgacao(usuario.telefone, usuario.nome);
-        console.log(`✅ Divulgação enviada para ${mascararNumeroWhatsApp(usuario.telefone)}.`);
+        const destino = await resolverDestinoWhatsApp(usuario.telefone);
+        await client.sendMessage(destino, montarMensagemDivulgacao(usuario.nome));
+        console.log(`✅ Divulgação enviada para ${mascararNumeroWhatsApp(destino)}.`);
       } catch (envioError) {
         status = "erro";
         erro = String(envioError.message || envioError).slice(0, 300);
         console.warn(`⚠️ Falha na divulgação para ${mascararNumeroWhatsApp(usuario.telefone)}:`, erro);
       }
 
-      await registrarEnvioDivulgacao({ usuarioId: usuario.id, ciclo, status, erro, mensagemId });
-      await esperar(DIVULGACAO_INTERVALO_MS);
+      await registrarEnvioDivulgacao({ usuarioId: usuario.id, ciclo, status, erro });
+      await esperar(intervaloAleatorioDivulgacao());
     }
 
     console.log(`🏁 Divulgação do ciclo ${ciclo} concluída.`);
@@ -3149,134 +3087,38 @@ async function executarCicloDivulgacao() {
 setInterval(executarCicloDivulgacao, 5 * 60 * 1000).unref();
 
 function mensagemPedeSairDaDivulgacao(mensagemNormalizada) {
-  return ["sair", "parar", "pare", "nao quero mais receber", "parar promocoes"].includes(mensagemNormalizada);
+  return ["sair", "parar", "pare"].includes(mensagemNormalizada);
 }
 
-function normalizarTextoResposta(texto) {
-  return String(texto || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+async function processarPedidoSairDivulgacao(msg) {
+  const { usuario, error } = await buscarUsuarioPorWhatsApp(msg);
 
-// Desativa a divulgação do usuário. Retorna o usuário quando ele estava recebendo.
-async function desativarDivulgacaoDoUsuario(usuario) {
-  if (!usuario) return null;
+  if (error || !usuario) return;
 
-  const { data: atualizados, error } = await supabase
+  const { data: atualizados, error: erroAtualizacao } = await supabase
     .from("usuarios")
     .update({ aceita_divulgacao: false })
     .eq("id", usuario.id)
     .eq("aceita_divulgacao", true)
     .select("id");
 
-  if (error) {
-    throw error;
+  if (erroAtualizacao) {
+    console.error("❌ Não consegui registrar o pedido de SAIR da divulgação:", erroAtualizacao.message);
+    return;
   }
-
-  return atualizados && atualizados.length ? usuario : null;
-}
-
-function mensagemConfirmacaoSair(nome) {
-  return `Pronto, ${primeiroNome(nome)}! Você não vai mais receber os lembretes do LabStudio.
-
-O agendamento continua normal pelo site: https://labstudio-servico-teste.vercel.app/ 🎙️`;
-}
-
-// SAIR enviado para o número do bot (whatsapp-web.js).
-async function processarPedidoSairDivulgacao(msg) {
-  const { usuario: usuarioEncontrado, error } = await buscarUsuarioPorWhatsApp(msg);
-  if (error) return;
-
-  const usuario = await desativarDivulgacaoDoUsuario(usuarioEncontrado);
 
   // Só confirma para quem estava recebendo, para não responder qualquer "sair" de conversa comum.
-  if (!usuario) return;
+  if (!atualizados || !atualizados.length) return;
 
-  await client.sendMessage(msg.from, mensagemConfirmacaoSair(usuario.nome));
+  await client.sendMessage(
+    msg.from,
+    `Pronto, ${primeiroNome(usuario.nome)}! Você não vai mais receber os lembretes do LabStudio.
+
+O agendamento continua normal: é só mandar "agendar" quando quiser gravar. 🎙️`
+  );
+
   console.log(`🔕 Divulgação desativada a pedido de ${mascararNumeroWhatsApp(msg.from)}.`);
 }
-
-// ===============================
-// WEBHOOK DA API OFICIAL
-// A Meta chama esta rota com respostas (SAIR) e status de entrega das mensagens.
-// Cadastre na Meta: URL https://SEU_BACKEND/webhook/whatsapp e o WHATSAPP_WEBHOOK_VERIFY_TOKEN.
-// ===============================
-app.get("/webhook/whatsapp", (req, res) => {
-  const modo = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const desafio = req.query["hub.challenge"];
-
-  if (modo === "subscribe" && WHATSAPP_WEBHOOK_VERIFY_TOKEN && token === WHATSAPP_WEBHOOK_VERIFY_TOKEN) {
-    return res.status(200).send(String(desafio || ""));
-  }
-
-  return res.sendStatus(403);
-});
-
-function assinaturaWebhookValida(req) {
-  // Sem APP_SECRET configurado não há como validar; recusa para não aceitar chamadas falsas.
-  if (!WHATSAPP_APP_SECRET || !req.rawBody) return false;
-
-  const assinatura = String(req.headers["x-hub-signature-256"] || "");
-  const esperado = "sha256=" + crypto.createHmac("sha256", WHATSAPP_APP_SECRET).update(req.rawBody).digest("hex");
-
-  return assinatura.length === esperado.length &&
-    crypto.timingSafeEqual(Buffer.from(assinatura), Buffer.from(esperado));
-}
-
-app.post("/webhook/whatsapp", async (req, res) => {
-  if (!assinaturaWebhookValida(req)) {
-    return res.sendStatus(401);
-  }
-
-  // Responde logo: a Meta reenvia o evento se demorar.
-  res.sendStatus(200);
-
-  try {
-    const alteracoes = (req.body.entry || []).flatMap((entrada) => entrada.changes || []);
-
-    for (const alteracao of alteracoes) {
-      const valor = alteracao.value || {};
-
-      for (const mensagem of valor.messages || []) {
-        const textoResposta = mensagem.type === "button"
-          ? (mensagem.button && (mensagem.button.payload || mensagem.button.text))
-          : (mensagem.text && mensagem.text.body);
-
-        if (!mensagemPedeSairDaDivulgacao(normalizarTextoResposta(textoResposta))) continue;
-
-        const { usuario: usuarioEncontrado } = await buscarUsuarioPorVariantesTelefone(gerarVariantesTelefone(mensagem.from));
-        const usuario = await desativarDivulgacaoDoUsuario(usuarioEncontrado);
-
-        if (usuario) {
-          await enviarTextoCloudApi(mensagem.from, mensagemConfirmacaoSair(usuario.nome));
-          console.log(`🔕 Divulgação desativada a pedido de ${mascararNumeroWhatsApp(mensagem.from)} (API oficial).`);
-        }
-      }
-
-      // Status de entrega: marca como erro quando a Meta não conseguiu entregar.
-      for (const statusMensagem of valor.statuses || []) {
-        if (statusMensagem.status !== "failed") continue;
-
-        const erroMeta = (statusMensagem.errors && statusMensagem.errors[0]) || {};
-
-        await supabase
-          .from("divulgacao_envios")
-          .update({
-            status: "erro",
-            erro: String(erroMeta.title || erroMeta.message || "Falha na entrega").slice(0, 300)
-          })
-          .eq("mensagem_id", statusMensagem.id);
-      }
-    }
-  } catch (err) {
-    console.error("❌ Erro ao processar webhook do WhatsApp:", err.message || err);
-  }
-});
 
 // ===============================
 // ROTAS ADMIN DA DIVULGAÇÃO
@@ -3298,14 +3140,14 @@ app.get("/api/divulgacao/resumo", exigirAdminSupabase, async (req, res) => {
     return res.json({
       ok: true,
       ativa: DIVULGACAO_ATIVA,
-      apiOficialConfigurada: divulgacaoOficialConfigurada(),
+      botPronto,
       emAndamento: divulgacaoEmAndamento,
       totalDestinatarios: destinatarios.length,
       proximoEnvio: obterProximoEnvioDivulgacao(agora),
       ultimoCiclo,
       enviadosUltimoCiclo: envios.filter((envio) => envio.status === "enviado").length,
       errosUltimoCiclo: envios.filter((envio) => envio.status === "erro").length,
-      exemploMensagem: DIVULGACAO_TEXTO_MODELO.replace("{{1}}", "Fulano")
+      exemploMensagem: montarMensagemDivulgacao("Fulano")
     });
   } catch (err) {
     return responderErroApi(res, 500, "Não consegui carregar a divulgação. Confira se o SQL supabase/divulgacao.sql foi executado.", err);
@@ -3314,15 +3156,21 @@ app.get("/api/divulgacao/resumo", exigirAdminSupabase, async (req, res) => {
 
 app.post("/api/divulgacao/teste", limitarTesteDivulgacao, exigirAdminSupabase, async (req, res) => {
   try {
-    if (!limparTelefone(BOT_NOTIFY_NUMBER)) {
+    const destino = normalizarNumeroWhatsApp(BOT_NOTIFY_NUMBER);
+
+    if (!destino) {
       return responderErroApi(res, 503, "BOT_NOTIFY_NUMBER não configurado no servidor.");
     }
 
-    await enviarModeloDivulgacao(BOT_NOTIFY_NUMBER, "Equipe");
+    if (!botPronto) {
+      return responderErroApi(res, 503, "WhatsApp ainda não está pronto para enviar mensagens.");
+    }
 
-    return res.json({ ok: true, destino: mascararNumeroWhatsApp(BOT_NOTIFY_NUMBER) });
+    await client.sendMessage(destino, `🧪 TESTE DA DIVULGAÇÃO (só você recebeu)\n\n${montarMensagemDivulgacao("Fulano")}`);
+
+    return res.json({ ok: true, destino: mascararNumeroWhatsApp(destino) });
   } catch (err) {
-    return responderErroApi(res, 500, `Falha ao enviar o teste da divulgação: ${err.message}`, err);
+    return responderErroApi(res, 500, "Falha ao enviar o teste da divulgação.", err);
   }
 });
 
