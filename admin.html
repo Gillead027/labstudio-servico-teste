@@ -542,6 +542,81 @@
       font-weight: 500;
     }
 
+    .modal-lista-divulgacao {
+      width: min(860px, 100%);
+    }
+
+    .modal-lista-divulgacao #buscaListaDivulgacao {
+      width: 100%;
+      margin-bottom: 14px;
+    }
+
+    .lista-divulgacao {
+      display: grid;
+      gap: 10px;
+    }
+
+    .item-divulgacao {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 14px;
+      border: 1px solid var(--soft-border);
+      border-radius: 8px;
+      background: var(--item-bg);
+    }
+
+    .item-divulgacao .dados {
+      display: grid;
+      gap: 3px;
+      min-width: 220px;
+      flex: 1;
+    }
+
+    .item-divulgacao .nome {
+      font-weight: 700;
+    }
+
+    .item-divulgacao .detalhe {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    .item-divulgacao .detalhe.erro {
+      color: var(--error-text);
+    }
+
+    .item-divulgacao .situacao {
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .situacao.recebe { background: rgba(34, 197, 94, 0.18); color: var(--success-text); }
+    .situacao.saiu { background: rgba(245, 158, 11, 0.18); color: #fde68a; }
+    .situacao.bloqueado { background: rgba(239, 68, 68, 0.18); color: var(--error-text); }
+
+    html[data-theme="light"] .situacao.recebe { color: #166534; }
+    html[data-theme="light"] .situacao.saiu { color: #92400e; }
+    html[data-theme="light"] .situacao.bloqueado { color: #991b1b; }
+
+    .item-divulgacao .acoes-item {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .item-divulgacao .acoes-item button {
+      width: auto;
+      margin: 0;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+    }
+
     .usuario-ja-usou {
       display: inline-flex;
       align-items: center;
@@ -2139,6 +2214,22 @@
 <body>
   <div id="toastContainer" class="toast-container" role="status" aria-live="polite" aria-atomic="false"></div>
 
+  <!-- Lista da divulgação: fica antes do modal de confirmação para a confirmação abrir por cima. -->
+  <div id="modalListaDivulgacao" class="modal-admin-overlay" aria-hidden="true">
+    <div class="modal-admin-card modal-lista-divulgacao" role="dialog" aria-modal="true" aria-labelledby="tituloListaDivulgacao">
+      <button id="fecharListaDivulgacao" class="modal-admin-fechar" type="button" aria-label="Fechar">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <div class="modal-admin-icone">
+        <i class="fa-solid fa-bullhorn" aria-hidden="true"></i>
+      </div>
+      <h2 id="tituloListaDivulgacao">Lista da divulgação</h2>
+      <p id="resumoListaDivulgacao"></p>
+      <input type="text" id="buscaListaDivulgacao" placeholder="Buscar por nome ou telefone">
+      <div id="conteudoListaDivulgacao" class="lista-divulgacao"></div>
+    </div>
+  </div>
+
   <div id="modalAdminOverlay" class="modal-admin-overlay" aria-hidden="true">
     <div class="modal-admin-card" role="dialog" aria-modal="true" aria-labelledby="modalAdminTitulo">
       <button id="modalAdminFechar" class="modal-admin-fechar" type="button" aria-label="Fechar">
@@ -2469,6 +2560,7 @@
         </div>
 
         <div class="acoes">
+          <button id="btnListaDivulgacao" class="btn-editar" type="button">Ver e editar lista</button>
           <button id="btnTesteDivulgacao" class="btn-secundario" type="button">Enviar teste para o número da equipe</button>
         </div>
       </div>
@@ -2652,6 +2744,12 @@
     const novoJaUsouEstudio = document.getElementById("novoJaUsouEstudio");
     const conteudoDivulgacao = document.getElementById("conteudoDivulgacao");
     const btnTesteDivulgacao = document.getElementById("btnTesteDivulgacao");
+    const btnListaDivulgacao = document.getElementById("btnListaDivulgacao");
+    const modalListaDivulgacao = document.getElementById("modalListaDivulgacao");
+    const fecharListaDivulgacaoBtn = document.getElementById("fecharListaDivulgacao");
+    const buscaListaDivulgacao = document.getElementById("buscaListaDivulgacao");
+    const resumoListaDivulgacao = document.getElementById("resumoListaDivulgacao");
+    const conteudoListaDivulgacao = document.getElementById("conteudoListaDivulgacao");
     const ajudaNovoNome = document.getElementById("ajudaNovoNome");
     const ajudaNovoTelefone = document.getElementById("ajudaNovoTelefone");
     const ajudaNovaDataNascimento = document.getElementById("ajudaNovaDataNascimento");
@@ -6075,6 +6173,194 @@
       }
     }
 
+    // ===============================
+    // LISTA DA DIVULGAÇÃO
+    // Mostra quem está marcado como "Já usou o estúdio", se recebe, o último envio
+    // e permite parar, reativar ou tirar a pessoa da lista.
+    // ===============================
+    let listaDivulgacaoAtual = [];
+
+    function situacaoDivulgacao(usuario) {
+      if (String(usuario.status || "").toLowerCase() === "bloqueado") {
+        return { classe: "bloqueado", texto: "Bloqueado (não recebe)" };
+      }
+
+      if (usuario.aceita_divulgacao === false) {
+        return { classe: "saiu", texto: "Pediu para sair" };
+      }
+
+      return { classe: "recebe", texto: "Recebe" };
+    }
+
+    async function abrirListaDivulgacao() {
+      modalListaDivulgacao.classList.add("ativo");
+      modalListaDivulgacao.setAttribute("aria-hidden", "false");
+      buscaListaDivulgacao.value = "";
+      await carregarListaDivulgacao();
+      buscaListaDivulgacao.focus();
+    }
+
+    function fecharListaDivulgacao() {
+      modalListaDivulgacao.classList.remove("ativo");
+      modalListaDivulgacao.setAttribute("aria-hidden", "true");
+    }
+
+    async function carregarListaDivulgacao() {
+      conteudoListaDivulgacao.innerHTML = '<div class="vazio">Buscando a lista...</div>';
+
+      const { data, error } = await client
+        .from("usuarios")
+        .select("id, nome, telefone, status, aceita_divulgacao, ultima_divulgacao_em")
+        .eq("ja_usou_estudio", true)
+        .order("nome", { ascending: true });
+
+      if (error) {
+        conteudoListaDivulgacao.innerHTML = mensagemVazio("Não foi possível carregar a lista.", `Detalhe técnico: ${error.message}`);
+        return;
+      }
+
+      // Último registro de envio de cada pessoa. Se o banco não liberar a leitura, a lista aparece sem essa coluna.
+      const { data: envios } = await client
+        .from("divulgacao_envios")
+        .select("usuario_id, status, erro, enviado_em")
+        .order("enviado_em", { ascending: false });
+
+      const ultimoEnvioPorUsuario = new Map();
+      (envios || []).forEach(envio => {
+        if (!ultimoEnvioPorUsuario.has(envio.usuario_id)) {
+          ultimoEnvioPorUsuario.set(envio.usuario_id, envio);
+        }
+      });
+
+      listaDivulgacaoAtual = (data || []).map(usuario => ({
+        ...usuario,
+        ultimoEnvio: ultimoEnvioPorUsuario.get(usuario.id) || null
+      }));
+
+      renderizarListaDivulgacao();
+    }
+
+    function renderizarListaDivulgacao() {
+      const termo = buscaListaDivulgacao.value.trim().toLowerCase();
+      const termoNumeros = termo.replace(/\D/g, "");
+      const total = listaDivulgacaoAtual.length;
+      const recebem = listaDivulgacaoAtual.filter(u => situacaoDivulgacao(u).classe === "recebe").length;
+      const sairam = listaDivulgacaoAtual.filter(u => situacaoDivulgacao(u).classe === "saiu").length;
+
+      resumoListaDivulgacao.textContent = `${total} na lista · ${recebem} recebem · ${sairam} pediram para sair`;
+
+      const filtrados = listaDivulgacaoAtual.filter(usuario =>
+        !termo ||
+        String(usuario.nome || "").toLowerCase().includes(termo) ||
+        (termoNumeros && String(usuario.telefone || "").replace(/\D/g, "").includes(termoNumeros))
+      );
+
+      if (!filtrados.length) {
+        conteudoListaDivulgacao.innerHTML = mensagemVazio(
+          total ? "Ninguém encontrado com essa busca." : "Ninguém na lista ainda.",
+          total ? "Confira o nome ou telefone digitado." : 'Marque "Já usou o estúdio" no card do jovem para incluir.'
+        );
+        return;
+      }
+
+      conteudoListaDivulgacao.innerHTML = "";
+
+      filtrados.forEach(usuario => {
+        const situacao = situacaoDivulgacao(usuario);
+        const envio = usuario.ultimoEnvio;
+        const textoUltimoEnvio = envio
+          ? (envio.status === "enviado"
+            ? `Último envio: ${formatarDataHora(envio.enviado_em)}`
+            : `Último envio falhou em ${formatarDataHora(envio.enviado_em)}: ${envio.erro || "erro desconhecido"}`)
+          : (usuario.ultima_divulgacao_em
+            ? `Último envio: ${formatarDataHora(usuario.ultima_divulgacao_em)}`
+            : "Ainda não recebeu nenhuma divulgação");
+
+        const item = document.createElement("div");
+        item.className = "item-divulgacao";
+        item.innerHTML = `
+          <div class="dados">
+            <span class="nome">${escaparHtml(usuario.nome || "Sem nome")}</span>
+            <span class="detalhe">📱 ${escaparHtml(usuario.telefone || "Sem telefone")}</span>
+            <span class="detalhe ${envio && envio.status === "erro" ? "erro" : ""}">📨 ${escaparHtml(textoUltimoEnvio)}</span>
+          </div>
+          <span class="situacao ${situacao.classe}">${escaparHtml(situacao.texto)}</span>
+          <div class="acoes-item">
+            ${situacao.classe === "recebe" ? '<button type="button" class="btn-secundario acao-parar">Parar de enviar</button>' : ""}
+            ${situacao.classe === "saiu" ? '<button type="button" class="btn-salvar acao-reativar">Voltar a enviar</button>' : ""}
+            <button type="button" class="btn-bloquear acao-remover">Tirar da lista</button>
+          </div>
+        `;
+
+        const btnParar = item.querySelector(".acao-parar");
+        const btnReativar = item.querySelector(".acao-reativar");
+        const btnRemover = item.querySelector(".acao-remover");
+
+        if (btnParar) {
+          btnParar.addEventListener("click", () => alterarDivulgacaoUsuario(usuario, { aceita_divulgacao: false }, btnParar));
+        }
+
+        if (btnReativar) {
+          btnReativar.addEventListener("click", () => alterarDivulgacaoUsuario(usuario, { aceita_divulgacao: true }, btnReativar));
+        }
+
+        btnRemover.addEventListener("click", () => alterarDivulgacaoUsuario(usuario, { ja_usou_estudio: false }, btnRemover));
+
+        conteudoListaDivulgacao.appendChild(item);
+      });
+    }
+
+    async function alterarDivulgacaoUsuario(usuario, alteracao, botao) {
+      const nome = usuario.nome || "este jovem";
+      let confirmacao;
+
+      if (alteracao.ja_usou_estudio === false) {
+        confirmacao = {
+          titulo: "Tirar da lista",
+          texto: `Tirar ${nome} da lista da divulgação?\n\nO cadastro continua normal; só desmarca "Já usou o estúdio".`,
+          opcoes: { tipo: "aviso", textoConfirmar: "Tirar da lista" },
+          acao: "remover_lista_divulgacao"
+        };
+      } else if (alteracao.aceita_divulgacao === false) {
+        confirmacao = {
+          titulo: "Parar de enviar",
+          texto: `Parar de enviar a divulgação para ${nome}?`,
+          opcoes: { tipo: "aviso", textoConfirmar: "Parar de enviar" },
+          acao: "parar_divulgacao"
+        };
+      } else {
+        confirmacao = {
+          titulo: "Voltar a enviar",
+          texto: `${nome} pediu para sair da divulgação. Voltar a enviar mesmo assim?\n\nFaça isso só se a pessoa pediu para voltar.`,
+          opcoes: { tipo: "sucesso", textoConfirmar: "Voltar a enviar" },
+          acao: "reativar_divulgacao"
+        };
+      }
+
+      const confirmar = await confirmarAcaoAdmin(confirmacao.titulo, confirmacao.texto, confirmacao.opcoes);
+      if (!confirmar) return;
+
+      botao.disabled = true;
+
+      const { error } = await client
+        .from("usuarios")
+        .update(alteracao)
+        .eq("id", usuario.id);
+
+      if (error) {
+        botao.disabled = false;
+        mostrarToast("Não foi possível atualizar: " + error.message, "erro");
+        return;
+      }
+
+      await registrarLogAdmin(confirmacao.acao, "usuarios", usuario.id, `${confirmacao.titulo}: ${nome}.`);
+
+      mostrarToast(`${confirmacao.titulo}: ${nome}.`, "sucesso");
+      await carregarListaDivulgacao();
+      carregarResumoDivulgacao();
+      carregarUsuariosCadastrados();
+    }
+
     async function enviarTesteDivulgacao() {
       const confirmar = await confirmarAcaoAdmin(
         "Enviar teste da divulgação",
@@ -7540,6 +7826,24 @@
 
     btnTesteDivulgacao.addEventListener("click", () => {
       enviarTesteDivulgacao();
+    });
+
+    btnListaDivulgacao.addEventListener("click", () => {
+      abrirListaDivulgacao();
+    });
+
+    fecharListaDivulgacaoBtn.addEventListener("click", fecharListaDivulgacao);
+    buscaListaDivulgacao.addEventListener("input", renderizarListaDivulgacao);
+
+    // Fecha ao clicar fora do cartão ou apertar Esc (sem interferir no modal de confirmação aberto por cima).
+    modalListaDivulgacao.addEventListener("click", (event) => {
+      if (event.target === modalListaDivulgacao) fecharListaDivulgacao();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modalListaDivulgacao.classList.contains("ativo") && !modalAdminOverlay.classList.contains("ativo")) {
+        fecharListaDivulgacao();
+      }
     });
 
     novoNome.addEventListener("input", validarNovoNomeTempoReal);
