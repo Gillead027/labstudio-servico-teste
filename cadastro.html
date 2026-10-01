@@ -3,968 +3,951 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cadastro Online - LabStudio CRJ FLEXAL</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23070a16'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='18'%20fill='%2322d3ee'/%3E%3Cpath%20d='M25%2041V20h18v6H31v15z'%20fill='white'/%3E%3C/svg%3E">
-  <!-- Acelera a primeira conexão com o CDN dos ícones sem mudar a identidade visual. -->
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+  <title>LabStudio CRJ Flexal · Cadastro</title>
+  <meta name="description" content="Cadastro para usar o estúdio gratuito do CRJ Flexal.">
+  <meta name="theme-color" content="#F6F4EF">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%231C1B19'/%3E%3Ccircle%20cx='32'%20cy='32'%20r='13'%20fill='%23FF3B2F'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Schibsted+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
 
   <style>
     /* ===============================
-       CORES E FUNDO DO CADASTRO ONLINE
-       Mantém o mesmo tema escuro moderno do sistema.
+       BASE VISUAL DO LABSTUDIO
+       Papel + tinta, cores chapadas e tipografia de pôster.
     =============================== */
     :root {
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --bg: #0f172a;
-      --page-bg:
-        radial-gradient(circle at top left, rgba(99, 102, 241, 0.24), transparent 34rem),
-        linear-gradient(145deg, #020617 0%, var(--bg) 48%, #111827 100%);
-      --card-bg: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.96));
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --label: #94a3b8;
-      --input-bg: #334155;
-      --input-text: #ffffff;
-      --input-focus-bg: #273449;
-      --border: #475569;
-      --danger: #ef4444;
-      --success: #22c55e;
-      --warning: #f59e0b;
-      --error-text: #fecaca;
-      --success-text: #bbf7d0;
-      --warning-text: #fde68a;
-      --shadow-card: 0 24px 70px rgba(0,0,0,0.48), inset 0 1px 0 rgba(255,255,255,0.06);
-      --shadow-button: 0 14px 28px rgba(79, 70, 229, 0.28);
-      --shadow-button-hover: 0 18px 34px rgba(79, 70, 229, 0.35);
-      --toast-bg: rgba(15, 23, 42, 0.96);
-      --aviso-bg: rgba(15, 23, 42, 0.82);
-      --aviso-erro-bg: rgba(127, 29, 29, 0.45);
-      --aviso-sucesso-bg: rgba(20, 83, 45, 0.45);
-      --aviso-alerta-bg: rgba(113, 63, 18, 0.45);
+      --papel: #F6F4EF;
+      --papel-2: #ECE8DF;
+      --branco: #FFFFFF;
+      --tinta: #1C1B19;
+      --tinta-2: #57534E;
+      --amarelo: #FFD948;
+      --roxo: #B9A4FF;
+      --verde: #B6E36B;
+      --laranja: #FF8A3D;
+      --rec: #FF3B2F;
+      --erro: #C8221A;
+      --sucesso: #2F6B16;
+
+      --fonte-titulo: "Big Shoulders Display", "Arial Narrow", sans-serif;
+      --fonte-texto: "Schibsted Grotesk", system-ui, sans-serif;
+
+      --borda: 1.5px solid var(--tinta);
+      --sombra-dura: 6px 6px 0 var(--tinta);
+      --raio: 14px;
+
+      --quart: cubic-bezier(0.25, 1, 0.5, 1);
+      --expo: cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    /* ===============================
-       TEMA CLARO
-       Usa as mesmas variáveis para preservar o layout e melhorar contraste.
-    =============================== */
-    html[data-theme="light"] {
-      --primary: #4f46e5;
-      --primary-hover: #4338ca;
-      --bg: #eef2ff;
-      --page-bg:
-        radial-gradient(circle at top left, rgba(79, 70, 229, 0.16), transparent 30rem),
-        linear-gradient(145deg, #f8fafc 0%, #eef2ff 52%, #e0f2fe 100%);
-      --card-bg: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(241,245,249,0.96));
-      --text: #0f172a;
-      --muted: #475569;
-      --label: #334155;
-      --input-bg: #ffffff;
-      --input-text: #0f172a;
-      --input-focus-bg: #f8fafc;
-      --border: #cbd5e1;
-      --error-text: #b91c1c;
-      --success-text: #166534;
-      --warning-text: #92400e;
-      --shadow-card: 0 22px 58px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255,255,255,0.7);
-      --shadow-button: 0 14px 28px rgba(79, 70, 229, 0.2);
-      --shadow-button-hover: 0 18px 34px rgba(79, 70, 229, 0.26);
-      --toast-bg: rgba(255,255,255,0.97);
-      --aviso-bg: rgba(255,255,255,0.9);
-      --aviso-erro-bg: rgba(254, 226, 226, 0.95);
-      --aviso-sucesso-bg: rgba(220, 252, 231, 0.95);
-      --aviso-alerta-bg: rgba(254, 243, 199, 0.95);
-    }
+    * { box-sizing: border-box; }
 
-    html {
-      min-height: 100%;
-      background: var(--page-bg);
-      background-repeat: no-repeat;
-      background-size: cover;
-      background-attachment: fixed;
-    }
+    html { scroll-behavior: smooth; }
+
+    /* A faixa inclinada passa da borda; o clip evita rolagem lateral no celular. */
+    html, body { overflow-x: clip; }
 
     body {
-      font-family: 'Segoe UI', Roboto, sans-serif;
-      background: transparent;
-      color: var(--text);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
       margin: 0;
-      padding: 20px;
-      box-sizing: border-box;
+      background: var(--papel);
+      color: var(--tinta);
+      font-family: var(--fonte-texto);
+      font-size: 1rem;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection { background: var(--amarelo); color: var(--tinta); }
+
+    a { color: inherit; }
+
+    :focus-visible {
+      outline: 3px solid var(--tinta);
+      outline-offset: 3px;
+    }
+
+    .pagina {
+      width: min(1200px, 100%);
+      margin: 0 auto;
+      padding: 0 24px;
     }
 
     /* ===============================
-       CARD PRINCIPAL DO CADASTRO
+       TOPO
     =============================== */
-    .container {
-      background: var(--card-bg);
-      padding: 2.1rem;
-      border-radius: 1.1rem;
-      box-shadow: var(--shadow-card);
-      width: 100%;
-      max-width: 440px;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      animation: entrarSuave 0.45s ease both;
+    .topo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 22px 0;
     }
 
-    h1 {
-      margin: 0 0 0.8rem;
-      color: var(--primary);
-      font-size: 1.75rem;
-      text-align: center;
+    .marca {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      text-decoration: none;
     }
 
-    .descricao {
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.5;
-      margin: 0 0 1.6rem;
+    .marca strong {
+      font-family: var(--fonte-titulo);
+      font-size: 1.9rem;
+      font-weight: 900;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+      line-height: 1;
     }
 
-    .form-group {
-      margin-bottom: 1.2rem;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 0.55rem;
-      color: var(--label);
-      font-size: 0.85rem;
+    .marca span {
+      font-size: 0.78rem;
       font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--tinta-2);
+    }
+
+    .rec {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border: var(--borda);
+      border-radius: 999px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--branco);
+    }
+
+    .rec::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--rec);
+      animation: pulsar 1.6s var(--quart) infinite;
+    }
+
+    @keyframes pulsar {
+      0% { box-shadow: 0 0 0 0 rgba(255, 59, 47, 0.55); }
+      70% { box-shadow: 0 0 0 9px rgba(255, 59, 47, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 59, 47, 0); }
+    }
+
+    /* ===============================
+       HERO + FORMULÁRIO
+    =============================== */
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+      gap: 48px;
+      align-items: start;
+      padding: 28px 0 64px;
+    }
+
+    .hero-titulo {
+      margin: 0;
+      font-family: var(--fonte-titulo);
+      font-weight: 900;
+      font-size: clamp(4.2rem, 11vw, 9.5rem);
+      line-height: 0.84;
+      letter-spacing: -0.005em;
       text-transform: uppercase;
     }
 
-    input {
-      width: 100%;
-      padding: 0.85rem;
-      border-radius: 0.7rem;
-      border: 1px solid var(--border);
-      background: var(--input-bg);
-      color: var(--input-text);
-      font-size: 1rem;
-      outline: none;
-      box-sizing: border-box;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-    }
-
-    input:focus {
-      border-color: var(--primary);
-      background: var(--input-focus-bg);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-    }
-
-    button {
-      width: 100%;
-      padding: 1rem;
-      border: none;
-      border-radius: 0.7rem;
-      background: var(--primary);
-      color: white;
-      font-weight: 700;
-      font-size: 1rem;
-      cursor: pointer;
-      margin-top: 0.6rem;
-      box-shadow: var(--shadow-button);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
-    }
-
-    button:hover {
-      background: var(--primary-hover);
-      transform: translateY(-1px);
-      box-shadow: var(--shadow-button-hover);
-    }
-
-    button:focus-visible {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.24), var(--shadow-button-hover);
-    }
-
-    button:disabled {
-      background: var(--border);
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-
-    /* ===============================
-       ALERTAS VISUAIS
-       Mostram o retorno da validação e do envio.
-    =============================== */
-    .aviso {
-      display: none;
-      margin-bottom: 1rem;
-      padding: 0.9rem;
-      border-radius: 0.8rem;
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      background: var(--aviso-bg);
-      color: var(--text);
-      line-height: 1.4;
-      white-space: pre-line;
-    }
-
-    .aviso.erro {
-      border-color: rgba(239, 68, 68, 0.5);
-      background: var(--aviso-erro-bg);
-    }
-
-    .aviso.sucesso {
-      border-color: rgba(34, 197, 94, 0.5);
-      background: var(--aviso-sucesso-bg);
-    }
-
-    .aviso.aviso-tipo {
-      border-color: rgba(245, 158, 11, 0.5);
-      background: var(--aviso-alerta-bg);
-    }
-
-    /* ===============================
-       VALIDAÇÃO EM TEMPO REAL
-       Mostra idade e orientações sem depender de alertas.
-    =============================== */
-    .campo-ajuda {
-      min-height: 1.1rem;
-      margin-top: 0.45rem;
-      color: var(--muted);
-      font-size: 0.82rem;
-      line-height: 1.35;
-    }
-
-    .campo-ajuda.erro {
-      color: var(--error-text);
-    }
-
-    .campo-ajuda.sucesso {
-      color: var(--success-text);
-    }
-
-    .campo-ajuda.aviso {
-      color: var(--warning-text);
-    }
-
-    input.campo-invalido {
-      border-color: rgba(239, 68, 68, 0.72);
-      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
-    }
-
-    /* ===============================
-       TOASTS VISUAIS
-       Mensagens rápidas de sucesso, erro e aviso.
-    =============================== */
-    .toast-container {
-      position: fixed;
-      top: 70px;
-      right: 18px;
-      z-index: 20;
-      display: grid;
-      gap: 10px;
-      width: min(340px, calc(100vw - 28px));
-    }
-
-    .toast {
-      padding: 0.9rem 1rem;
-      border-radius: 0.85rem;
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      background: var(--toast-bg);
-      color: var(--text);
-      box-shadow: 0 18px 42px rgba(0,0,0,0.36);
-      line-height: 1.4;
-      animation: entrarSuave 0.22s ease both;
-    }
-
-    .toast.sucesso {
-      border-color: rgba(34, 197, 94, 0.48);
-    }
-
-    .toast.erro {
-      border-color: rgba(239, 68, 68, 0.52);
-    }
-
-    .toast.aviso-tipo {
-      border-color: rgba(245, 158, 11, 0.52);
-    }
-
-    /* ===============================
-       BOTÃO DE TEMA
-       Permite alternar claro/escuro sem ocupar o formulário.
-    =============================== */
-    .theme-toggle {
-      position: fixed;
-      top: 18px;
-      right: 18px;
-      z-index: 25;
-      width: auto;
-      margin: 0;
-      padding: 0.65rem 0.85rem;
-      border: 1px solid rgba(148, 163, 184, 0.28);
-      border-radius: 999px;
-      background: var(--toast-bg);
-      color: var(--text);
-      box-shadow: 0 12px 32px rgba(0,0,0,0.18);
-      font-size: 0.9rem;
-    }
-
-    .theme-toggle:hover,
-    .theme-toggle:focus-visible {
-      border-color: rgba(99, 102, 241, 0.5);
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18), 0 12px 32px rgba(0,0,0,0.18);
-    }
-
-    @keyframes entrarSuave {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    @media (max-width: 480px) {
-      body {
-        align-items: flex-start;
-        padding: 14px;
-      }
-
-      .container {
-        padding: 1.35rem;
-        margin-top: 18px;
-      }
-
-      h1 {
-        font-size: 1.45rem;
-      }
-
-      .toast-container {
-        top: 58px;
-        right: 10px;
-        left: 10px;
-        width: auto;
-      }
-
-      .theme-toggle {
-        top: 10px;
-        right: 10px;
-        padding: 0.55rem 0.75rem;
-      }
-    }
-    /* ===============================
-       CAMADA VISUAL PREMIUM
-       Mantem o cadastro alinhado ao agendamento publico.
-    =============================== */
-    :root {
-      --primary: #8b5cf6;
-      --primary-hover: #7c3aed;
-      --accent: #22d3ee;
-      --accent-2: #34d399;
-      --bg: #070a16;
-      --page-bg:
-        linear-gradient(126deg, rgba(139, 92, 246, 0.24) 0%, rgba(139, 92, 246, 0) 28%),
-        linear-gradient(235deg, rgba(34, 211, 238, 0.16) 0%, rgba(34, 211, 238, 0) 34%),
-        linear-gradient(145deg, #050713 0%, #080d1f 48%, #111827 100%);
-      --card-bg: linear-gradient(180deg, rgba(19, 25, 47, 0.62), rgba(8, 13, 31, 0.54));
-      --surface: rgba(15, 23, 42, 0.42);
-      --surface-strong: rgba(15, 23, 42, 0.58);
-      --text: #f8fafc;
-      --muted: #b7c0d4;
-      --label: #d8def0;
-      --input-bg: rgba(15, 23, 42, 0.72);
-      --input-focus-bg: rgba(15, 23, 42, 0.92);
-      --border: rgba(226, 232, 240, 0.18);
-      --shadow-card: 0 28px 80px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-      --shadow-button: 0 18px 34px rgba(124, 58, 237, 0.28);
-      --shadow-button-hover: 0 22px 42px rgba(34, 211, 238, 0.2);
-      --toast-bg: rgba(8, 13, 31, 0.94);
-    }
-
-    html[data-theme="light"] {
-      --primary: #6d28d9;
-      --primary-hover: #5b21b6;
-      --accent: #0891b2;
-      --accent-2: #059669;
-      --bg: #f6f8ff;
-      --page-bg:
-        linear-gradient(126deg, rgba(109, 40, 217, 0.16) 0%, rgba(109, 40, 217, 0) 30%),
-        linear-gradient(235deg, rgba(8, 145, 178, 0.14) 0%, rgba(8, 145, 178, 0) 34%),
-        linear-gradient(145deg, #ffffff 0%, #eef2ff 50%, #ecfeff 100%);
-      --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.66), rgba(248, 250, 252, 0.72));
-      --surface: rgba(255, 255, 255, 0.42);
-      --surface-strong: rgba(255, 255, 255, 0.62);
-      --text: #0f172a;
-      --muted: #526174;
-      --label: #243044;
-      --input-bg: rgba(255, 255, 255, 0.84);
-      --input-focus-bg: #ffffff;
-      --border: rgba(71, 85, 105, 0.2);
-      --shadow-card: 0 24px 64px rgba(15, 23, 42, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.86);
-      --shadow-button: 0 18px 34px rgba(109, 40, 217, 0.18);
-      --shadow-button-hover: 0 22px 42px rgba(8, 145, 178, 0.18);
-      --toast-bg: rgba(255, 255, 255, 0.96);
-    }
-
-    body {
+    /* Folga em cima e embaixo para acentos e Ç não serem cortados pela máscara da animação. */
+    .hero-titulo .linha {
       display: block;
-      align-items: initial;
-      justify-content: initial;
-      min-height: 100vh;
-      padding: 0;
-      overflow-x: hidden;
-      font-family: "Poppins", "Segoe UI", Roboto, sans-serif;
-      background: var(--page-bg);
-      background-attachment: fixed;
-      background-repeat: no-repeat;
-      background-size: cover;
+      overflow: hidden;
+      padding: 0.14em 0 0.12em;
+      margin: -0.14em 0 -0.12em;
     }
 
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      background:
-        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-      background-size: 56px 56px;
-      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.72), transparent 82%);
+    .hero-titulo .linha > span {
+      display: block;
+      transform: translateY(105%);
+      animation: subir 0.9s var(--expo) forwards;
     }
 
-    .signup-shell {
-      width: min(1120px, calc(100% - 32px));
-      min-height: 100vh;
-      margin: 0 auto;
-      padding: 72px 0 44px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(360px, 470px);
-      align-items: center;
-      gap: 42px;
-      position: relative;
-      z-index: 1;
+    .hero-titulo .linha:nth-child(2) > span { animation-delay: 0.08s; }
+    .hero-titulo .linha:nth-child(3) > span { animation-delay: 0.16s; }
+
+    @keyframes subir { to { transform: translateY(0); } }
+
+    .marca-texto {
+      background: var(--amarelo);
+      padding: 0 0.12em;
+      margin-left: -0.06em;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
     }
 
-    .signup-shell,
-    .signup-shell * {
-      box-sizing: border-box;
+    .hero-texto {
+      max-width: 34ch;
+      margin: 28px 0 24px;
+      font-size: 1.15rem;
+      color: var(--tinta-2);
     }
 
-    .signup-intro,
-    .registration-card,
-    .support-card {
-      animation: slideUpPremium 0.58s ease both;
-    }
-
-    .brand-row {
+    .etiquetas {
       display: flex;
       flex-wrap: wrap;
-      align-items: center;
       gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
     }
 
-    .brand-lockup,
-    .brand-kicker {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      border: 1px solid var(--border);
+    .etiquetas li {
+      padding: 7px 14px;
+      border: var(--borda);
       border-radius: 999px;
-      background: var(--surface);
-      color: var(--text);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      font-size: 0.85rem;
+      font-weight: 700;
+      background: var(--branco);
+      transition: transform 0.35s var(--quart), background 0.2s ease;
     }
+
+    .etiquetas li:nth-child(1):hover { background: var(--amarelo); transform: rotate(-3deg); }
+    .etiquetas li:nth-child(2):hover { background: var(--roxo); transform: rotate(2deg); }
+    .etiquetas li:nth-child(3):hover { background: var(--verde); transform: rotate(-2deg); }
 
     /* ===============================
-       ASSINATURA VISUAL
-       Mantém a mesma identidade do agendamento público.
+       CARTÃO DE AGENDAMENTO
     =============================== */
-    .brand-lockup {
-      gap: 12px;
-      min-height: 50px;
-      padding: 0.45rem 0.78rem;
-      background: rgba(15, 23, 42, 0.28);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 18px 44px rgba(0,0,0,0.18);
-      backdrop-filter: blur(22px) saturate(150%);
-      -webkit-backdrop-filter: blur(22px) saturate(150%);
+    .booking-card {
+      background: var(--branco);
+      border: var(--borda);
+      border-radius: var(--raio);
+      box-shadow: var(--sombra-dura);
+      padding: 28px;
     }
 
-    .brand-mark {
-      width: 40px;
-      height: 40px;
+    .cartao-topo {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 22px;
+      padding-bottom: 16px;
+      border-bottom: var(--borda);
+    }
+
+    .cartao-topo h2 {
+      margin: 0;
+      font-family: var(--fonte-titulo);
+      font-weight: 900;
+      font-size: 2.3rem;
+      line-height: 0.95;
+      text-transform: uppercase;
+    }
+
+    .cartao-topo span {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--tinta-2);
+      white-space: nowrap;
+    }
+
+    .campo {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      column-gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .campo-num {
+      grid-row: span 3;
+      width: 34px;
+      height: 34px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      flex: 0 0 auto;
-      border-radius: 8px;
-      color: #fff;
-      background:
-        radial-gradient(circle at 30% 20%, rgba(255,255,255,0.5), transparent 24px),
-        linear-gradient(135deg, var(--primary), var(--accent));
-      box-shadow: 0 16px 42px rgba(34, 211, 238, 0.22);
-    }
-
-    .brand-lockup strong,
-    .brand-lockup small {
-      display: block;
-      line-height: 1.05;
-    }
-
-    .brand-lockup strong {
-      font-size: 0.96rem;
-      font-weight: 800;
-    }
-
-    .brand-lockup small {
-      margin-top: 3px;
-      color: var(--muted);
-      font-size: 0.72rem;
+      border: var(--borda);
+      border-radius: 50%;
+      font-size: 0.78rem;
       font-weight: 700;
-      text-transform: uppercase;
+      transition: background 0.25s ease, color 0.25s ease, transform 0.4s var(--quart);
     }
 
-    .brand-kicker i {
-      color: var(--accent);
+    .campo:focus-within .campo-num {
+      background: var(--tinta);
+      color: var(--amarelo);
+      transform: rotate(-8deg) scale(1.05);
     }
 
-    .brand-kicker {
-      min-height: 50px;
-      padding: 0.55rem 0.75rem;
-      font-size: 0.82rem;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
-
-    .signup-intro h1 {
-      margin: 24px 0 16px;
-      color: var(--text);
-      font-size: clamp(2.2rem, 6vw, 4.5rem);
-      line-height: 1.02;
-      letter-spacing: 0;
-      text-align: left;
-    }
-
-    .signup-intro p {
-      max-width: 620px;
-      margin: 0;
-      color: var(--muted);
-      font-size: 1.05rem;
-      line-height: 1.72;
-    }
-
-    .support-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      margin-top: 26px;
-    }
-
-    .support-card {
-      padding: 16px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: var(--surface);
-      color: var(--muted);
-      line-height: 1.5;
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-    }
-
-    .support-card i {
-      color: var(--accent-2);
-      margin-bottom: 10px;
-    }
-
-    .support-card strong {
-      display: block;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-
-    .container.registration-card {
-      width: 100%;
-      max-width: none;
-      padding: 28px;
-      box-sizing: border-box;
-      border-radius: 8px;
-      background: var(--card-bg);
-      border: 1px solid rgba(255, 255, 255, 0.11);
-      box-shadow: var(--shadow-card);
-      backdrop-filter: blur(30px) saturate(145%);
-      -webkit-backdrop-filter: blur(30px) saturate(145%);
-    }
-
-    .container.registration-card h1 {
-      margin: 0 0 10px;
-      color: var(--text);
-      font-size: 1.52rem;
-      line-height: 1.2;
-    }
-
-    .descricao {
-      text-align: left;
-      margin-bottom: 1rem;
-    }
-
-    .age-rule {
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-      margin: 0 0 1.35rem;
-      padding: 0.9rem;
-      border: 1px solid rgba(34, 211, 238, 0.24);
-      border-radius: 8px;
-      background: rgba(34, 211, 238, 0.08);
-      color: var(--text);
-      line-height: 1.48;
+    .campo label {
+      font-size: 0.8rem;
       font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--tinta-2);
     }
 
-    .age-rule i {
-      color: var(--accent);
-      margin-top: 0.16rem;
-    }
-
-    label {
-      color: var(--label);
-      letter-spacing: 0;
-      text-transform: none;
-      font-size: 0.86rem;
-    }
-
-    .field-shell {
+    /* Linha do campo cresce da esquerda no foco. */
+    .linha-campo {
       position: relative;
     }
 
-    .field-shell i {
+    .linha-campo::after {
+      content: "";
       position: absolute;
-      top: 50%;
-      left: 15px;
-      transform: translateY(-50%);
-      color: var(--accent);
-      pointer-events: none;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 3px;
+      background: var(--amarelo);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.5s var(--expo);
     }
 
-    .field-shell input {
-      min-height: 50px;
-      padding-left: 45px;
-      border-radius: 8px;
-      border-color: var(--border);
-      background: var(--input-bg);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    .linha-campo:focus-within::after { transform: scaleX(1); }
+
+    .linha-campo input,
+    .linha-campo select {
+      width: 100%;
+      padding: 8px 0 10px;
+      border: 0;
+      border-bottom: var(--borda);
+      border-radius: 0;
+      background: transparent;
+      color: var(--tinta);
+      font-family: var(--fonte-texto);
+      font-size: 1.15rem;
+      font-weight: 500;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
     }
 
-    .field-shell input:focus {
-      background: var(--input-focus-bg);
-      box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.12);
+    .linha-campo select {
+      cursor: pointer;
+      padding-right: 28px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%231C1B19' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 4px center;
     }
 
-    #btnEnviar {
-      min-height: 54px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      box-shadow: var(--shadow-button);
+    .linha-campo input::placeholder { color: #A8A29E; font-weight: 400; }
+
+    .linha-campo input[type="date"] { min-height: 46px; }
+
+    input.campo-invalido,
+    select.campo-invalido { border-bottom-color: var(--erro); }
+
+    .campo-ajuda {
+      min-height: 0;
+      font-size: 0.82rem;
+      margin-top: 6px;
     }
 
-    #btnEnviar::before {
-      content: "\f1d8";
-      font-family: "Font Awesome 6 Free";
-      font-weight: 900;
+    .campo-ajuda:empty { display: none; }
+    .campo-ajuda.erro { color: var(--erro); font-weight: 600; }
+    .campo-ajuda.sucesso { color: var(--sucesso); font-weight: 600; }
+
+    /* Aviso dentro do cartão (data indisponível, erros da API etc.). */
+    .aviso {
+      display: none;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      border: var(--borda);
+      border-left-width: 6px;
+      border-radius: 10px;
+      font-size: 0.92rem;
+      font-weight: 500;
+      background: var(--papel);
     }
 
-    #btnEnviar:hover {
-      background: linear-gradient(135deg, var(--primary-hover), #06b6d4);
-      box-shadow: var(--shadow-button-hover);
-    }
-
-    .aviso,
-    .toast {
-      border-radius: 8px;
-      backdrop-filter: blur(24px) saturate(140%);
-      -webkit-backdrop-filter: blur(24px) saturate(140%);
-    }
-
-    .theme-toggle {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border-radius: 999px;
-      background: var(--surface-strong);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      font-weight: 800;
-    }
-
-    .theme-toggle::before {
-      content: "\f186";
-      font-family: "Font Awesome 6 Free";
-      font-weight: 900;
-      color: var(--accent);
-    }
-
-    html[data-theme="light"] .theme-toggle::before {
-      content: "\f185";
-    }
+    .aviso.erro { border-left-color: var(--erro); }
+    .aviso.sucesso { border-left-color: var(--sucesso); background: #F1FADF; }
+    .aviso.aviso-tipo { border-left-color: var(--laranja); background: #FFF6D6; }
 
     /* ===============================
-       SUCESSO DO CADASTRO
-       Dá um retorno permanente depois do envio.
+       BOTÃO PRINCIPAL
+       Texto troca no hover e a seta desliza.
     =============================== */
-    .success-panel {
-      margin-top: 16px;
-      padding: 22px;
-      border: 1px solid rgba(34, 197, 94, 0.28);
-      border-radius: 8px;
-      background: linear-gradient(180deg, rgba(20, 83, 45, 0.34), rgba(8, 13, 31, 0.52));
-      color: var(--text);
-      box-shadow: var(--shadow-card);
-      backdrop-filter: blur(30px) saturate(150%);
-      -webkit-backdrop-filter: blur(30px) saturate(150%);
-      animation: slideUpPremium 0.42s ease both;
+    .btn-principal {
+      position: relative;
+      width: 100%;
+      margin-top: 8px;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border: var(--borda);
+      border-radius: 999px;
+      background: var(--tinta);
+      color: var(--papel);
+      font-family: var(--fonte-texto);
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      overflow: hidden;
+      isolation: isolate;
+      transition: transform 0.2s var(--quart), color 0.35s ease;
     }
 
-    .success-panel[hidden] {
-      display: none;
+    .btn-principal::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: var(--amarelo);
+      transform: translateY(101%);
+      transition: transform 0.5s var(--expo);
     }
 
-    .success-icon {
-      width: 54px;
-      height: 54px;
+    .btn-principal:hover:not(:disabled) { color: var(--tinta); }
+    .btn-principal:hover:not(:disabled)::before { transform: translateY(0); }
+    .btn-principal:active:not(:disabled) { transform: scale(0.98); }
+
+    .rotulo {
+      position: relative;
+      display: inline-block;
+      overflow: hidden;
+      line-height: 1.3;
+    }
+
+    .rotulo > span {
+      display: block;
+      transition: transform 0.45s var(--expo);
+    }
+
+    .rotulo::after {
+      content: attr(data-texto);
+      position: absolute;
+      left: 0;
+      top: 100%;
+      transition: transform 0.45s var(--expo);
+    }
+
+    .btn-principal:hover:not(:disabled) .rotulo > span,
+    .btn-principal:hover:not(:disabled) .rotulo::after { transform: translateY(-100%); }
+
+    .seta {
+      width: 34px;
+      height: 34px;
+      flex: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 8px;
-      color: #052e16;
-      background: linear-gradient(135deg, #86efac, #22d3ee);
-      box-shadow: 0 18px 44px rgba(34, 197, 94, 0.22);
+      border-radius: 50%;
+      background: var(--amarelo);
+      color: var(--tinta);
+      overflow: hidden;
+      transition: background 0.35s ease;
+    }
+
+    .seta svg { transition: transform 0.45s var(--expo); }
+    .btn-principal:hover:not(:disabled) .seta { background: var(--tinta); color: var(--amarelo); }
+    .btn-principal:hover:not(:disabled) .seta svg { transform: translateX(3px) rotate(-45deg); }
+
+    .btn-principal:disabled { cursor: progress; }
+
+    .btn-principal.is-loading {
+      background-image: repeating-linear-gradient(-45deg, var(--tinta) 0 14px, #34322E 14px 28px);
+      background-size: 200% 100%;
+      animation: listras 1s linear infinite;
+    }
+
+    @keyframes listras { to { background-position: -40px 0; } }
+
+    .link-cadastro {
+      display: block;
+      margin-top: 16px;
+      text-align: center;
+      font-size: 0.9rem;
+      color: var(--tinta-2);
+    }
+
+    .link-cadastro a {
+      font-weight: 700;
+      color: var(--tinta);
+      text-decoration: none;
+      background-image: linear-gradient(var(--amarelo), var(--amarelo));
+      background-size: 100% 35%;
+      background-position: 0 90%;
+      background-repeat: no-repeat;
+      transition: background-size 0.35s var(--quart);
+    }
+
+    .link-cadastro a:hover { background-size: 100% 90%; }
+
+    /* ===============================
+       TELA DE SUCESSO
+    =============================== */
+    .success-panel {
+      background: var(--amarelo);
+      border: var(--borda);
+      border-radius: var(--raio);
+      box-shadow: var(--sombra-dura);
+      padding: 32px 28px;
+      animation: carimbo 0.6s var(--expo) both;
+    }
+
+    @keyframes carimbo {
+      from { transform: scale(0.92) rotate(-2deg); opacity: 0; }
+      to { transform: none; opacity: 1; }
     }
 
     .success-panel h2 {
-      margin: 16px 0 8px;
-      color: var(--text);
-      font-size: 1.35rem;
-      line-height: 1.2;
+      margin: 0 0 8px;
+      font-family: var(--fonte-titulo);
+      font-weight: 900;
+      font-size: clamp(3rem, 7vw, 4.6rem);
+      line-height: 0.9;
+      text-transform: uppercase;
     }
 
-    .success-panel p {
-      margin: 0 0 16px;
-      color: var(--muted);
-      line-height: 1.58;
-    }
+    .success-panel p { margin: 0 0 20px; font-weight: 500; }
 
-    .success-steps {
+    .success-details {
       display: grid;
-      gap: 10px;
-      margin-bottom: 14px;
-      padding: 14px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      background: rgba(15, 23, 42, 0.26);
+      gap: 0;
+      margin-bottom: 22px;
+      border-top: var(--borda);
     }
 
-    .success-steps span {
-      display: flex;
-      align-items: center;
-      gap: 9px;
-      color: var(--text);
-      font-weight: 700;
-    }
-
-    .success-steps i {
-      color: var(--accent);
+    .success-details span {
+      padding: 10px 0;
+      border-bottom: var(--borda);
+      font-weight: 500;
     }
 
     .btn-ghost {
-      background: var(--surface-strong);
-      color: var(--text);
-      border: 1px solid var(--border);
-      box-shadow: none;
-    }
-
-    button.is-loading::after {
-      content: "";
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.45);
-      border-top-color: #fff;
+      padding: 12px 18px;
+      border: var(--borda);
       border-radius: 999px;
-      animation: spinPremium 0.75s linear infinite;
+      background: var(--branco);
+      color: var(--tinta);
+      font-family: var(--fonte-texto);
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.3s var(--quart), box-shadow 0.3s var(--quart);
     }
 
-    @keyframes spinPremium {
-      to {
-        transform: rotate(360deg);
-      }
+    .btn-ghost:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--tinta); }
+
+    /* ===============================
+       FAIXA LETREIRO
+    =============================== */
+    .letreiro {
+      overflow: hidden;
+      border-top: var(--borda);
+      border-bottom: var(--borda);
+      background: var(--tinta);
+      color: var(--amarelo);
+      transform: rotate(-1.2deg);
+      margin: 8px -12px 72px;
     }
 
-    @keyframes slideUpPremium {
-      from {
-        opacity: 0;
-        transform: translateY(18px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    .letreiro-trilho {
+      display: flex;
+      width: max-content;
+      animation: rolar 28s linear infinite;
     }
 
+    .letreiro-trilho span {
+      padding: 14px 0;
+      font-family: var(--fonte-titulo);
+      font-weight: 900;
+      font-size: 2.1rem;
+      line-height: 1;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .letreiro-trilho span::after {
+      content: "✱";
+      margin: 0 22px;
+      color: var(--papel);
+    }
+
+    @keyframes rolar { to { transform: translateX(-50%); } }
+
+    /* ===============================
+       SEÇÕES
+    =============================== */
+    .secao { padding-bottom: 80px; }
+
+    .secao-cabeca {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+
+    .secao-cabeca h2 {
+      margin: 0;
+      font-family: var(--fonte-titulo);
+      font-weight: 900;
+      font-size: clamp(2.8rem, 6vw, 4.8rem);
+      line-height: 0.9;
+      text-transform: uppercase;
+    }
+
+    .secao-cabeca p {
+      max-width: 36ch;
+      margin: 0;
+      color: var(--tinta-2);
+    }
+
+    .blocos {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .bloco {
+      position: relative;
+      min-height: 260px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: var(--borda);
+      border-radius: var(--raio);
+      transition: transform 0.45s var(--quart), box-shadow 0.45s var(--quart);
+    }
+
+    .bloco:hover { transform: translate(-4px, -4px) rotate(-0.6deg); box-shadow: var(--sombra-dura); }
+    .bloco:nth-child(1) { background: var(--amarelo); }
+    .bloco:nth-child(2) { background: var(--roxo); }
+    .bloco:nth-child(3) { background: var(--verde); }
+
+    .bloco-num {
+      font-family: var(--fonte-titulo);
+      font-weight: 900;
+      font-size: 5rem;
+      line-height: 0.8;
+    }
+
+    .bloco h3 {
+      margin: 24px 0 8px;
+      font-size: 1.25rem;
+      line-height: 1.2;
+    }
+
+    .bloco p { margin: 0; }
+
+    /* Lista "o que rola": linha inteira reage ao hover com seta. */
+    .lista-estudio {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      border-top: var(--borda);
+    }
+
+    .lista-estudio li {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 40px;
+      gap: 24px;
+      align-items: center;
+      padding: 26px 8px;
+      border-bottom: var(--borda);
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .lista-estudio li::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background: var(--tinta);
+      transform: scaleY(0);
+      transform-origin: bottom;
+      transition: transform 0.5s var(--expo);
+    }
+
+    .lista-estudio li:hover::before { transform: scaleY(1); }
+    .lista-estudio li:hover { color: var(--papel); }
+
+    .lista-estudio strong {
+      font-family: var(--fonte-titulo);
+      font-weight: 900;
+      font-size: clamp(2.2rem, 5vw, 3.6rem);
+      line-height: 0.9;
+      text-transform: uppercase;
+      transition: transform 0.5s var(--expo), color 0.3s ease;
+    }
+
+    .lista-estudio li:hover strong { transform: translateX(10px); color: var(--amarelo); }
+
+    .lista-estudio p { margin: 0; color: inherit; opacity: 0.85; }
+
+    .lista-estudio .seta-linha {
+      justify-self: end;
+      transform: translateX(-12px) rotate(-45deg);
+      opacity: 0;
+      transition: transform 0.5s var(--expo), opacity 0.3s ease;
+    }
+
+    .lista-estudio li:hover .seta-linha { transform: none; opacity: 1; }
+
+    /* ===============================
+       RODAPÉ
+    =============================== */
+    .rodape {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 28px 0 40px;
+      border-top: var(--borda);
+      font-size: 0.88rem;
+      color: var(--tinta-2);
+    }
+
+    /* ===============================
+       TOASTS
+    =============================== */
+    .toast-container {
+      position: fixed;
+      left: 50%;
+      bottom: 22px;
+      z-index: 50;
+      display: grid;
+      gap: 10px;
+      width: min(460px, calc(100% - 32px));
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 13px 18px;
+      border: var(--borda);
+      border-radius: 12px;
+      background: var(--tinta);
+      color: var(--papel);
+      font-weight: 500;
+      box-shadow: 4px 4px 0 rgba(28, 27, 25, 0.25);
+      animation: toast-entra 0.5s var(--expo) both;
+    }
+
+    .toast.erro { background: var(--erro); }
+    .toast.sucesso { background: var(--sucesso); }
+    .toast.aviso-tipo { background: var(--amarelo); color: var(--tinta); }
+
+    @keyframes toast-entra { from { transform: translateY(16px); opacity: 0; } }
+
+    /* ===============================
+       ENTRADA AO ROLAR
+    =============================== */
+    .revelar {
+      opacity: 0;
+      transform: translateY(28px);
+      transition: opacity 0.7s ease, transform 0.9s var(--expo);
+    }
+
+    .revelar.visivel { opacity: 1; transform: none; }
+
+    /* ===============================
+       CELULAR
+    =============================== */
     @media (max-width: 900px) {
-      .signup-shell {
-        width: min(100% - 24px, 680px);
-        grid-template-columns: 1fr;
-        gap: 24px;
-        align-items: start;
-      }
-
-      .support-grid {
-        grid-template-columns: 1fr;
-      }
+      .hero { grid-template-columns: 1fr; gap: 36px; padding-bottom: 48px; }
+      .blocos { grid-template-columns: 1fr; }
+      .bloco { min-height: 0; }
+      .secao-cabeca { flex-direction: column; align-items: start; }
+      .lista-estudio li { grid-template-columns: 1fr; gap: 8px; }
+      .lista-estudio .seta-linha { display: none; }
     }
 
-    @media (max-width: 480px) {
-      body {
-        padding: 0;
-      }
-
-      .signup-shell {
-        width: calc(100% - 20px);
-        padding-top: 68px;
-      }
-
-      .container.registration-card {
-        padding: 20px;
-      }
-
-      .theme-toggle {
-        right: 8px;
-        max-width: calc(100vw - 16px);
-      }
-
-      .brand-row {
-        align-items: flex-start;
-        flex-direction: column;
-      }
+    @media (max-width: 520px) {
+      .pagina { padding: 0 16px; }
+      .booking-card, .success-panel { padding: 22px 18px; box-shadow: 4px 4px 0 var(--tinta); }
+      .cartao-topo { flex-direction: column; gap: 4px; }
+      .rec { display: none; }
+      .letreiro-trilho span { font-size: 1.6rem; }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .hero-titulo .linha > span { transform: none; }
+      .revelar { opacity: 1; transform: none; }
+    }
+
+    /* ===============================
+       PEÇAS DO CADASTRO
+    =============================== */
+    .rec-link { text-decoration: none; transition: background 0.25s ease, transform 0.35s var(--quart); }
+    .rec-link::before { display: none; }
+    .rec-link::after { content: "→"; transition: transform 0.35s var(--expo); }
+    .rec-link:hover { background: var(--amarelo); }
+    .rec-link:hover::after { transform: translateX(3px); }
+
+    .passos {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      border-top: var(--borda);
+      max-width: 440px;
+    }
+
+    .passos li {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: var(--borda);
+      font-weight: 500;
+    }
+
+    .passos li span {
+      font-family: var(--fonte-titulo);
+      font-weight: 900;
+      font-size: 1.6rem;
+      line-height: 1;
+      min-width: 36px;
+    }
+
+    .age-rule {
+      margin-bottom: 20px;
+      padding: 10px 14px;
+      border: var(--borda);
+      border-radius: 10px;
+      background: var(--roxo);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .success-interno {
+      box-shadow: none;
+      animation: carimbo 0.6s var(--expo) both;
+    }
+
+    /* Depois do envio, mostra só a confirmação dentro do cartão. */
+    .registration-card:has(#sucessoCadastro:not([hidden])) > :is(.campo, #btnEnviar, .age-rule, .aviso, .cartao-topo) {
+      display: none !important;
+    }
+
+    .registration-card:has(#sucessoCadastro:not([hidden])) {
+      padding: 0;
+      border: 0;
+      box-shadow: none;
+      background: transparent;
+    }
+
+    .registration-card:has(#sucessoCadastro:not([hidden])) .success-interno { box-shadow: var(--sombra-dura); }
   </style>
 </head>
 
 <body>
-  <button id="btnTema" class="theme-toggle" type="button" aria-label="Alternar tema">Escuro</button>
   <div id="toastContainer" class="toast-container" role="status" aria-live="polite" aria-atomic="false"></div>
 
-  <main class="signup-shell">
-    <section class="signup-intro" aria-label="Cadastro LabStudio CRJ FLEXAL">
-      <div class="brand-row">
-        <div class="brand-lockup">
-          <span class="brand-mark"><i class="fa-solid fa-wave-square" aria-hidden="true"></i></span>
-          <span>
-            <strong>LabStudio</strong>
-            <small>CRJ FLEXAL</small>
-          </span>
+  <div class="pagina">
+    <header class="topo">
+      <a class="marca" href="./" aria-label="LabStudio CRJ Flexal, voltar ao agendamento">
+        <strong>LabStudio</strong>
+        <span>CRJ Flexal</span>
+      </a>
+      <a class="rec rec-link" href="./">Já tenho cadastro</a>
+    </header>
+
+    <main>
+      <section class="hero" aria-label="Cadastro no LabStudio">
+        <div>
+          <h1 class="hero-titulo">
+            <span class="linha"><span>Primeiro</span></span>
+            <span class="linha"><span>passo pro</span></span>
+            <span class="linha"><span><span class="marca-texto">estúdio.</span></span></span>
+          </h1>
+
+          <p class="hero-texto">
+            Mande seus dados. A equipe do CRJ confere e, aprovado, você recebe no WhatsApp o link para marcar horário.
+          </p>
+
+          <ol class="passos">
+            <li><span>01</span> Você envia o cadastro</li>
+            <li><span>02</span> A equipe do CRJ analisa</li>
+            <li><span>03</span> Aprovado, chega o link no WhatsApp</li>
+          </ol>
         </div>
 
-        <div class="brand-kicker">
-          <i class="fa-solid fa-music" aria-hidden="true"></i>
-          <span>Entrada para o LabStudio</span>
+        <div>
+          <!-- ===============================
+               FORMULÁRIO DE CADASTRO ONLINE
+          =============================== -->
+          <div class="booking-card registration-card">
+            <div class="cartao-topo">
+              <h2>Seu cadastro</h2>
+              <span>3 campos</span>
+            </div>
+
+            <div id="faixaEtariaDestaque" class="age-rule">
+              <span>O CRJ Flexal atende jovens de 15 a 29 anos. O cadastro será analisado pela equipe.</span>
+            </div>
+
+            <div id="aviso" class="aviso" role="status" aria-live="polite" aria-atomic="true"></div>
+
+            <!-- Atributos nativos reduzem erro de digitação antes do envio, sem substituir a validação segura da API. -->
+            <div class="campo">
+              <span class="campo-num" aria-hidden="true">01</span>
+              <label for="nome">Nome completo</label>
+              <div class="linha-campo">
+                <input type="text" id="nome" placeholder="Seu nome completo" autocomplete="name" maxlength="100" required aria-describedby="ajudaNome">
+              </div>
+              <div id="ajudaNome" class="campo-ajuda"></div>
+            </div>
+
+            <div class="campo">
+              <span class="campo-num" aria-hidden="true">02</span>
+              <label for="telefone">WhatsApp</label>
+              <div class="linha-campo">
+                <input type="tel" id="telefone" placeholder="Ex: 27999999999" autocomplete="tel" inputmode="numeric" maxlength="18" pattern="[0-9\s()+-]{10,18}" required aria-describedby="ajudaTelefone">
+              </div>
+              <div id="ajudaTelefone" class="campo-ajuda"></div>
+            </div>
+
+            <div class="campo">
+              <span class="campo-num" aria-hidden="true">03</span>
+              <label for="dataNascimento">Data de nascimento</label>
+              <div class="linha-campo">
+                <input type="date" id="dataNascimento" required aria-describedby="ajudaDataNascimento faixaEtariaDestaque">
+              </div>
+              <div id="ajudaDataNascimento" class="campo-ajuda"></div>
+            </div>
+
+            <button id="btnEnviar" class="btn-principal" type="button">
+              <span class="rotulo" data-texto="Enviar cadastro"><span>Enviar cadastro</span></span>
+              <span class="seta" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </span>
+            </button>
+
+            <section id="sucessoCadastro" class="success-panel success-interno" aria-live="polite" hidden>
+              <h2>Recebido.</h2>
+              <p id="sucessoMensagemCadastro"></p>
+              <div class="success-details">
+                <span>01 · A equipe do CRJ analisa seus dados</span>
+                <span>02 · O retorno chega no WhatsApp cadastrado</span>
+                <span>03 · Aprovado, é só marcar o horário</span>
+              </div>
+              <button id="btnNovoCadastro" type="button" class="btn-ghost">Enviar outro cadastro</button>
+            </section>
+          </div>
         </div>
-      </div>
+      </section>
+    </main>
 
-      <h1>Cadastro Online - LabStudio CRJ FLEXAL</h1>
-      <p>
-        Envie seus dados para análise da equipe. Depois da aprovação, você fica liberado para solicitar horários no espaço de gravação e criação musical do CRJ FLEXAL.
-      </p>
-
-      <div class="support-grid">
-        <article class="support-card">
-          <i class="fa-solid fa-user-check" aria-hidden="true"></i>
-          <strong>Análise da equipe</strong>
-          O cadastro passa por conferência antes da liberação.
-        </article>
-        <article class="support-card">
-          <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
-          <strong>Contato por WhatsApp</strong>
-          Use um número válido para receber retornos.
-        </article>
-        <article class="support-card">
-          <i class="fa-solid fa-headphones" aria-hidden="true"></i>
-          <strong>Acesso ao estúdio</strong>
-          A aprovação habilita o agendamento.
-        </article>
-      </div>
-    </section>
-
-  <!-- ===============================
-       FORMULÁRIO DE CADASTRO ONLINE
-  =============================== -->
-  <div class="container registration-card">
-    <h1>Cadastro Online - LabStudio CRJ FLEXAL</h1>
-    <p class="descricao">
-      Envie seus dados para análise da equipe do CRJ FLEXAL. Após aprovação, você poderá solicitar o agendamento pelo WhatsApp.
-    </p>
-
-    <div id="faixaEtariaDestaque" class="age-rule">
-      <i class="fa-solid fa-id-card" aria-hidden="true"></i>
-      <span>O CRJ FLEXAL atende jovens de 15 a 29 anos. O cadastro será analisado pela equipe.</span>
-    </div>
-
-    <div id="aviso" class="aviso" role="status" aria-live="polite" aria-atomic="true"></div>
-
-    <!-- Atributos nativos reduzem erro de digitação antes do envio, sem substituir a validação segura da API. -->
-    <div class="form-group">
-      <label for="nome">Nome completo</label>
-      <div class="field-shell">
-        <i class="fa-regular fa-user" aria-hidden="true"></i>
-        <input type="text" id="nome" placeholder="Digite seu nome completo" autocomplete="name" maxlength="100" required aria-describedby="ajudaNome">
-      </div>
-      <div id="ajudaNome" class="campo-ajuda"></div>
-    </div>
-
-    <div class="form-group">
-      <label for="telefone">WhatsApp</label>
-      <div class="field-shell">
-        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
-        <input type="tel" id="telefone" placeholder="Ex: 27999999999" autocomplete="tel" inputmode="numeric" maxlength="18" pattern="[0-9\s()+-]{10,18}" required aria-describedby="ajudaTelefone">
-      </div>
-      <div id="ajudaTelefone" class="campo-ajuda"></div>
-    </div>
-
-    <div class="form-group">
-      <label for="dataNascimento">Data de nascimento</label>
-      <div class="field-shell">
-        <i class="fa-regular fa-calendar-days" aria-hidden="true"></i>
-        <input type="date" id="dataNascimento" required aria-describedby="ajudaDataNascimento faixaEtariaDestaque">
-      </div>
-      <div id="ajudaDataNascimento" class="campo-ajuda"></div>
-    </div>
-
-    <button id="btnEnviar" type="button">Enviar cadastro</button>
-
-    <section id="sucessoCadastro" class="success-panel" aria-live="polite" hidden>
-      <span class="success-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
-      <h2>Cadastro enviado</h2>
-      <p id="sucessoMensagemCadastro"></p>
-      <div class="success-steps">
-        <span><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Análise da equipe</span>
-        <span><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Retorno pelo WhatsApp cadastrado</span>
-        <span><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Agendamento liberado após aprovação</span>
-      </div>
-      <button id="btnNovoCadastro" type="button" class="btn-ghost">Enviar outro cadastro</button>
-    </section>
+    <footer class="rodape">
+      <span>LabStudio · CRJ Flexal</span>
+      <span>Programa público para as juventudes. Tudo gratuito.</span>
+    </footer>
   </div>
-
-  </main>
 
   <script>
     const inputNome = document.getElementById("nome");
@@ -972,7 +955,6 @@
     const inputDataNascimento = document.getElementById("dataNascimento");
     const btnEnviar = document.getElementById("btnEnviar");
     const aviso = document.getElementById("aviso");
-    const btnTema = document.getElementById("btnTema");
     const toastContainer = document.getElementById("toastContainer");
     const ajudaNome = document.getElementById("ajudaNome");
     const ajudaTelefone = document.getElementById("ajudaTelefone");
@@ -1000,34 +982,6 @@
     };
 
     let configuracaoLabStudio = { ...CONFIG_CADASTRO_FALLBACK };
-
-    // ===============================
-    // FUNÇÕES DE TEMA
-    // Aplicam o tema salvo e preservam a escolha no localStorage.
-    // ===============================
-    function aplicarTema(tema) {
-      const temaFinal = tema === "light" ? "light" : "dark";
-
-      document.documentElement.dataset.theme = temaFinal;
-      btnTema.innerText = temaFinal === "light" ? "Claro" : "Escuro";
-      btnTema.setAttribute(
-        "aria-label",
-        temaFinal === "light" ? "Tema claro ativo. Alternar para escuro." : "Tema escuro ativo. Alternar para claro."
-      );
-    }
-
-    function carregarTemaSalvo() {
-      const temaSalvo = localStorage.getItem("labstudio_tema") || "dark";
-      aplicarTema(temaSalvo);
-    }
-
-    function alternarTema() {
-      const temaAtual = document.documentElement.dataset.theme === "light" ? "light" : "dark";
-      const proximoTema = temaAtual === "light" ? "dark" : "light";
-
-      localStorage.setItem("labstudio_tema", proximoTema);
-      aplicarTema(proximoTema);
-    }
 
     // ===============================
     // FUNÇÃO: MOSTRAR AVISO VISUAL
@@ -1096,7 +1050,6 @@
       if (!faixaEtariaDestaque) return;
 
       faixaEtariaDestaque.innerHTML = `
-        <i class="fa-solid fa-id-card" aria-hidden="true"></i>
         <span>${mensagemFaixaEtaria()} O cadastro será analisado pela equipe.</span>
       `;
     }
@@ -1187,7 +1140,16 @@
     // ===============================
     function definirLoadingBotao(botao, carregando, textoCarregando, textoNormal) {
       botao.disabled = carregando;
-      botao.innerText = carregando ? textoCarregando : textoNormal;
+      const texto = carregando ? textoCarregando : textoNormal;
+      const rotulo = botao.querySelector(".rotulo");
+
+      // No botão com animação, troca só o texto do rótulo para não apagar a seta.
+      if (rotulo) {
+        rotulo.dataset.texto = texto;
+        rotulo.firstElementChild.textContent = texto;
+      } else {
+        botao.innerText = texto;
+      }
       botao.classList.toggle("is-loading", carregando);
       // aria-busy deixa claro que o envio ainda está em andamento sem criar outro componente.
       botao.setAttribute("aria-busy", carregando ? "true" : "false");
@@ -1462,9 +1424,7 @@
       }
     });
 
-    carregarTemaSalvo();
     carregarConfiguracoesPublicas();
-    btnTema.addEventListener("click", alternarTema);
     inputNome.addEventListener("input", validarNomeTempoReal);
     inputTelefone.addEventListener("input", validarTelefoneTempoReal);
     inputDataNascimento.addEventListener("change", validarDataNascimentoTempoReal);
