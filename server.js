@@ -2965,6 +2965,32 @@ registrarDiagnosticoBot();
 inicializarWhatsAppComRetry();
 
 // ===============================
+// VIGIA DO NAVEGADOR
+// O Chrome às vezes trava sozinho e o whatsapp-web.js fica esperando para sempre,
+// sem erro. Se o navegador cair, ou se em 3 minutos o bot não ficar pronto nem
+// mostrar QR, encerra o processo para o pm2 subir um novo do zero.
+// ===============================
+const INICIO_DO_PROCESSO = Date.now();
+const LIMITE_INICIALIZACAO_MS = 3 * 60 * 1000;
+
+setInterval(() => {
+  const navegador = client.pupBrowser;
+  const navegadorConectado = navegador
+    ? (typeof navegador.isConnected === "function" ? navegador.isConnected() : navegador.connected)
+    : true;
+
+  if (!navegadorConectado) {
+    console.error("💥 O Chrome do bot caiu. Reiniciando o processo para reconectar.");
+    process.exit(1);
+  }
+
+  if (!botPronto && !qrAtualTexto && Date.now() - INICIO_DO_PROCESSO > LIMITE_INICIALIZACAO_MS) {
+    console.error("💥 WhatsApp não ficou pronto nem gerou QR em 3 minutos. Reiniciando o processo.");
+    process.exit(1);
+  }
+}, 15 * 1000).unref();
+
+// ===============================
 // INICIALIZA O SERVIDOR
 // Em localhost, a porta vem do .env ou usa 3001 por padrão.
 // ===============================
