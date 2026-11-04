@@ -15,11 +15,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://labstudio.147-93-11-201.sslip.io/api/:path*"
+      "destination": "https://tightly-rubber-dyslexic.ngrok-free.dev/api/:path*"
     },
     {
       "source": "/notificar-aprovacao",
-      "destination": "https://labstudio.147-93-11-201.sslip.io/notificar-aprovacao"
+      "destination": "https://tightly-rubber-dyslexic.ngrok-free.dev/notificar-aprovacao"
     }
   ]
 }

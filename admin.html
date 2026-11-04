@@ -1,6 +1,22 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
+  <script>
+    // Tunel ngrok (bot no PC): evita a pagina de aviso do ngrok nas chamadas a API
+    (function () {
+      var f = window.fetch;
+      window.fetch = function (input, init) {
+        var url = typeof input === "string" ? input : (input && input.url) || "";
+        if (url.charAt(0) === "/") {
+          init = init || {};
+          var h = new Headers(init.headers || (typeof input !== "string" && input.headers) || {});
+          h.set("ngrok-skip-browser-warning", "1");
+          init.headers = h;
+        }
+        return f.call(this, input, init);
+      };
+    })();
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin - LabStudio CRJ FLEXAL</title>
