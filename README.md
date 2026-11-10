@@ -136,3 +136,13 @@ Para ativar:
 1. Rode `supabase/divulgacao.sql` no SQL Editor do Supabase.
 2. No `.env` da VPS, defina `DIVULGACAO_ATIVA=true` e reinicie o servidor.
 3. No painel admin (aba Usuários → Divulgação automática), use **Enviar teste** para ver a mensagem no número da equipe.
+
+## Atendimento pelo painel
+
+Três recursos para a equipe atender jovens que não conseguem usar o site:
+
+- **Novo agendamento** (aba Agendamentos, ou "Agendar aqui" num horário livre do Calendário): escolhe um jovem cadastrado, data e horário livre. Opcionalmente manda a confirmação no WhatsApp do jovem.
+- **Lembrete antes do horário**: o bot avisa sozinho quem tem horário marcado, `LEMBRETE_MINUTOS_ANTES` minutos antes (padrão 120). Cada agendamento recebe um lembrete só. O botão **Lembrar no WhatsApp** no card manda na hora.
+- **Conversas** (aba Conversas, ou botão **Mensagem** nos cards): lê e responde mensagens individuais pelo WhatsApp do bot. Nada é copiado para o banco; só funciona com o bot ligado.
+
+Para ativar os lembretes, rode `supabase/painel-atendimento.sql` no SQL Editor do Supabase. Para desligar, use `LEMBRETE_ATIVO=false` no `.env`.

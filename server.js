@@ -2877,6 +2877,533 @@ app.post("/api/divulgacao/teste", limitarTesteDivulgacao, exigirAdminSupabase, a
 });
 
 // ===============================
+// PAINEL: AGENDAMENTO MANUAL, LEMBRETES E CONVERSAS
+// Rotas usadas só pelo painel admin (exigem login de admin no Supabase).
+// Precisa do SQL em supabase/painel-atendimento.sql.
+// ===============================
+const limitarAcoesPainel = limitarRequisicoes({
+  janelaMs: 10 * 60 * 1000,
+  // A aba Conversas atualiza sozinha; folga para mais de um admin na mesma rede do CRJ.
+  maximo: 400,
+  nome: "acoes-painel"
+});
+
+const limitarEnvioMensagensPainel = limitarRequisicoes({
+  janelaMs: 10 * 60 * 1000,
+  maximo: 60,
+  nome: "mensagens-painel"
+});
+
+function dataIsoSaoPaulo(deslocamentoDias = 0) {
+  const instante = new Date(Date.now() + deslocamentoDias * 24 * 60 * 60 * 1000);
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(instante);
+}
+
+function formatarDataBr(dataIso) {
+  const [ano, mes, dia] = String(dataIso || "").split("T")[0].split("-");
+  return ano && mes && dia ? `${dia}/${mes}/${ano}` : String(dataIso || "");
+}
+
+// O Brasil não tem horário de verão desde 2019: o horário do agendamento é sempre -03:00.
+function inicioAgendamentoEmMs(data, horario) {
+  const dia = String(data || "").split("T")[0];
+  const hora = String(horario || "").trim().slice(0, 5);
+  return Date.parse(`${dia}T${hora}:00-03:00`);
+}
+
+function erroColunaAusente(error) {
+  return Boolean(error) && (error.code === "42703" || /column .* does not exist|lembrete_enviado_em/i.test(String(error.message || "")));
+}
+
+function montarMensagemConfirmacaoPainel(nome, data, horario) {
+  return `Olá, ${primeiroNome(nome)}! 🎙️
+
+A equipe do CRJ marcou seu horário no LabStudio CRJ FLEXAL:
+
+📅 ${formatarDataBr(data)}
+⏰ ${horario}
+
+Chegue com alguns minutos de antecedência. Se não puder vir, responda esta mensagem avisando.`;
+}
+
+function montarMensagemLembrete(nome, data, horario) {
+  const quando = String(data).split("T")[0] === dataIsoSaoPaulo() ? "hoje" : `no dia ${formatarDataBr(data)}`;
+
+  return `Olá, ${primeiroNome(nome)}! ⏰
+
+Passando para lembrar do seu horário no LabStudio CRJ FLEXAL ${quando} às ${String(horario).slice(0, 5)}.
+
+Chegue com alguns minutos de antecedência. Se não puder vir, responda esta mensagem avisando a equipe.`;
+}
+
+// -------------------------------
+// AGENDAMENTO MANUAL
+// Para jovens que não conseguem agendar pelo site.
+// -------------------------------
+app.post("/api/admin/agendamentos", limitarAcoesPainel, exigirAdminSupabase, async (req, res) => {
+  const corpo = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
+  const usuarioId = Number(corpo.usuarioId);
+  const dataSelecionada = String(corpo.data || "").trim();
+  const horario = String(corpo.horario || "").trim().slice(0, 5);
+  const avisarJovem = corpo.avisarJovem !== false;
+  const observacaoExtra = String(corpo.observacao || "").trim().slice(0, 300);
+
+  if (!Number.isInteger(usuarioId) || usuarioId <= 0 || !dataSelecionada || !horario) {
+    return responderPayloadInvalido(res, "Escolha o jovem, a data e o horário.");
+  }
+
+  const config = await obterConfigLabStudioSegura();
+  const validacaoData = validarDataAgendamento(dataSelecionada, config);
+
+  if (!validacaoData.ok) {
+    return responderPayloadInvalido(res, validacaoData.mensagem);
+  }
+
+  if (!config.horarios_disponiveis.includes(horario)) {
+    return responderPayloadInvalido(res, `Horário inválido. Horários configurados: ${config.horarios_disponiveis.join(", ")}.`);
+  }
+
+  if (inicioAgendamentoEmMs(dataSelecionada, horario) <= Date.now()) {
+    return responderPayloadInvalido(res, "Esse horário já passou. Escolha outro.");
+  }
+
+  try {
+    const { data: usuario, error: erroUsuario } = await supabase
+      .from("usuarios")
+      .select("id, nome, telefone, status, faltas, cadastrado")
+      .eq("id", usuarioId)
+      .maybeSingle();
+
+    if (erroUsuario) {
+      return responderErroApi(res, 500, "Erro ao buscar o jovem.", erroUsuario);
+    }
+
+    if (!usuario) {
+      return responderErroApi(res, 404, "Jovem não encontrado.");
+    }
+
+    const statusUsuario = String(usuario.status || "").toLowerCase();
+
+    if (statusUsuario === "bloqueado") {
+      return responderErroApi(res, 403, "Este jovem está bloqueado. Desbloqueie na aba Usuários antes de agendar.");
+    }
+
+    if (statusUsuario === "pendente" || usuario.cadastrado === false) {
+      return responderErroApi(res, 403, "O cadastro deste jovem ainda não foi aprovado.");
+    }
+
+    const ocupados = await buscarHorariosOcupados(dataSelecionada);
+
+    if (ocupados.includes(horario)) {
+      return responderErroApi(res, 409, "Este horário já está ocupado. Escolha outro.");
+    }
+
+    const quemAgendou = (req.adminAuth && req.adminAuth.email) || "equipe";
+    const observacao = [`Agendado pelo painel (${quemAgendou}).`, observacaoExtra].filter(Boolean).join(" ");
+
+    const { data: agendamentoCriado, error } = await supabase
+      .from("agendamentos")
+      .insert([{
+        nome: usuario.nome,
+        telefone: usuario.telefone,
+        data: dataSelecionada,
+        horario,
+        status: "agendado",
+        observacao
+      }])
+      .select("id, nome, telefone, data, horario, status")
+      .single();
+
+    if (error) {
+      if (erroConflitoHorarioAgendamento(error)) {
+        return responderErroApi(res, 409, "Este horário acabou de ser ocupado. Escolha outro.");
+      }
+
+      return responderErroApi(res, 500, "Erro ao salvar agendamento.", error);
+    }
+
+    try {
+      await marcarUsuarioComoJaUsouEstudio(usuario.id);
+    } catch (marcacaoError) {
+      console.warn("⚠️ Agendamento do painel salvo, mas não marquei 'já usou o estúdio':", marcacaoError.message || marcacaoError);
+    }
+
+    let whatsappEnviado = false;
+    let avisoWhatsapp = null;
+
+    if (avisarJovem) {
+      try {
+        if (!botPronto) throw new Error("WhatsApp do bot desconectado.");
+
+        const destino = await resolverDestinoWhatsApp(usuario.telefone);
+        await client.sendMessage(destino, montarMensagemConfirmacaoPainel(usuario.nome, dataSelecionada, horario));
+        whatsappEnviado = true;
+
+        // Se o horário já está dentro da janela do lembrete, a confirmação vale como lembrete.
+        if (inicioAgendamentoEmMs(dataSelecionada, horario) - Date.now() <= LEMBRETE_MINUTOS_ANTES * 60 * 1000) {
+          await supabase
+            .from("agendamentos")
+            .update({ lembrete_enviado_em: new Date().toISOString() })
+            .eq("id", agendamentoCriado.id);
+        }
+      } catch (zapError) {
+        avisoWhatsapp = String(zapError.message || zapError);
+        console.warn("⚠️ Agendamento do painel salvo, mas a confirmação no WhatsApp falhou:", avisoWhatsapp);
+      }
+    }
+
+    console.log(`📅 Agendamento criado pelo painel para ${mascararNumeroWhatsApp(usuario.telefone)} em ${dataSelecionada} ${horario}.`);
+
+    return res.json({
+      ok: true,
+      agendamento: agendamentoCriado,
+      whatsappEnviado,
+      avisoWhatsapp
+    });
+  } catch (err) {
+    return responderErroApi(res, 500, "Erro ao criar agendamento.", err);
+  }
+});
+
+// -------------------------------
+// LEMBRETE ANTES DO HORÁRIO
+// A cada minuto, avisa quem tem horário nas próximas LEMBRETE_MINUTOS_ANTES.
+// Desliga com LEMBRETE_ATIVO=false no .env.
+// -------------------------------
+const LEMBRETE_ATIVO = String(process.env.LEMBRETE_ATIVO || "true").toLowerCase() !== "false";
+const LEMBRETE_MINUTOS_ANTES = Math.max(15, Number(process.env.LEMBRETE_MINUTOS_ANTES) || 120);
+let lembreteEmAndamento = false;
+let avisoColunaLembreteMostrado = false;
+
+async function executarLembretesAgendamento() {
+  if (!LEMBRETE_ATIVO || lembreteEmAndamento || !botPronto) return;
+
+  // Espera o WhatsApp Web estabilizar depois de conectar.
+  if (!botProntoDesde || Date.now() - botProntoDesde < 60 * 1000) return;
+
+  lembreteEmAndamento = true;
+
+  try {
+    const { data, error } = await supabase
+      .from("agendamentos")
+      .select("id, nome, telefone, data, horario, status, lembrete_enviado_em")
+      .eq("status", "agendado")
+      .is("lembrete_enviado_em", null)
+      .in("data", [dataIsoSaoPaulo(), dataIsoSaoPaulo(1)]);
+
+    if (error) {
+      if (erroColunaAusente(error)) {
+        if (!avisoColunaLembreteMostrado) {
+          console.warn("⚠️ Lembretes desligados: rode supabase/painel-atendimento.sql no Supabase.");
+          avisoColunaLembreteMostrado = true;
+        }
+        return;
+      }
+
+      throw error;
+    }
+
+    const agora = Date.now();
+    const janelaMs = LEMBRETE_MINUTOS_ANTES * 60 * 1000;
+    const devidos = (data || []).filter((agendamento) => {
+      const inicio = inicioAgendamentoEmMs(agendamento.data, agendamento.horario);
+      return Number.isFinite(inicio) && agora >= inicio - janelaMs && agora < inicio;
+    });
+
+    for (const agendamento of devidos) {
+      if (!botPronto) return;
+
+      // Reserva antes de enviar: se outra verificação pegar o mesmo agendamento, só uma envia.
+      const { data: reservado, error: erroReserva } = await supabase
+        .from("agendamentos")
+        .update({ lembrete_enviado_em: new Date().toISOString() })
+        .eq("id", agendamento.id)
+        .is("lembrete_enviado_em", null)
+        .select("id");
+
+      if (erroReserva) throw erroReserva;
+      if (!reservado || !reservado.length) continue;
+
+      try {
+        const destino = await resolverDestinoWhatsApp(agendamento.telefone);
+        await client.sendMessage(destino, montarMensagemLembrete(agendamento.nome, agendamento.data, agendamento.horario));
+        console.log(`⏰ Lembrete enviado para ${mascararNumeroWhatsApp(destino)} (${agendamento.data} ${agendamento.horario}).`);
+      } catch (envioError) {
+        if (erroTemporarioDoNavegador(envioError)) {
+          // WhatsApp Web instável: libera para tentar de novo na próxima verificação.
+          await supabase.from("agendamentos").update({ lembrete_enviado_em: null }).eq("id", agendamento.id);
+          console.warn("⏸️ WhatsApp instável; lembrete fica para a próxima verificação.");
+          return;
+        }
+
+        console.warn(`⚠️ Falha no lembrete para ${mascararNumeroWhatsApp(agendamento.telefone)}:`, envioError.message || envioError);
+      }
+
+      await esperar(5000 + Math.floor(Math.random() * 10000));
+    }
+  } catch (err) {
+    console.error("❌ Erro nos lembretes de agendamento:", err.message || err);
+  } finally {
+    lembreteEmAndamento = false;
+  }
+}
+
+setInterval(executarLembretesAgendamento, 60 * 1000).unref();
+
+// Lembrete manual pelo botão do card do agendamento.
+app.post("/api/admin/agendamentos/:id/lembrete", limitarEnvioMensagensPainel, exigirAdminSupabase, async (req, res) => {
+  const agendamentoId = Number(req.params.id);
+
+  if (!Number.isInteger(agendamentoId) || agendamentoId <= 0) {
+    return responderPayloadInvalido(res, "Agendamento inválido.");
+  }
+
+  if (!botPronto) {
+    return responderErroApi(res, 503, "O WhatsApp do bot está desconectado no momento.");
+  }
+
+  try {
+    const { data: agendamento, error } = await supabase
+      .from("agendamentos")
+      .select("id, nome, telefone, data, horario, status")
+      .eq("id", agendamentoId)
+      .maybeSingle();
+
+    if (error) return responderErroApi(res, 500, "Erro ao buscar o agendamento.", error);
+    if (!agendamento) return responderErroApi(res, 404, "Agendamento não encontrado.");
+
+    if (String(agendamento.status || "").toLowerCase() !== "agendado") {
+      return responderErroApi(res, 409, "Só dá para lembrar agendamentos que ainda estão marcados.");
+    }
+
+    const destino = await resolverDestinoWhatsApp(agendamento.telefone);
+    await client.sendMessage(destino, montarMensagemLembrete(agendamento.nome, agendamento.data, agendamento.horario));
+
+    const { error: erroMarcacao } = await supabase
+      .from("agendamentos")
+      .update({ lembrete_enviado_em: new Date().toISOString() })
+      .eq("id", agendamento.id);
+
+    if (erroMarcacao && !erroColunaAusente(erroMarcacao)) {
+      console.warn("⚠️ Lembrete enviado, mas não registrei no agendamento:", erroMarcacao.message);
+    }
+
+    return res.json({ ok: true, destino: mascararNumeroWhatsApp(destino) });
+  } catch (err) {
+    return responderErroApi(res, 500, "Falha ao enviar o lembrete.", err);
+  }
+});
+
+// -------------------------------
+// CONVERSAS INDIVIDUAIS
+// Lê e envia mensagens direto pelo WhatsApp do bot. Nada é copiado para o banco.
+// -------------------------------
+const FORMATO_CHAT_ID = /^\d{6,20}@(c\.us|lid)$/;
+
+const DESCRICAO_TIPO_MENSAGEM = {
+  image: "📷 Foto",
+  video: "🎬 Vídeo",
+  audio: "🎧 Áudio",
+  ptt: "🎤 Áudio",
+  document: "📄 Documento",
+  sticker: "🖼️ Figurinha",
+  location: "📍 Localização",
+  vcard: "👤 Contato",
+  multi_vcard: "👥 Contatos",
+  revoked: "🚫 Mensagem apagada",
+  call_log: "📞 Ligação"
+};
+
+function serializarMensagemChat(msg) {
+  const tipo = String(msg.type || "chat");
+  const descricaoTipo = DESCRICAO_TIPO_MENSAGEM[tipo] || "";
+  const texto = String(msg.body || "").slice(0, 4000);
+
+  return {
+    id: msg.id && msg.id._serialized,
+    deMim: Boolean(msg.fromMe),
+    texto: tipo === "chat" ? texto : [descricaoTipo || `[${tipo}]`, msg.hasMedia ? texto : ""].filter(Boolean).join(" — "),
+    tipo,
+    horario: Number(msg.timestamp || 0)
+  };
+}
+
+async function carregarMapaUsuariosPorTelefone() {
+  const { data, error } = await supabase
+    .from("usuarios")
+    .select("id, nome, telefone, status");
+
+  if (error) throw error;
+
+  const mapa = new Map();
+
+  for (const usuario of data || []) {
+    const final = limparTelefone(usuario.telefone).slice(-8);
+    if (final.length === 8 && !mapa.has(final)) mapa.set(final, usuario);
+  }
+
+  return mapa;
+}
+
+async function telefonesDosChats(chats) {
+  const telefones = new Map();
+  const idsLid = [];
+
+  for (const chat of chats) {
+    const id = chat.id._serialized;
+
+    if (id.endsWith("@c.us")) {
+      telefones.set(id, chat.id.user);
+    } else if (id.endsWith("@lid")) {
+      idsLid.push(id);
+    }
+  }
+
+  if (idsLid.length) {
+    try {
+      const pares = await client.getContactLidAndPhone(idsLid);
+
+      (pares || []).forEach((par, indice) => {
+        const pn = par && par.pn ? String(par.pn).split("@")[0] : "";
+        if (pn) telefones.set(idsLid[indice], pn);
+      });
+    } catch (err) {
+      console.warn("⚠️ Não consegui converter contatos @lid em telefone:", err.message || err);
+    }
+  }
+
+  return telefones;
+}
+
+function exigirBotConectado(req, res, next) {
+  if (!botPronto) {
+    return responderErroApi(res, 503, "O WhatsApp do bot está desconectado. As conversas funcionam só com o bot ligado (PC da empresa ligado).");
+  }
+
+  return next();
+}
+
+app.get("/api/admin/conversas", limitarAcoesPainel, exigirAdminSupabase, exigirBotConectado, async (req, res) => {
+  const somenteJovens = String(req.query.todos || "") !== "1";
+
+  try {
+    const todosChats = await client.getChats();
+    const chats = todosChats
+      .filter((chat) => !chat.isGroup && FORMATO_CHAT_ID.test(chat.id._serialized))
+      .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0))
+      .slice(0, 60);
+
+    const [telefones, usuariosPorTelefone] = await Promise.all([
+      telefonesDosChats(chats),
+      carregarMapaUsuariosPorTelefone()
+    ]);
+
+    const conversas = chats.map((chat) => {
+      const chatId = chat.id._serialized;
+      const telefone = telefones.get(chatId) || "";
+      const usuario = telefone ? usuariosPorTelefone.get(limparTelefone(telefone).slice(-8)) : null;
+      const ultima = chat.lastMessage ? serializarMensagemChat(chat.lastMessage) : null;
+
+      return {
+        chatId,
+        nome: (usuario && usuario.nome) || chat.name || (telefone ? `+${telefone}` : "Contato"),
+        telefone,
+        usuarioId: usuario ? usuario.id : null,
+        naoLidas: Number(chat.unreadCount || 0),
+        horario: Number(chat.timestamp || 0),
+        ultimaMensagem: ultima ? `${ultima.deMim ? "Você: " : ""}${ultima.texto}`.slice(0, 120) : ""
+      };
+    }).filter((conversa) => !somenteJovens || conversa.usuarioId);
+
+    return res.json({ ok: true, conversas });
+  } catch (err) {
+    return responderErroApi(res, 500, "Não consegui carregar as conversas do WhatsApp.", err);
+  }
+});
+
+async function resolverChatIdDaRequisicao(fonte) {
+  const chatId = String(fonte.chatId || "").trim();
+
+  if (chatId) {
+    return FORMATO_CHAT_ID.test(chatId) ? chatId : null;
+  }
+
+  const telefone = limparTelefone(fonte.telefone);
+
+  if (!validarTelefoneBrasileiroComDdd(removerDdiBrasilSeInformado(telefone))) {
+    return null;
+  }
+
+  const destino = await resolverDestinoWhatsApp(telefone);
+  return FORMATO_CHAT_ID.test(destino) ? destino : null;
+}
+
+app.get("/api/admin/conversas/mensagens", limitarAcoesPainel, exigirAdminSupabase, exigirBotConectado, async (req, res) => {
+  try {
+    const chatId = await resolverChatIdDaRequisicao(req.query || {});
+
+    if (!chatId) {
+      return responderPayloadInvalido(res, "Conversa ou telefone inválido.");
+    }
+
+    let mensagens = [];
+
+    try {
+      const chat = await client.getChatById(chatId);
+      mensagens = (await chat.fetchMessages({ limit: 60 })).map(serializarMensagemChat);
+
+      if (String(req.query.marcarLida || "") === "1" && Number(chat.unreadCount || 0) > 0) {
+        await chat.sendSeen().catch(() => {});
+      }
+    } catch (err) {
+      // Ainda não existe conversa com esse número: o painel mostra vazio e permite mandar a primeira mensagem.
+      console.warn(`ℹ️ Sem histórico para ${mascararNumeroWhatsApp(chatId)}:`, err.message || err);
+    }
+
+    return res.json({ ok: true, chatId, mensagens });
+  } catch (err) {
+    return responderErroApi(res, 500, "Não consegui carregar as mensagens.", err);
+  }
+});
+
+app.post("/api/admin/conversas/enviar", limitarEnvioMensagensPainel, exigirAdminSupabase, exigirBotConectado, async (req, res) => {
+  const corpo = req.body && typeof req.body === "object" && !Array.isArray(req.body) ? req.body : {};
+  const texto = String(corpo.texto || "").trim();
+
+  if (!texto) {
+    return responderPayloadInvalido(res, "Escreva a mensagem antes de enviar.");
+  }
+
+  if (texto.length > 2000) {
+    return responderPayloadInvalido(res, "A mensagem pode ter no máximo 2000 caracteres.");
+  }
+
+  try {
+    const chatId = await resolverChatIdDaRequisicao(corpo);
+
+    if (!chatId) {
+      return responderPayloadInvalido(res, "Conversa ou telefone inválido.");
+    }
+
+    const enviada = await client.sendMessage(chatId, texto);
+    console.log(`💬 Mensagem do painel enviada para ${mascararNumeroWhatsApp(chatId)} por ${(req.adminAuth && req.adminAuth.email) || "admin"}.`);
+
+    return res.json({
+      ok: true,
+      chatId,
+      mensagem: enviada ? serializarMensagemChat(enviada) : null
+    });
+  } catch (err) {
+    return responderErroApi(res, 500, "Falha ao enviar a mensagem pelo WhatsApp.", err);
+  }
+});
+
+// ===============================
 // INICIALIZA O CLIENTE DO WHATSAPP
 // ===============================
 async function inicializarWhatsAppComRetry(tentativa = 1) {

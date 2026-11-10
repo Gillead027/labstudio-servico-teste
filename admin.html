@@ -2601,6 +2601,332 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { transition: none !important; animation: none !important; }
     }
+
+    /* ===============================
+       NOVO AGENDAMENTO E CONVERSAS
+    =============================== */
+    .topo-com-acao {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .topo-com-acao .btn-salvar {
+      width: auto;
+      margin: 0;
+    }
+
+    .modal-novo-agendamento {
+      width: min(640px, 100%);
+      text-align: left;
+    }
+
+    .na-campos {
+      display: grid;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .na-campos label {
+      display: grid;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    .na-campos input,
+    .na-campos select,
+    .na-campos textarea {
+      width: 100%;
+    }
+
+    .na-campos textarea {
+      min-height: 70px;
+    }
+
+    .na-linha {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .na-lista {
+      display: grid;
+      gap: 6px;
+      max-height: 210px;
+      overflow: auto;
+    }
+
+    .na-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+      margin: 0;
+      padding: 9px 12px;
+      border: 1px solid var(--soft-border);
+      border-radius: 8px;
+      background: var(--item-bg);
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .na-item:hover {
+      background: var(--item-hover-bg);
+    }
+
+    .na-item small,
+    .na-detalhe {
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .na-selecionado {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      background: var(--item-bg);
+    }
+
+    .na-checkbox {
+      display: flex !important;
+      align-items: center;
+      gap: 8px !important;
+      font-weight: 500 !important;
+    }
+
+    .na-checkbox input {
+      width: auto !important;
+      min-height: 0;
+    }
+
+    .conversas-layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 340px) 1fr;
+      gap: 16px;
+      min-height: 560px;
+    }
+
+    .conversas-lista-wrap,
+    .conversa-painel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border: 1px solid var(--soft-border);
+      border-radius: 10px;
+      background: var(--panel-bg);
+      overflow: hidden;
+    }
+
+    .conversas-toolbar {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border-bottom: 1px solid var(--soft-border);
+    }
+
+    .conversas-toolbar input[type="text"] {
+      width: 100%;
+    }
+
+    .conversas-toolbar .linha {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .conversas-toolbar .linha label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .conversas-toolbar .linha input {
+      min-height: 0;
+    }
+
+    .conversas-toolbar button {
+      width: auto;
+      margin: 0;
+      padding: 6px 10px;
+      min-height: 0;
+    }
+
+    #conversasLista {
+      flex: 1;
+      overflow: auto;
+      max-height: 620px;
+    }
+
+    .conversa-item {
+      display: grid;
+      gap: 3px;
+      width: 100%;
+      margin: 0;
+      padding: 11px 14px;
+      border: 0;
+      border-bottom: 1px solid var(--soft-border);
+      border-radius: 0;
+      background: transparent;
+      color: var(--text);
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .conversas-lista-wrap .conversa-item {
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    .conversa-item:hover,
+    .conversa-item.ativa {
+      background: var(--item-hover-bg);
+    }
+
+    .conversa-item .topo {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      font-weight: 700;
+    }
+
+    .conversa-item .previa {
+      color: var(--muted);
+      font-size: 0.85rem;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .conversa-item .quando {
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .conversa-badge {
+      display: inline-block;
+      min-width: 20px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      background: var(--success);
+      color: #fff;
+      font-size: 0.75rem;
+      text-align: center;
+    }
+
+    .conversa-topo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--soft-border);
+    }
+
+    .conversa-topo .nome {
+      font-weight: 700;
+    }
+
+    .conversa-topo .na-detalhe {
+      font-size: 0.85rem;
+    }
+
+    .conversa-mensagens {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 16px;
+      overflow: auto;
+      max-height: 520px;
+      min-height: 320px;
+    }
+
+    .bolha {
+      max-width: 78%;
+      padding: 8px 12px;
+      border-radius: 12px;
+      background: var(--item-bg);
+      border: 1px solid var(--soft-border);
+      line-height: 1.4;
+      word-wrap: break-word;
+      white-space: normal;
+    }
+
+    .bolha.minha {
+      align-self: flex-end;
+      background: var(--primary);
+      border-color: var(--primary);
+      color: #fff;
+    }
+
+    .bolha .hora {
+      display: block;
+      margin-top: 3px;
+      font-size: 0.7rem;
+      opacity: 0.7;
+      text-align: right;
+    }
+
+    .conversa-form {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      border-top: 1px solid var(--soft-border);
+    }
+
+    .conversa-form textarea {
+      flex: 1;
+      min-height: 46px;
+      max-height: 160px;
+    }
+
+    .conversa-form button {
+      width: auto;
+      margin: 0;
+      align-self: flex-end;
+    }
+
+    .conversa-respostas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 0 12px 10px;
+    }
+
+    .conversa-respostas button {
+      width: auto;
+      margin: 0;
+      padding: 4px 10px;
+      min-height: 0;
+      font-size: 0.8rem;
+    }
+
+    @media (max-width: 820px) {
+      .conversas-layout {
+        grid-template-columns: 1fr;
+      }
+
+      #conversasLista {
+        max-height: 260px;
+      }
+
+      .na-linha {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 
@@ -2620,6 +2946,58 @@
       <p id="resumoListaDivulgacao"></p>
       <input type="text" id="buscaListaDivulgacao" placeholder="Buscar por nome ou telefone">
       <div id="conteudoListaDivulgacao" class="lista-divulgacao"></div>
+    </div>
+  </div>
+
+  <!-- Novo agendamento pelo painel: para jovens que não conseguem agendar pelo site. -->
+  <div id="modalNovoAgendamento" class="modal-admin-overlay" aria-hidden="true">
+    <div class="modal-admin-card modal-novo-agendamento" role="dialog" aria-modal="true" aria-labelledby="tituloNovoAgendamento">
+      <button id="fecharNovoAgendamento" class="modal-admin-fechar" type="button" aria-label="Fechar">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <div class="modal-admin-icone">
+        <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i>
+      </div>
+      <h2 id="tituloNovoAgendamento">Novo agendamento</h2>
+      <p>Marque um horário para um jovem cadastrado que não conseguiu agendar pelo site.</p>
+
+      <div class="na-campos">
+        <label>
+          Jovem
+          <input type="text" id="naBusca" placeholder="Buscar por nome ou telefone" autocomplete="off">
+        </label>
+        <div id="naListaJovens" class="na-lista"></div>
+        <div id="naSelecionado" class="na-selecionado" hidden></div>
+
+        <div class="na-linha">
+          <label>
+            Data
+            <input type="date" id="naData">
+          </label>
+          <label>
+            Horário
+            <select id="naHorario" disabled>
+              <option value="">Escolha a data primeiro</option>
+            </select>
+          </label>
+        </div>
+        <div id="naAjudaHorario" class="campo-ajuda"></div>
+
+        <label>
+          Observação (opcional)
+          <textarea id="naObservacao" maxlength="300" placeholder="Ex.: agendado presencialmente na recepção"></textarea>
+        </label>
+
+        <label class="na-checkbox">
+          <input type="checkbox" id="naAvisar" checked>
+          Enviar confirmação no WhatsApp do jovem
+        </label>
+      </div>
+
+      <div class="modal-admin-acoes">
+        <button id="naCancelar" type="button" class="btn-secundario">Cancelar</button>
+        <button id="naSalvar" type="button" class="btn-salvar">Salvar agendamento</button>
+      </div>
     </div>
   </div>
 
@@ -2698,6 +3076,7 @@
       <button id="tab-dashboard" class="aba-botao ativa" type="button" role="tab" aria-selected="true" aria-controls="aba-dashboard" data-tab="dashboard"><i class="fa-solid fa-chart-line" aria-hidden="true"></i>Dashboard</button>
       <button id="tab-agendamentos" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-agendamentos" data-tab="agendamentos"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i>Agendamentos</button>
       <button id="tab-calendario" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-calendario" data-tab="calendario"><i class="fa-regular fa-calendar-days" aria-hidden="true"></i>Calendário</button>
+      <button id="tab-conversas" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-conversas" data-tab="conversas"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i>Conversas</button>
       <button id="tab-usuarios" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-usuarios" data-tab="usuarios"><i class="fa-solid fa-users" aria-hidden="true"></i>Usuários</button>
       <button id="tab-relatorios" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-relatorios" data-tab="relatorios"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i>Relatórios</button>
       <button id="tab-configuracoes" class="aba-botao" type="button" role="tab" aria-selected="false" aria-controls="aba-configuracoes" data-tab="configuracoes"><i class="fa-solid fa-gear" aria-hidden="true"></i>Configurações</button>
@@ -2774,7 +3153,10 @@
          Concentra filtros e lista completa de agendamentos.
     =============================== -->
     <section id="aba-agendamentos" class="aba-painel" role="tabpanel" aria-labelledby="tab-agendamentos" hidden>
-      <h2 class="titulo-aba"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Agendamentos</h2>
+      <div class="topo-com-acao">
+        <h2 class="titulo-aba"><i class="fa-solid fa-calendar-check" aria-hidden="true"></i> Agendamentos</h2>
+        <button id="btnNovoAgendamento" class="btn-salvar" type="button"><i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Novo agendamento</button>
+      </div>
       <p class="descricao-aba">Consulte, filtre e atualize o status dos agendamentos.</p>
 
       <div class="filtros">
@@ -2851,6 +3233,49 @@
       <div class="painel-usuarios">
         <div id="calendarioDetalhe">
           <div class="vazio">Selecione um dia no calendário para ver os horários.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===============================
+         ABA: CONVERSAS
+         Mensagens individuais pelo WhatsApp do bot. Funciona só com o bot ligado.
+    =============================== -->
+    <section id="aba-conversas" class="aba-painel" role="tabpanel" aria-labelledby="tab-conversas" hidden>
+      <h2 class="titulo-aba"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Conversas</h2>
+      <p class="descricao-aba">Converse com os jovens pelo WhatsApp do LabStudio. As mensagens saem do número do bot e só funcionam com o PC da empresa ligado.</p>
+
+      <div class="conversas-layout">
+        <div class="conversas-lista-wrap">
+          <div class="conversas-toolbar">
+            <input type="text" id="conversasBusca" placeholder="Buscar conversa ou jovem pelo nome/telefone">
+            <div class="linha">
+              <label><input type="checkbox" id="conversasTodos"> Mostrar contatos não cadastrados</label>
+              <button id="btnAtualizarConversas" class="btn-secundario" type="button" title="Atualizar"><i class="fa-solid fa-rotate" aria-hidden="true"></i></button>
+            </div>
+          </div>
+          <div id="conversasLista">
+            <div class="vazio">Abra esta aba para carregar as conversas.</div>
+          </div>
+        </div>
+
+        <div class="conversa-painel">
+          <div id="conversaTopo" class="conversa-topo">
+            <div>
+              <div class="nome">Nenhuma conversa aberta</div>
+              <div class="na-detalhe">Escolha uma conversa ao lado ou clique em "Mensagem" no card de um jovem.</div>
+            </div>
+          </div>
+          <div id="conversaMensagens" class="conversa-mensagens"></div>
+          <div id="conversaRespostas" class="conversa-respostas" hidden>
+            <button type="button" class="btn-secundario" data-resposta="Oi! Aqui é a equipe do LabStudio CRJ FLEXAL. ">Saudação</button>
+            <button type="button" class="btn-secundario" data-resposta="Seu horário está confirmado. Te esperamos! 🎙️">Horário confirmado</button>
+            <button type="button" class="btn-secundario" data-resposta="Você ainda vem hoje? Responda para a gente organizar o estúdio.">Ainda vem?</button>
+          </div>
+          <form id="conversaForm" class="conversa-form" autocomplete="off">
+            <textarea id="conversaTexto" maxlength="2000" placeholder="Escreva uma mensagem... (Enter envia, Shift+Enter quebra linha)" disabled></textarea>
+            <button id="conversaEnviar" type="submit" class="btn-salvar" disabled><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar</button>
+          </form>
         </div>
       </div>
     </section>
@@ -3650,6 +4075,10 @@
       });
 
       localStorage.setItem("labstudio_admin_aba", abaFinal);
+
+      if (abaFinal === "conversas" && adminValidado) {
+        carregarConversas();
+      }
     }
 
     // ===============================
@@ -4217,12 +4646,31 @@
             >
               Reagendar
             </button>
+
+            <button
+              class="btn-secundario"
+              data-calendario-acao="lembrete"
+              data-agendamento-id="${escaparHtml(agendamento.id)}"
+              ${status !== "agendado" ? "disabled" : ""}
+            >
+              Lembrar no WhatsApp
+            </button>
+
+            <button
+              class="btn-secundario"
+              data-calendario-acao="mensagem"
+              data-agendamento-id="${escaparHtml(agendamento.id)}"
+              data-telefone="${escaparHtml(agendamento.telefone || "")}"
+              data-nome="${escaparHtml(agendamento.nome || "")}"
+            >
+              Mensagem
+            </button>
           </div>
         </div>
       `;
     }
 
-    function renderizarHorarioCalendario(horario, agendamentosDia) {
+    function renderizarHorarioCalendario(horario, agendamentosDia, dataIso = calendarioDataSelecionada) {
       const agendamentosHorario = agendamentosDia.filter(agendamento => agendamento.horario === horario);
 
       if (agendamentosHorario.length === 0) {
@@ -4233,6 +4681,11 @@
               <div class="status status-ativo">Livre</div>
             </div>
             <div class="calendario-slot-meta">Nenhum agendamento neste horário.</div>
+            ${
+              dataIso && dataEmFuncionamentoCalendario(dataIso) && !dataBloqueadaCalendario(dataIso) && dataIso >= hojeSaoPaulo()
+                ? `<div class="acoes"><button class="btn-editar" data-calendario-novo="${escaparHtml(dataIso)}" data-horario="${escaparHtml(horario)}">Agendar aqui</button></div>`
+                : ""
+            }
           </div>
         `;
       }
@@ -4277,7 +4730,23 @@
 
           if (acao === "reagendar") {
             reagendarAgendamento(agendamentoId, botao);
+            return;
           }
+
+          if (acao === "lembrete") {
+            enviarLembreteAgendamento({ id: agendamentoId, nome: botao.closest(".calendario-horario")?.querySelector(".nome")?.textContent || "" }, botao);
+            return;
+          }
+
+          if (acao === "mensagem") {
+            abrirConversaPorTelefone(botao.dataset.telefone, botao.dataset.nome);
+          }
+        });
+      });
+
+      calendarioDetalhe.querySelectorAll("[data-calendario-novo]").forEach(botao => {
+        botao.addEventListener("click", () => {
+          abrirNovoAgendamento({ data: botao.dataset.calendarioNovo, horario: botao.dataset.horario });
         });
       });
     }
@@ -4356,7 +4825,7 @@
           ${
             horarios.length === 0
               ? mensagemVazio("Nenhum horário configurado.", "Revise a aba Configurações para habilitar horários.")
-              : horarios.map(horario => renderizarHorarioCalendario(horario, agendamentosDia)).join("")
+              : horarios.map(horario => renderizarHorarioCalendario(horario, agendamentosDia, dataIso)).join("")
           }
 
           ${
@@ -6426,6 +6895,8 @@
           <div class="acoes">
             <button class="btn-editar">Editar usuário</button>
 
+            <button class="btn-editar btn-mensagem-usuario" ${usuario.telefone ? "" : "disabled"}>Mensagem</button>
+
             ${
               estaBloqueado
                 ? `<button class="btn-desbloquear">Desbloquear e zerar faltas</button>`
@@ -6452,6 +6923,11 @@
 
         btnEditar.addEventListener("click", () => {
           editarUsuario(usuario, btnEditar);
+        });
+
+        const btnMensagemUsuario = item.querySelector(".btn-mensagem-usuario");
+        btnMensagemUsuario.addEventListener("click", () => {
+          abrirConversaPorTelefone(usuario.telefone, usuario.nome, usuario.id);
         });
 
         if (estaBloqueado) {
@@ -7430,8 +7906,27 @@
             <button class="btn-editar" ${desabilitarReagendar ? "disabled" : ""}>
               Reagendar
             </button>
+
+            <button class="btn-secundario btn-lembrete" ${status !== "agendado" ? "disabled" : ""}>
+              Lembrar no WhatsApp
+            </button>
+
+            <button class="btn-secundario btn-mensagem">
+              Mensagem
+            </button>
           </div>
         `;
+
+        const btnLembrete = card.querySelector(".btn-lembrete");
+        const btnMensagem = card.querySelector(".btn-mensagem");
+
+        btnLembrete.addEventListener("click", () => {
+          enviarLembreteAgendamento(agendamento, btnLembrete);
+        });
+
+        btnMensagem.addEventListener("click", () => {
+          abrirConversaPorTelefone(agendamento.telefone, agendamento.nome);
+        });
 
         const btnPresenca = card.querySelector(".btn-presenca");
         const btnFalta = card.querySelector(".btn-falta");
@@ -8252,6 +8747,546 @@
       if (event.key === "Enter") {
         cadastrarNovoUsuario();
       }
+    });
+
+    // ===============================
+    // CHAMADAS AO BOT (ROTAS DO PAINEL)
+    // Usa o login do admin; mostra erro claro quando o bot/túnel está fora do ar.
+    // ===============================
+    async function chamarApiPainel(caminho, opcoes = {}) {
+      const cabecalhos = await obterCabecalhosAdminJson();
+      let resposta;
+
+      try {
+        resposta = await fetch(`${API_BASE_URL.replace(/\/$/, "")}${caminho}`, {
+          ...opcoes,
+          headers: { ...cabecalhos, ...(opcoes.headers || {}) }
+        });
+      } catch (erroRede) {
+        throw new Error("Sem conexão com o bot. Confira a internet e se o PC da empresa está ligado.");
+      }
+
+      let dados = null;
+
+      try {
+        dados = await resposta.json();
+      } catch (erroJson) {
+        dados = null;
+      }
+
+      if (!dados) {
+        throw new Error("O bot não respondeu. O PC da empresa pode estar desligado ou o túnel do ngrok caiu.");
+      }
+
+      if (!resposta.ok || dados.ok === false) {
+        throw new Error(dados.mensagem || `Erro ${resposta.status} ao falar com o bot.`);
+      }
+
+      return dados;
+    }
+
+    // ===============================
+    // NOVO AGENDAMENTO PELO PAINEL
+    // ===============================
+    const modalNovoAgendamento = document.getElementById("modalNovoAgendamento");
+    const naBusca = document.getElementById("naBusca");
+    const naListaJovens = document.getElementById("naListaJovens");
+    const naSelecionado = document.getElementById("naSelecionado");
+    const naData = document.getElementById("naData");
+    const naHorario = document.getElementById("naHorario");
+    const naAjudaHorario = document.getElementById("naAjudaHorario");
+    const naObservacao = document.getElementById("naObservacao");
+    const naAvisar = document.getElementById("naAvisar");
+    const naSalvar = document.getElementById("naSalvar");
+    let naJovens = [];
+    let naJovemEscolhido = null;
+    let naHorarioPreferido = "";
+
+    async function carregarJovensParaAgendamento() {
+      const { data, error } = await client
+        .from("usuarios")
+        .select("id, nome, telefone, status, cadastrado, faltas")
+        .order("nome", { ascending: true });
+
+      if (error) throw error;
+
+      naJovens = (data || []).filter(usuario => usuario.cadastrado !== false && String(usuario.status || "ativo").toLowerCase() !== "pendente");
+    }
+
+    function renderizarListaJovensAgendamento() {
+      const termo = normalizarTexto(naBusca.value);
+      const digitos = limparTelefone(naBusca.value);
+
+      if (!termo && !digitos) {
+        naListaJovens.innerHTML = '<div class="form-ajuda">Digite parte do nome ou do telefone para encontrar o jovem.</div>';
+        return;
+      }
+
+      const encontrados = naJovens.filter(usuario =>
+        (termo && normalizarTexto(usuario.nome).includes(termo)) ||
+        (digitos.length >= 3 && limparTelefone(usuario.telefone).includes(digitos))
+      ).slice(0, 8);
+
+      if (!encontrados.length) {
+        naListaJovens.innerHTML = '<div class="form-ajuda">Nenhum jovem cadastrado encontrado. Se for novo, cadastre na aba Usuários primeiro.</div>';
+        return;
+      }
+
+      naListaJovens.innerHTML = "";
+
+      encontrados.forEach(usuario => {
+        const bloqueado = String(usuario.status || "").toLowerCase() === "bloqueado";
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "na-item";
+        item.innerHTML = `
+          <span>${escaparHtml(usuario.nome || "Sem nome")}<br><small>${escaparHtml(usuario.telefone || "sem telefone")}</small></span>
+          <small>${bloqueado ? "🚫 bloqueado" : ""}</small>
+        `;
+        item.addEventListener("click", () => escolherJovemAgendamento(usuario));
+        naListaJovens.appendChild(item);
+      });
+    }
+
+    function escolherJovemAgendamento(usuario) {
+      naJovemEscolhido = usuario;
+      naListaJovens.innerHTML = "";
+      naBusca.value = "";
+      naSelecionado.hidden = false;
+      naSelecionado.innerHTML = `
+        <span><strong>${escaparHtml(usuario.nome || "Sem nome")}</strong><br><span class="na-detalhe">${escaparHtml(usuario.telefone || "")}</span></span>
+        <button type="button" class="btn-secundario" id="naTrocarJovem">Trocar</button>
+      `;
+      document.getElementById("naTrocarJovem").addEventListener("click", () => {
+        naJovemEscolhido = null;
+        naSelecionado.hidden = true;
+        naBusca.focus();
+        renderizarListaJovensAgendamento();
+      });
+    }
+
+    async function carregarHorariosNovoAgendamento() {
+      const dataEscolhida = naData.value;
+      naHorario.innerHTML = '<option value="">Buscando horários...</option>';
+      naHorario.disabled = true;
+      atualizarAjudaCampo(naHorario, naAjudaHorario, "");
+
+      if (!dataEscolhida) {
+        naHorario.innerHTML = '<option value="">Escolha a data primeiro</option>';
+        return;
+      }
+
+      try {
+        const resposta = await fetch(`${API_BASE_URL.replace(/\/$/, "")}/api/horarios?data=${encodeURIComponent(dataEscolhida)}`);
+        const dados = await resposta.json().catch(() => null);
+
+        if (!dados) throw new Error("O bot não respondeu. O PC da empresa pode estar desligado.");
+        if (!resposta.ok || dados.ok === false) throw new Error(dados.mensagem || "Data indisponível.");
+
+        const livres = dados.horariosDisponiveis || dados.horarios || [];
+
+        if (!livres.length) {
+          naHorario.innerHTML = '<option value="">Nenhum horário livre</option>';
+          atualizarAjudaCampo(naHorario, naAjudaHorario, "Todos os horários deste dia já estão ocupados.", "erro");
+          return;
+        }
+
+        naHorario.innerHTML = livres.map(hora => `<option value="${escaparHtml(hora)}">${escaparHtml(hora)}</option>`).join("");
+        if (naHorarioPreferido && livres.includes(naHorarioPreferido)) naHorario.value = naHorarioPreferido;
+        naHorario.disabled = false;
+      } catch (err) {
+        naHorario.innerHTML = '<option value="">Indisponível</option>';
+        atualizarAjudaCampo(naHorario, naAjudaHorario, err.message, "erro");
+      }
+    }
+
+    async function abrirNovoAgendamento({ data = "", horario = "", usuario = null } = {}) {
+      naJovemEscolhido = null;
+      naHorarioPreferido = horario || "";
+      naBusca.value = "";
+      naObservacao.value = "";
+      naAvisar.checked = true;
+      naSelecionado.hidden = true;
+      naData.min = hojeSaoPaulo();
+      naData.value = data || "";
+      naListaJovens.innerHTML = '<div class="form-ajuda">Carregando jovens...</div>';
+
+      modalNovoAgendamento.classList.add("ativo");
+      modalNovoAgendamento.setAttribute("aria-hidden", "false");
+      naBusca.focus();
+
+      carregarHorariosNovoAgendamento();
+
+      try {
+        await carregarJovensParaAgendamento();
+        if (usuario) {
+          escolherJovemAgendamento(usuario);
+        } else {
+          renderizarListaJovensAgendamento();
+        }
+      } catch (err) {
+        naListaJovens.innerHTML = `<div class="form-ajuda">Não consegui carregar os jovens: ${escaparHtml(err.message)}</div>`;
+      }
+    }
+
+    function fecharNovoAgendamento() {
+      modalNovoAgendamento.classList.remove("ativo");
+      modalNovoAgendamento.setAttribute("aria-hidden", "true");
+    }
+
+    async function salvarNovoAgendamento() {
+      if (!naJovemEscolhido) {
+        mostrarToast("Escolha o jovem na lista.", "aviso");
+        naBusca.focus();
+        return;
+      }
+
+      if (!naData.value || !naHorario.value) {
+        mostrarToast("Escolha a data e um horário livre.", "aviso");
+        return;
+      }
+
+      if (String(naJovemEscolhido.status || "").toLowerCase() === "bloqueado") {
+        mostrarToast("Este jovem está bloqueado. Desbloqueie na aba Usuários antes de agendar.", "aviso");
+        return;
+      }
+
+      definirLoadingBotao(naSalvar, true, "Salvando...", "Salvar agendamento");
+
+      try {
+        const dados = await chamarApiPainel("/api/admin/agendamentos", {
+          method: "POST",
+          body: JSON.stringify({
+            usuarioId: naJovemEscolhido.id,
+            data: naData.value,
+            horario: naHorario.value,
+            observacao: naObservacao.value.trim(),
+            avisarJovem: naAvisar.checked
+          })
+        });
+
+        await registrarLogAdmin(
+          "criar_agendamento_painel",
+          "agendamentos",
+          dados.agendamento && dados.agendamento.id,
+          `Agendamento criado pelo painel para ${naJovemEscolhido.nome || "jovem"} em ${formatarData(naData.value)} às ${naHorario.value}.`
+        );
+
+        fecharNovoAgendamento();
+
+        if (naAvisar.checked && !dados.whatsappEnviado) {
+          mostrarToast(`Agendamento salvo, mas a confirmação no WhatsApp não saiu: ${dados.avisoWhatsapp || "erro desconhecido"}.`, "aviso");
+        } else {
+          mostrarToast(naAvisar.checked ? "Agendamento salvo e jovem avisado no WhatsApp!" : "Agendamento salvo!", "sucesso");
+        }
+
+        recarregarPainel();
+      } catch (err) {
+        mostrarToast(err.message, "erro");
+      } finally {
+        definirLoadingBotao(naSalvar, false, "Salvando...", "Salvar agendamento");
+      }
+    }
+
+    // ===============================
+    // LEMBRETE MANUAL
+    // ===============================
+    async function enviarLembreteAgendamento(agendamento, botao = null) {
+      const confirmar = await confirmarAcaoAdmin(
+        "Enviar lembrete",
+        `Mandar agora no WhatsApp o lembrete do horário${agendamento.nome ? ` de ${agendamento.nome}` : ""}?`,
+        { tipo: "info", textoConfirmar: "Enviar lembrete" }
+      );
+
+      if (!confirmar) return;
+
+      const textoBotao = botao ? botao.textContent.trim() : "Lembrar no WhatsApp";
+      definirLoadingBotao(botao, true, "Enviando...", textoBotao);
+
+      try {
+        await chamarApiPainel(`/api/admin/agendamentos/${encodeURIComponent(agendamento.id)}/lembrete`, { method: "POST", body: "{}" });
+        mostrarToast("Lembrete enviado no WhatsApp!", "sucesso");
+      } catch (err) {
+        mostrarToast(err.message, "erro");
+      } finally {
+        definirLoadingBotao(botao, false, "Enviando...", textoBotao);
+      }
+    }
+
+    // ===============================
+    // CONVERSAS (WHATSAPP INDIVIDUAL)
+    // ===============================
+    const conversasLista = document.getElementById("conversasLista");
+    const conversasBusca = document.getElementById("conversasBusca");
+    const conversasTodos = document.getElementById("conversasTodos");
+    const btnAtualizarConversas = document.getElementById("btnAtualizarConversas");
+    const conversaTopo = document.getElementById("conversaTopo");
+    const conversaMensagens = document.getElementById("conversaMensagens");
+    const conversaRespostas = document.getElementById("conversaRespostas");
+    const conversaForm = document.getElementById("conversaForm");
+    const conversaTexto = document.getElementById("conversaTexto");
+    const conversaEnviar = document.getElementById("conversaEnviar");
+    let conversasCarregadas = [];
+    let conversaAtual = null;
+    let carregandoConversas = false;
+    let ultimaAssinaturaMensagens = "";
+    let ultimaAtualizacaoListaConversas = 0;
+
+    function formatarHorarioMensagem(segundos) {
+      if (!segundos) return "";
+      const data = new Date(segundos * 1000);
+      const hoje = new Date().toDateString() === data.toDateString();
+      return hoje
+        ? data.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+        : data.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function textoMensagemHtml(texto) {
+      return escaparHtml(texto || "").replace(/\n/g, "<br>");
+    }
+
+    async function carregarConversas() {
+      if (carregandoConversas) return;
+      carregandoConversas = true;
+
+      if (!conversasCarregadas.length) {
+        conversasLista.innerHTML = '<div class="vazio">Buscando conversas no WhatsApp...</div>';
+      }
+
+      try {
+        const dados = await chamarApiPainel(`/api/admin/conversas${conversasTodos.checked ? "?todos=1" : ""}`);
+        conversasCarregadas = dados.conversas || [];
+        ultimaAtualizacaoListaConversas = Date.now();
+        renderizarListaConversas();
+      } catch (err) {
+        conversasLista.innerHTML = mensagemVazio("Não consegui carregar as conversas.", err.message);
+      } finally {
+        carregandoConversas = false;
+      }
+    }
+
+    function renderizarListaConversas() {
+      const termo = normalizarTexto(conversasBusca.value);
+      const digitos = limparTelefone(conversasBusca.value);
+      const filtradas = conversasCarregadas.filter(conversa =>
+        (!termo && !digitos) ||
+        (termo && normalizarTexto(conversa.nome).includes(termo)) ||
+        (digitos.length >= 3 && limparTelefone(conversa.telefone).includes(digitos))
+      );
+
+      conversasLista.innerHTML = "";
+
+      if (!filtradas.length) {
+        const termoBusca = conversasBusca.value.trim();
+        conversasLista.innerHTML = mensagemVazio(
+          "Nenhuma conversa recente encontrada.",
+          termoBusca
+            ? "Para falar com um jovem sem conversa recente, use o botão Mensagem no card dele (aba Usuários)."
+            : "As conversas aparecem aqui quando os jovens mandam mensagem ou recebem uma do bot."
+        );
+        return;
+      }
+
+      filtradas.forEach(conversa => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = `conversa-item${conversaAtual && conversaAtual.chatId === conversa.chatId ? " ativa" : ""}`;
+        item.innerHTML = `
+          <span class="topo">
+            <span>${escaparHtml(conversa.nome)}</span>
+            <span class="quando">${escaparHtml(formatarHorarioMensagem(conversa.horario))}</span>
+          </span>
+          <span class="topo">
+            <span class="previa">${escaparHtml(conversa.ultimaMensagem || "")}</span>
+            ${conversa.naoLidas ? `<span class="conversa-badge">${Number(conversa.naoLidas)}</span>` : ""}
+          </span>
+        `;
+        item.addEventListener("click", () => abrirConversa(conversa));
+        conversasLista.appendChild(item);
+      });
+    }
+
+    function renderizarTopoConversa() {
+      if (!conversaAtual) return;
+
+      conversaTopo.innerHTML = `
+        <div>
+          <div class="nome">${escaparHtml(conversaAtual.nome || "Contato")}</div>
+          <div class="na-detalhe">${escaparHtml(conversaAtual.telefone ? `+${limparTelefone(conversaAtual.telefone)}` : "")}${conversaAtual.usuarioId ? "" : " · não cadastrado"}</div>
+        </div>
+        <button type="button" class="btn-secundario" id="btnRecarregarConversa" title="Atualizar mensagens"><i class="fa-solid fa-rotate" aria-hidden="true"></i></button>
+      `;
+      document.getElementById("btnRecarregarConversa").addEventListener("click", () => carregarMensagensConversa(true));
+    }
+
+    function renderizarMensagensConversa(mensagens) {
+      const assinatura = mensagens.map(m => m.id).join("|");
+      if (assinatura === ultimaAssinaturaMensagens) return;
+      ultimaAssinaturaMensagens = assinatura;
+
+      const estavaNoFim = conversaMensagens.scrollHeight - conversaMensagens.scrollTop - conversaMensagens.clientHeight < 80;
+
+      if (!mensagens.length) {
+        conversaMensagens.innerHTML = '<div class="vazio">Ainda não há mensagens com este número. Escreva a primeira abaixo.</div>';
+        return;
+      }
+
+      conversaMensagens.innerHTML = mensagens.map(mensagem => `
+        <div class="bolha${mensagem.deMim ? " minha" : ""}">
+          ${textoMensagemHtml(mensagem.texto)}
+          <span class="hora">${escaparHtml(formatarHorarioMensagem(mensagem.horario))}</span>
+        </div>
+      `).join("");
+
+      if (estavaNoFim || conversaMensagens.dataset.primeiraCarga !== "nao") {
+        conversaMensagens.scrollTop = conversaMensagens.scrollHeight;
+        conversaMensagens.dataset.primeiraCarga = "nao";
+      }
+    }
+
+    async function carregarMensagensConversa(mostrarErro = false) {
+      if (!conversaAtual) return;
+      const alvo = conversaAtual;
+      const parametros = new URLSearchParams({ marcarLida: "1" });
+
+      if (alvo.chatId) {
+        parametros.set("chatId", alvo.chatId);
+      } else {
+        parametros.set("telefone", alvo.telefone || "");
+      }
+
+      try {
+        const dados = await chamarApiPainel(`/api/admin/conversas/mensagens?${parametros.toString()}`);
+        if (conversaAtual !== alvo) return;
+
+        alvo.chatId = dados.chatId || alvo.chatId;
+        renderizarMensagensConversa(dados.mensagens || []);
+      } catch (err) {
+        if (conversaAtual !== alvo) return;
+        if (mostrarErro || !conversaMensagens.children.length) {
+          conversaMensagens.innerHTML = mensagemVazio("Não consegui carregar as mensagens.", err.message);
+          ultimaAssinaturaMensagens = "";
+        }
+      }
+    }
+
+    function abrirConversa(conversa) {
+      conversaAtual = { ...conversa };
+      ultimaAssinaturaMensagens = "";
+      conversaMensagens.dataset.primeiraCarga = "sim";
+      conversaMensagens.innerHTML = '<div class="vazio">Carregando mensagens...</div>';
+      conversaTexto.disabled = false;
+      conversaEnviar.disabled = false;
+      conversaRespostas.hidden = false;
+      // Abrir marca como lida: zera o contador na lista.
+      const naLista = conversasCarregadas.find(item => item.chatId === conversa.chatId);
+      if (naLista) naLista.naoLidas = 0;
+
+      renderizarTopoConversa();
+      renderizarListaConversas();
+      carregarMensagensConversa(true);
+
+      conversaTexto.focus();
+    }
+
+    function abrirConversaPorTelefone(telefone, nome = "", usuarioId = null) {
+      if (!limparTelefone(telefone)) {
+        mostrarToast("Este registro não tem telefone.", "aviso");
+        return;
+      }
+
+      const final = limparTelefone(telefone).slice(-8);
+      const existente = conversasCarregadas.find(conversa => limparTelefone(conversa.telefone).slice(-8) === final);
+
+      mostrarAba("conversas");
+      abrirConversa(existente || { chatId: "", telefone, nome: nome || telefone, usuarioId });
+    }
+
+    async function enviarMensagemConversa() {
+      const texto = conversaTexto.value.trim();
+      if (!conversaAtual || !texto) return;
+
+      definirLoadingBotao(conversaEnviar, true, "Enviando...", "Enviar");
+
+      try {
+        const dados = await chamarApiPainel("/api/admin/conversas/enviar", {
+          method: "POST",
+          body: JSON.stringify({
+            chatId: conversaAtual.chatId || undefined,
+            telefone: conversaAtual.chatId ? undefined : conversaAtual.telefone,
+            texto
+          })
+        });
+
+        conversaAtual.chatId = dados.chatId || conversaAtual.chatId;
+        conversaTexto.value = "";
+
+        registrarLogAdmin(
+          "enviar_mensagem_whatsapp",
+          "usuarios",
+          conversaAtual.usuarioId || null,
+          `Mensagem enviada pelo painel para ${conversaAtual.nome || "contato"}.`
+        );
+
+        await carregarMensagensConversa();
+        conversaMensagens.scrollTop = conversaMensagens.scrollHeight;
+      } catch (err) {
+        mostrarToast(err.message, "erro");
+      } finally {
+        definirLoadingBotao(conversaEnviar, false, "Enviando...", "Enviar");
+        conversaEnviar.innerHTML = '<i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Enviar';
+        conversaTexto.focus();
+      }
+    }
+
+    // Atualiza a conversa aberta a cada 8s e a lista a cada 30s, só com a aba visível.
+    setInterval(() => {
+      const abaConversas = document.getElementById("aba-conversas");
+      if (!adminValidado || !abaConversas || abaConversas.hidden || document.hidden) return;
+
+      if (conversaAtual) carregarMensagensConversa();
+      if (Date.now() - ultimaAtualizacaoListaConversas > 30000) carregarConversas();
+    }, 8000);
+
+    document.getElementById("btnNovoAgendamento").addEventListener("click", () => abrirNovoAgendamento());
+    document.getElementById("fecharNovoAgendamento").addEventListener("click", fecharNovoAgendamento);
+    document.getElementById("naCancelar").addEventListener("click", fecharNovoAgendamento);
+    naSalvar.addEventListener("click", salvarNovoAgendamento);
+    naBusca.addEventListener("input", renderizarListaJovensAgendamento);
+    naData.addEventListener("change", () => {
+      naHorarioPreferido = "";
+      carregarHorariosNovoAgendamento();
+    });
+    modalNovoAgendamento.addEventListener("click", (event) => {
+      if (event.target === modalNovoAgendamento) fecharNovoAgendamento();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && modalNovoAgendamento.classList.contains("ativo") && !modalAdminOverlay.classList.contains("ativo")) {
+        fecharNovoAgendamento();
+      }
+    });
+
+    btnAtualizarConversas.addEventListener("click", carregarConversas);
+    conversasTodos.addEventListener("change", () => {
+      conversasCarregadas = [];
+      carregarConversas();
+    });
+    conversasBusca.addEventListener("input", renderizarListaConversas);
+    conversaForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      enviarMensagemConversa();
+    });
+    conversaTexto.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        enviarMensagemConversa();
+      }
+    });
+    conversaRespostas.querySelectorAll("[data-resposta]").forEach(botao => {
+      botao.addEventListener("click", () => {
+        conversaTexto.value = `${conversaTexto.value}${conversaTexto.value ? " " : ""}${botao.dataset.resposta}`.trimStart();
+        conversaTexto.focus();
+      });
     });
 
     // ===============================
