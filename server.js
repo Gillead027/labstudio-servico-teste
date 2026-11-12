@@ -3157,11 +3157,16 @@ setInterval(executarLembretesAgendamento, 60 * 1000).unref();
 
 // Lembrete manual pelo botão do card do agendamento.
 app.post("/api/admin/agendamentos/:id/lembrete", limitarEnvioMensagensPainel, exigirAdminSupabase, async (req, res) => {
-  const agendamentoId = Number(req.params.id);
+  // O id pode ser número (bigint) ou UUID, conforme a tabela no Supabase.
+  const idBruto = String(req.params.id || "").trim();
+  const ehNumero = /^\d{1,18}$/.test(idBruto) && Number(idBruto) > 0;
+  const ehUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idBruto);
 
-  if (!Number.isInteger(agendamentoId) || agendamentoId <= 0) {
+  if (!ehNumero && !ehUuid) {
     return responderPayloadInvalido(res, "Agendamento inválido.");
   }
+
+  const agendamentoId = ehNumero ? Number(idBruto) : idBruto;
 
   if (!botPronto) {
     return responderErroApi(res, 503, "O WhatsApp do bot está desconectado no momento.");
