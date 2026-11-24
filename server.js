@@ -489,6 +489,8 @@ const client = new Client({
     clientId: WHATSAPP_CLIENT_ID,
     dataPath: WWEBJS_AUTH_PATH
   }),
+  // O padrão da biblioteca é 30s para o WhatsApp Web carregar; em máquina carregada não dá tempo.
+  authTimeoutMs: 120000,
   puppeteer: {
     ...(CHROME_EXECUTABLE_PATH ? { executablePath: CHROME_EXECUTABLE_PATH } : {}),
     headless: true,
@@ -1781,16 +1783,15 @@ async function enviarNotificacaoAprovacao({ nome, telefone }) {
     throw erro;
   }
 
-  const mensagem = `Olá, ${nome || "jovem"}!
+  const nomeCurto = primeiroNomeConversa(nome);
 
-Seu cadastro no LabStudio CRJ FLEXAL foi aprovado pela equipe do CRJ.
-
-Agora você já pode solicitar seu agendamento pelo link abaixo:
-${PUBLIC_SITE_URL}/
-
-Aguardamos você para realizar sua gravação! 🔥`;
-
-  await client.sendMessage(destino, mensagem);
+  await enviarSequencia(destino, [
+    nomeCurto ? `Oi, ${nomeCurto}! Tudo bem? 👋` : "Oi! Tudo bem? 👋",
+    "Boa notícia: seu cadastro no LabStudio CRJ FLEXAL foi aprovado pela equipe do CRJ! 🎉",
+    "Agora você já pode agendar seu horário no estúdio por aqui 👇",
+    `${PUBLIC_SITE_URL}/`,
+    "Te esperamos pra gravar! 🔥"
+  ]);
   return mascararNumeroWhatsApp(destino);
 }
 
@@ -2173,15 +2174,14 @@ app.post("/api/cadastro-online", limitarRequisicoes({
           throw new Error("telefone_invalido");
         }
 
-        const mensagemConfirmacao = `Olá, ${nome}!
+        const nomeCurto = primeiroNomeConversa(nome);
 
-Recebemos seu cadastro online no LabStudio CRJ FLEXAL.
-
-Agora a equipe do CRJ vai analisar seus dados. Quando o cadastro for aprovado, você receberá uma nova mensagem com o link para solicitar o agendamento.
-
-Obrigado pelo cadastro!`;
-
-        await client.sendMessage(destinoConfirmacao, mensagemConfirmacao);
+        await enviarSequencia(destinoConfirmacao, [
+          nomeCurto ? `Oi, ${nomeCurto}! Tudo bem? 👋` : "Oi! Tudo bem? 👋",
+          "Recebemos seu cadastro no LabStudio CRJ FLEXAL ✅",
+          "Agora a equipe do CRJ vai analisar seus dados. Quando for aprovado, você recebe uma mensagem aqui com o link pra agendar 🎙️",
+          "Obrigado pelo cadastro! 💛"
+        ]);
         whatsappConfirmacaoEnviado = true;
 
         console.log(`✅ Confirmação de cadastro enviada para ${mascararNumeroWhatsApp(destinoConfirmacao)}.`);
@@ -2209,20 +2209,29 @@ Obrigado pelo cadastro!`;
 const TEMPO_GATILHO_LABSTUDIO_MS = 30 * 60 * 1000;
 const gatilhosLabStudioPorContato = new Map();
 
-function mensagemContemGatilhoLabStudio(mensagemNormalizada) {
-  // Gatilhos operacionais restritos ao LabStudio, com ou sem acento.
-  const gatilhos = [
-    "agendar",
-    "agendamento",
-    "labstudio",
-    "estudio",
-    "studio",
-    "gravar",
-    "gravacao",
-    "musica"
-  ];
+// O bot SÓ responde quando a mensagem tem uma destas palavras (inteiras, sem acento):
+// studio, estudio (estúdio), labstudio, lab studio, e os plurais.
+// Palavras genéricas como "agendar", "gravar" e "música" foram removidas de propósito:
+// apareciam em conversas que não tinham nada a ver com o estúdio e o bot respondia sem ser chamado.
+// Comparação por palavra inteira: "estudiosa" ou "estudioso" NÃO disparam.
+const REGEX_GATILHO_LABSTUDIO = /\b(lab\s?)?e?studios?\b/;
 
-  return gatilhos.some((gatilho) => mensagemNormalizada.includes(gatilho));
+function mensagemContemGatilhoLabStudio(mensagemNormalizada) {
+  return REGEX_GATILHO_LABSTUDIO.test(mensagemNormalizada);
+}
+
+// Anti-flood: depois de responder um contato, o bot não responde de novo
+// pelo mesmo tempo da janela do gatilho, mesmo que a pessoa repita "estúdio".
+const ultimaRespostaPorContato = new Map();
+
+function respondeuContatoRecentemente(contato) {
+  const respondidoEm = ultimaRespostaPorContato.get(contato);
+  if (!respondidoEm) return false;
+  if (Date.now() - respondidoEm > TEMPO_GATILHO_LABSTUDIO_MS) {
+    ultimaRespostaPorContato.delete(contato);
+    return false;
+  }
+  return true;
 }
 
 function registrarGatilhoLabStudio(contato) {
@@ -2248,6 +2257,97 @@ function conversaTemGatilhoRecente(contato) {
 
   return gatilhoAindaValido;
 }
+
+// ===============================
+// CONVERSA EM MENSAGENS CURTAS
+// Em vez de um blocão de texto, o bot manda várias mensagens curtas,
+// mostrando "digitando..." entre elas, como uma pessoa faria.
+// ===============================
+function esperarMs(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Tempo de "digitando" proporcional ao tamanho da mensagem (entre 0,9s e 3s).
+function tempoDigitandoMs(texto) {
+  return Math.min(3000, 900 + String(texto || "").length * 18);
+}
+
+// Chats que estão recebendo uma sequência agora; evita duas sequências misturadas
+// quando a pessoa manda várias mensagens seguidas.
+const conversasEmAndamento = new Set();
+
+async function enviarConversa(chatId, mensagens) {
+  if (conversasEmAndamento.has(chatId)) return;
+  conversasEmAndamento.add(chatId);
+  ultimaRespostaPorContato.set(chatId, Date.now());
+  try {
+    await enviarSequencia(chatId, mensagens);
+  } finally {
+    conversasEmAndamento.delete(chatId);
+  }
+}
+
+// progresso.enviadas conta quantas mensagens já saíram (usado pela divulgação
+// para não reenviar a sequência inteira se cair no meio).
+async function enviarSequencia(chatId, mensagens, progresso = { enviadas: 0 }) {
+  let chat = null;
+  try {
+    chat = await client.getChatById(chatId);
+  } catch (err) {
+    // Sem o chat ainda dá para enviar; só não mostra o "digitando".
+  }
+
+  for (const texto of mensagens.filter(Boolean)) {
+    try {
+      if (chat) await chat.sendStateTyping();
+    } catch (err) {
+      // "digitando" é só visual; se falhar, segue enviando.
+    }
+    await esperarMs(tempoDigitandoMs(texto));
+    await client.sendMessage(chatId, texto);
+    progresso.enviadas += 1;
+  }
+
+  try {
+    if (chat) await chat.clearState();
+  } catch (err) {
+    // ignora
+  }
+}
+
+// Primeiro nome com a primeira letra maiúscula. Ignora nomes de perfil que
+// não parecem nome de pessoa (só emoji, números, "." etc.).
+function primeiroNomeConversa(nomeCompleto) {
+  // Pega a primeira palavra que tenha pelo menos 2 letras (pula emoji no começo, ex.: "🎤 Ana").
+  const primeiro = String(nomeCompleto || "")
+    .trim()
+    .split(/\s+/)
+    .map((parte) => parte.replace(/[^\p{L}'-]/gu, ""))
+    .find((parte) => parte.length >= 2);
+
+  if (!primeiro) return "";
+
+  return primeiro.charAt(0).toLocaleUpperCase("pt-BR") + primeiro.slice(1).toLocaleLowerCase("pt-BR");
+}
+
+// Nome que a pessoa colocou no perfil do WhatsApp (usado quando ainda não tem cadastro).
+async function nomeDoPerfilWhatsApp(msg) {
+  try {
+    const nomeNotificacao = msg?._data?.notifyName;
+    if (nomeNotificacao) return primeiroNomeConversa(nomeNotificacao);
+
+    const contato = await msg.getContact();
+    return primeiroNomeConversa(contato?.pushname || "");
+  } catch (err) {
+    return "";
+  }
+}
+
+function saudacao(nome) {
+  return nome ? `Oi, ${nome}! Tudo bem? 👋` : "Oi! Tudo bem? 👋";
+}
+
+const APRESENTACAO_BOT = "Aqui é o atendimento automático do LabStudio CRJ FLEXAL 🎙️";
 
 async function processarMensagemWhatsApp(msg) {
   try {
@@ -2290,6 +2390,12 @@ async function processarMensagemWhatsApp(msg) {
     // Se não encontrou gatilho, não faz nada.
     if (!encontrouGatilho) return;
 
+    // Já respondeu este contato há pouco: não repete a sequência (evita flood).
+    if (respondeuContatoRecentemente(msg.from)) {
+      console.log(`🔇 Gatilho repetido ignorado (já respondido há pouco): ${mascararNumeroWhatsApp(msg.from)}`);
+      return;
+    }
+
     registrarGatilhoLabStudio(msg.from);
 
     // O número é mascarado para manter diagnóstico sem expor telefone completo.
@@ -2320,17 +2426,15 @@ async function processarMensagemWhatsApp(msg) {
     // Se não encontrar o usuário, envia o link para cadastro online.
     if (!usuario) {
       if (conversaTemGatilhoRecente(msg.from)) {
-        await client.sendMessage(
-          msg.from,
-          `Olá! Para agendar o LabStudio CRJ FLEXAL, é necessário estar cadastrado no CRJ.
-
-Identificamos que este número ainda não consta em nosso cadastro.
-
-Você pode realizar seu cadastro online pelo link abaixo:
-${PUBLIC_SITE_URL}/cadastro.html
-
-Após o envio, aguarde a análise da equipe do CRJ.`
-        );
+        const nomePerfil = await nomeDoPerfilWhatsApp(msg);
+        await enviarConversa(msg.from, [
+          saudacao(nomePerfil),
+          APRESENTACAO_BOT,
+          "Vi que você quer usar o estúdio, mas não encontrei nenhum cadastro no CRJ com este número 🤔",
+          "Pra conseguir agendar, primeiro você precisa se cadastrar. É rapidinho, é só preencher aqui 👇",
+          `${PUBLIC_SITE_URL}/cadastro.html`,
+          "Depois que você enviar, a equipe do CRJ analisa e te avisa por aqui quando for aprovado ✅"
+        ]);
       }
 
       console.log(`❌ Usuário não cadastrado. Variantes testadas: ${variantesMensagem.length}.`);
@@ -2339,6 +2443,7 @@ Após o envio, aguarde a análise da equipe do CRJ.`
     }
 
     const config = await obterConfigLabStudioSegura();
+    const nomeUsuario = primeiroNomeConversa(usuario.nome) || (await nomeDoPerfilWhatsApp(msg));
 
     // Normaliza status e faltas para evitar erro de comparação.
     const statusUsuario = String(usuario.status || "").toLowerCase();
@@ -2347,14 +2452,12 @@ Após o envio, aguarde a análise da equipe do CRJ.`
     // Se estiver bloqueado ou tiver faltas no limite configurado.
     if (statusUsuario === "bloqueado" || faltasUsuario >= config.limite_faltas_bloqueio) {
       if (conversaTemGatilhoRecente(msg.from)) {
-        await client.sendMessage(
-          msg.from,
-          `Olá, ${usuario.nome || "jovem"}.
-
-No momento, seu acesso ao agendamento do LabStudio está bloqueado por faltas anteriores.
-
-📍 Procure presencialmente a equipe do CRJ para regularizar sua situação.`
-        );
+        await enviarConversa(msg.from, [
+          saudacao(nomeUsuario),
+          APRESENTACAO_BOT,
+          "No momento seu acesso ao agendamento do estúdio está bloqueado por causa de faltas anteriores 😕",
+          "📍 Pra resolver, é só procurar a equipe do CRJ pessoalmente que eles te ajudam a regularizar."
+        ]);
       }
 
       console.log(`🚫 Usuário bloqueado: ${mascararNumeroWhatsApp(usuario.telefone)}`);
@@ -2365,10 +2468,11 @@ No momento, seu acesso ao agendamento do LabStudio está bloqueado por faltas an
     // Se o cadastro online existe, mas ainda não foi aprovado pela equipe.
     if (statusUsuario === "pendente" || usuario.cadastrado === false) {
       if (conversaTemGatilhoRecente(msg.from)) {
-        await client.sendMessage(
-          msg.from,
-          "Seu cadastro online foi recebido e está aguardando análise da equipe do CRJ. Assim que for aprovado, você poderá solicitar o agendamento pelo WhatsApp."
-        );
+        await enviarConversa(msg.from, [
+          saudacao(nomeUsuario),
+          "Já recebemos seu cadastro! Ele só tá esperando a análise da equipe do CRJ ⏳",
+          "Assim que for aprovado, você recebe uma mensagem aqui e já pode agendar seu horário no estúdio 🎙️"
+        ]);
       }
 
       console.log(`⏳ Usuário pendente de aprovação: ${mascararNumeroWhatsApp(usuario.telefone)}`);
@@ -2382,14 +2486,12 @@ No momento, seu acesso ao agendamento do LabStudio está bloqueado por faltas an
     // ===============================
     if (!usuario.data_nascimento) {
       if (conversaTemGatilhoRecente(msg.from)) {
-        await client.sendMessage(
-          msg.from,
-          `Olá, ${usuario.nome || "jovem"}.
-
-Seu cadastro precisa ser atualizado com a data de nascimento antes de acessar o agendamento do LabStudio.
-
-📍 Procure presencialmente a equipe do CRJ para atualizar seu cadastro.`
-        );
+        await enviarConversa(msg.from, [
+          saudacao(nomeUsuario),
+          APRESENTACAO_BOT,
+          "Antes de agendar, seu cadastro precisa ser atualizado com a sua data de nascimento 📅",
+          "📍 É só procurar a equipe do CRJ pessoalmente que eles atualizam pra você."
+        ]);
       }
 
       console.log(`⚠️ Usuário sem data de nascimento: ${mascararNumeroWhatsApp(usuario.telefone)}`);
@@ -2399,14 +2501,12 @@ Seu cadastro precisa ser atualizado com a data de nascimento antes de acessar o 
 
     if (!idadePermitida(usuario.data_nascimento, config)) {
       if (conversaTemGatilhoRecente(msg.from)) {
-        await client.sendMessage(
-          msg.from,
-          `Olá, ${usuario.nome || "jovem"}.
-
-${mensagemFaixaEtaria(config)}
-
-📍 Procure presencialmente a equipe do CRJ para mais orientações.`
-        );
+        await enviarConversa(msg.from, [
+          saudacao(nomeUsuario),
+          APRESENTACAO_BOT,
+          `${mensagemFaixaEtaria(config)} Por isso não consigo liberar o agendamento pra você por aqui 😕`,
+          "📍 Se tiver alguma dúvida, procure a equipe do CRJ pessoalmente que eles te orientam."
+        ]);
       }
 
       console.log(`🚫 Usuário fora da faixa etária: ${mascararNumeroWhatsApp(usuario.telefone)}`);
@@ -2417,22 +2517,15 @@ ${mensagemFaixaEtaria(config)}
     // ===============================
     // MENSAGEM PADRÃO DO LABSTUDIO
     // ===============================
-    const resposta = `Olá! Você está em contato com o atendimento automático do LabStudio CRJ FLEXAL. 🎙️
-
-Identificamos que você tem interesse em utilizar nossos serviços de estúdio. Para garantir a organização e o acesso de todos, nossos agendamentos são realizados exclusivamente através do nosso portal oficial.
-
-📍 Para agendar sua sessão, acesse o link abaixo:
-${PUBLIC_SITE_URL}/
-
-Orientações importantes:
-1. Selecione a data e o horário desejados.
-2. Certifique-se de comparecer no horário agendado para evitar atrasos nos demais atendimentos.
-3. Caso precise cancelar, entre em contato com antecedência.
-
-Aguardamos você para realizar sua gravação! 🔥`;
-
     if (conversaTemGatilhoRecente(msg.from)) {
-      await client.sendMessage(msg.from, resposta);
+      await enviarConversa(msg.from, [
+        saudacao(nomeUsuario),
+        APRESENTACAO_BOT,
+        "Bora gravar? Os agendamentos são feitos pelo nosso site, é só escolher o dia e o horário 👇",
+        `${PUBLIC_SITE_URL}/`,
+        "Só lembrando:\n• chega no horário certinho, pra não atrasar quem vem depois\n• se não puder ir, avisa a gente com antecedência",
+        "Te esperamos no estúdio! 🔥"
+      ]);
     }
 
     console.log(
@@ -2605,27 +2698,38 @@ function primeiroNome(nome) {
   return primeiro || "jovem";
 }
 
-function montarMensagemDivulgacao(nome) {
+// A divulgação sai em várias mensagens curtas (com "digitando..." entre elas), não num bloco só.
+// Retorna a lista de mensagens, na ordem de envio.
+function montarMensagensDivulgacao(nome) {
+  const nomeCurto = primeiroNomeConversa(nome);
   const servicos = DIVULGACAO_SERVICOS.join("\n");
 
   // Duas aberturas alternadas para as mensagens não ficarem todas idênticas.
   const aberturas = [
-    `Olá, ${primeiroNome(nome)}! Tudo certo? 🎶\n\nAqui é o LabStudio do CRJ Flexal. Passando para lembrar que o estúdio continua de portas abertas para você!`,
-    `E aí, ${primeiroNome(nome)}! 🎶\n\nO LabStudio do CRJ Flexal está com horários disponíveis e a gente quer te ver produzindo de novo!`
+    [
+      nomeCurto ? `Oi, ${nomeCurto}! Tudo certo? 🎶` : "Oi! Tudo certo? 🎶",
+      "Aqui é o LabStudio do CRJ Flexal, passando pra lembrar que o estúdio continua de portas abertas pra você!"
+    ],
+    [
+      nomeCurto ? `E aí, ${nomeCurto}! 🎶` : "E aí! 🎶",
+      "O LabStudio do CRJ Flexal tá com horários disponíveis e a gente quer te ver produzindo de novo!"
+    ]
   ];
   const abertura = aberturas[Math.floor(Math.random() * aberturas.length)];
 
-  return `${abertura}
+  return [
+    ...abertura,
+    `Aqui você pode contar com:\n${servicos}`,
+    "E é tudo 100% gratuito: o LabStudio faz parte do CRJ, um programa público voltado pras juventudes 💛",
+    "📍 Escolhe seu horário aqui 👇",
+    `${PUBLIC_SITE_URL}/`,
+    "Se não quiser mais receber esses lembretes, é só responder SAIR."
+  ];
+}
 
-Aqui você pode contar com:
-${servicos}
-
-Tudo 100% gratuito: o LabStudio faz parte do CRJ, um programa público voltado para as juventudes.
-
-📍 Escolha seu horário:
-${PUBLIC_SITE_URL}/
-
-Se não quiser mais receber estes lembretes, responda SAIR.`;
+// Versão em texto único, só para mostrar a prévia no painel admin.
+function montarMensagemDivulgacao(nome) {
+  return montarMensagensDivulgacao(nome).join("\n\n");
 }
 
 function esperar(ms) {
@@ -2756,15 +2860,20 @@ async function executarCicloDivulgacao() {
       // Se a reserva falhar, o erro interrompe o ciclo sem enviar nada.
       await reservarEnvioDivulgacao(usuario.id, ciclo);
 
+      const progresso = { enviadas: 0 };
       try {
         const destino = await resolverDestinoWhatsApp(usuario.telefone);
-        await client.sendMessage(destino, montarMensagemDivulgacao(usuario.nome));
+        // Usa enviarSequencia (e não enviarConversa) para não ativar o anti-flood:
+        // se a pessoa responder "estúdio" logo depois, o bot precisa responder.
+        await enviarSequencia(destino, montarMensagensDivulgacao(usuario.nome), progresso);
         await concluirEnvioDivulgacao({ usuarioId: usuario.id, ciclo, status: "enviado" });
         console.log(`✅ Divulgação enviada para ${mascararNumeroWhatsApp(destino)}.`);
       } catch (envioError) {
         const erro = String(envioError.message || envioError).slice(0, 300);
 
-        if (erroTemporarioDoNavegador(envioError)) {
+        // Só libera para tentar de novo se nada saiu; se já saiu parte, não repete
+        // (a pessoa receberia as primeiras mensagens duas vezes).
+        if (erroTemporarioDoNavegador(envioError) && progresso.enviadas === 0) {
           await liberarReservaDivulgacao(usuario.id, ciclo);
           console.warn(`⏸️ WhatsApp Web instável (${erro}); divulgação continua na próxima verificação.`);
           return;
@@ -2812,12 +2921,12 @@ async function processarPedidoSairDivulgacao(msg) {
   // Só confirma para quem estava recebendo, para não responder qualquer "sair" de conversa comum.
   if (!atualizados || !atualizados.length) return;
 
-  await client.sendMessage(
-    msg.from,
-    `Pronto, ${primeiroNome(usuario.nome)}! Você não vai mais receber os lembretes do LabStudio.
+  const nomeCurto = primeiroNomeConversa(usuario.nome);
 
-O agendamento continua normal: é só mandar "agendar" quando quiser gravar. 🎙️`
-  );
+  await enviarSequencia(msg.from, [
+    nomeCurto ? `Pronto, ${nomeCurto}! Você não vai mais receber os lembretes do LabStudio 👍` : "Pronto! Você não vai mais receber os lembretes do LabStudio 👍",
+    "O agendamento continua normal: é só mandar \"estúdio\" quando quiser gravar 🎙️"
+  ]);
 
   console.log(`🔕 Divulgação desativada a pedido de ${mascararNumeroWhatsApp(msg.from)}.`);
 }
@@ -2868,7 +2977,10 @@ app.post("/api/divulgacao/teste", limitarTesteDivulgacao, exigirAdminSupabase, a
       return responderErroApi(res, 503, "WhatsApp ainda não está pronto para enviar mensagens.");
     }
 
-    await client.sendMessage(destino, `🧪 TESTE DA DIVULGAÇÃO (só você recebeu)\n\n${montarMensagemDivulgacao("Fulano")}`);
+    await enviarSequencia(destino, [
+      "🧪 TESTE DA DIVULGAÇÃO (só você recebeu)",
+      ...montarMensagensDivulgacao("Fulano")
+    ]);
 
     return res.json({ ok: true, destino: mascararNumeroWhatsApp(destino) });
   } catch (err) {
@@ -2920,25 +3032,28 @@ function erroColunaAusente(error) {
   return Boolean(error) && (error.code === "42703" || /column .* does not exist|lembrete_enviado_em/i.test(String(error.message || "")));
 }
 
+// Confirmação e lembrete saem em várias mensagens curtas (com "digitando..."), não num bloco só.
+// As duas funções retornam a lista de mensagens, na ordem de envio.
 function montarMensagemConfirmacaoPainel(nome, data, horario) {
-  return `Olá, ${primeiroNome(nome)}! 🎙️
+  const nomeCurto = primeiroNomeConversa(nome);
 
-A equipe do CRJ marcou seu horário no LabStudio CRJ FLEXAL:
-
-📅 ${formatarDataBr(data)}
-⏰ ${horario}
-
-Chegue com alguns minutos de antecedência. Se não puder vir, responda esta mensagem avisando.`;
+  return [
+    nomeCurto ? `Oi, ${nomeCurto}! Tudo bem? 🎙️` : "Oi! Tudo bem? 🎙️",
+    "Aqui é o LabStudio CRJ FLEXAL. A equipe do CRJ marcou seu horário no estúdio ✅",
+    `📅 ${formatarDataBr(data)}\n⏰ ${String(horario).slice(0, 5)}`,
+    "Chega uns minutinhos antes, beleza? Se não puder vir, responde esta mensagem avisando a gente 🙏"
+  ];
 }
 
 function montarMensagemLembrete(nome, data, horario) {
+  const nomeCurto = primeiroNomeConversa(nome);
   const quando = String(data).split("T")[0] === dataIsoSaoPaulo() ? "hoje" : `no dia ${formatarDataBr(data)}`;
 
-  return `Olá, ${primeiroNome(nome)}! ⏰
-
-Passando para lembrar do seu horário no LabStudio CRJ FLEXAL ${quando} às ${String(horario).slice(0, 5)}.
-
-Chegue com alguns minutos de antecedência. Se não puder vir, responda esta mensagem avisando a equipe.`;
+  return [
+    nomeCurto ? `Oi, ${nomeCurto}! ⏰` : "Oi! ⏰",
+    `Passando pra lembrar do seu horário no LabStudio CRJ FLEXAL ${quando} às ${String(horario).slice(0, 5)} 🎙️`,
+    "Chega uns minutinhos antes, beleza? Se não puder vir, responde esta mensagem avisando a equipe 🙏"
+  ];
 }
 
 // -------------------------------
@@ -3041,7 +3156,7 @@ app.post("/api/admin/agendamentos", limitarAcoesPainel, exigirAdminSupabase, asy
         if (!botPronto) throw new Error("WhatsApp do bot desconectado.");
 
         const destino = await resolverDestinoWhatsApp(usuario.telefone);
-        await client.sendMessage(destino, montarMensagemConfirmacaoPainel(usuario.nome, dataSelecionada, horario));
+        await enviarSequencia(destino, montarMensagemConfirmacaoPainel(usuario.nome, dataSelecionada, horario));
         whatsappEnviado = true;
 
         // Se o horário já está dentro da janela do lembrete, a confirmação vale como lembrete.
@@ -3129,12 +3244,14 @@ async function executarLembretesAgendamento() {
       if (erroReserva) throw erroReserva;
       if (!reservado || !reservado.length) continue;
 
+      const progresso = { enviadas: 0 };
       try {
         const destino = await resolverDestinoWhatsApp(agendamento.telefone);
-        await client.sendMessage(destino, montarMensagemLembrete(agendamento.nome, agendamento.data, agendamento.horario));
+        await enviarSequencia(destino, montarMensagemLembrete(agendamento.nome, agendamento.data, agendamento.horario), progresso);
         console.log(`⏰ Lembrete enviado para ${mascararNumeroWhatsApp(destino)} (${agendamento.data} ${agendamento.horario}).`);
       } catch (envioError) {
-        if (erroTemporarioDoNavegador(envioError)) {
+        // Só libera para reenviar se nada saiu; se parte já foi, não repete o lembrete.
+        if (erroTemporarioDoNavegador(envioError) && progresso.enviadas === 0) {
           // WhatsApp Web instável: libera para tentar de novo na próxima verificação.
           await supabase.from("agendamentos").update({ lembrete_enviado_em: null }).eq("id", agendamento.id);
           console.warn("⏸️ WhatsApp instável; lembrete fica para a próxima verificação.");
@@ -3187,7 +3304,7 @@ app.post("/api/admin/agendamentos/:id/lembrete", limitarEnvioMensagensPainel, ex
     }
 
     const destino = await resolverDestinoWhatsApp(agendamento.telefone);
-    await client.sendMessage(destino, montarMensagemLembrete(agendamento.nome, agendamento.data, agendamento.horario));
+    await enviarSequencia(destino, montarMensagemLembrete(agendamento.nome, agendamento.data, agendamento.horario));
 
     const { error: erroMarcacao } = await supabase
       .from("agendamentos")
@@ -3411,6 +3528,81 @@ app.post("/api/admin/conversas/enviar", limitarEnvioMensagensPainel, exigirAdmin
 // ===============================
 // INICIALIZA O CLIENTE DO WHATSAPP
 // ===============================
+// Enquanto o próprio bot fecha o Chrome dele de propósito, o vigia não deve tratar isso como queda.
+let fechandoNavegadorDoBot = false;
+// (esperar(ms) já está definida mais acima, junto da divulgação.)
+
+function caminhoSessaoWhatsApp() {
+  const pathMod = require("path");
+  return pathMod.resolve(WWEBJS_AUTH_PATH, `session-${WHATSAPP_CLIENT_ID}`);
+}
+
+// Encerra SOMENTE os Chromes que usam a pasta de sessão deste bot.
+// Nunca usa "taskkill /im chrome.exe", que fecharia também o Chrome pessoal de quem usa o computador.
+function encerrarChromesDoBot() {
+  const { execSync } = require("child_process");
+  const marcador = `session-${WHATSAPP_CLIENT_ID}`.replace(/[^a-zA-Z0-9_.-]/g, "");
+  if (!marcador || marcador === "session-") return;
+
+  try {
+    if (process.platform === "win32") {
+      const script =
+        `Get-CimInstance Win32_Process -Filter \\"name='chrome.exe'\\" | ` +
+        `Where-Object { $_.CommandLine -like '*${marcador}*' } | ` +
+        `ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`;
+      execSync(`powershell -NoProfile -NonInteractive -Command "${script}"`, { stdio: "ignore", timeout: 30000 });
+    } else {
+      execSync(`pkill -f -- '${marcador}' || true`, { stdio: "ignore", timeout: 30000 });
+    }
+  } catch (err) {
+    console.log("⚠️ Não foi possível verificar Chromes antigos do bot:", err.message);
+  }
+}
+
+// Remove o lockfile da sessão, se sobrou de um Chrome que morreu. Não apaga a sessão (login do WhatsApp).
+async function removerLockfileDaSessao() {
+  const fs = require("fs");
+  const pathMod = require("path");
+  const lockfilePath = pathMod.join(caminhoSessaoWhatsApp(), "lockfile");
+
+  for (let restantes = 3; restantes > 0 && fs.existsSync(lockfilePath); restantes--) {
+    try {
+      fs.unlinkSync(lockfilePath);
+      console.log("🧹 Lockfile da sessão removido");
+      return;
+    } catch (err) {
+      await esperar(1000);
+    }
+  }
+  if (fs.existsSync(lockfilePath)) {
+    console.log("⚠️ Lockfile da sessão continua bloqueado; a próxima tentativa pode falhar.");
+  }
+}
+
+// Fecha o Chrome desta tentativa (e qualquer Chrome órfão do bot) antes de tentar de novo.
+async function fecharNavegadorDoBot() {
+  fechandoNavegadorDoBot = true;
+  try {
+    if (client.pupBrowser) {
+      try {
+        await client.pupBrowser.close();
+      } catch (err) {
+        // Já estava fechado ou travado; o encerramento abaixo resolve.
+      }
+    }
+    client.pupBrowser = null;
+    client.pupPage = null;
+
+    encerrarChromesDoBot();
+    await esperar(2000);
+    await removerLockfileDaSessao();
+  } finally {
+    fechandoNavegadorDoBot = false;
+  }
+}
+
+const MAX_TENTATIVAS_WHATSAPP = 5;
+
 async function inicializarWhatsAppComRetry(tentativa = 1) {
   try {
     console.log(`🚀 Inicializando WhatsApp... tentativa ${tentativa}`);
@@ -3419,93 +3611,43 @@ async function inicializarWhatsAppComRetry(tentativa = 1) {
     botPronto = false;
     console.error("❌ Falha ao inicializar WhatsApp:", err);
 
-    // Handle stale browser session lock
-    if (err.message && err.message.includes("The browser is already running")) {
-      console.log("🔧 Detectado navegador em execução. Tentando limpar sessão bloqueada...");
+    // Sempre fecha o Chrome da tentativa que falhou, senão a próxima esbarra em
+    // "The browser is already running" por causa do próprio bot.
+    await fecharNavegadorDoBot();
 
-      try {
-        const fs = require("fs");
-        const path = require("path");
-        const { execSync } = require("child_process");
-        const authPath = path.join(__dirname, WWEBJS_AUTH_PATH, `session-${WHATSAPP_CLIENT_ID}`);
-
-        // Kill all Chrome processes aggressively
-        try {
-          console.log("🛑 Encerrando todos os processos Chrome...");
-          execSync('taskkill /f /im chrome.exe /t', { stdio: 'ignore' });
-          console.log("✅ Processos Chrome encerrados");
-        } catch (killErr) {
-          console.log("⚠️ Nenhum processo Chrome encontrado ou já encerrado");
-        }
-
-        // Wait for processes to fully terminate
-        await new Promise(resolve => setTimeout(resolve, 3000));
-
-        // Try to remove lockfile multiple times with retries
-        const lockfilePath = path.join(authPath, "lockfile");
-        let retries = 3;
-        while (retries > 0 && fs.existsSync(lockfilePath)) {
-          try {
-            fs.unlinkSync(lockfilePath);
-            console.log("🧹 Lockfile removido com sucesso");
-            break;
-          } catch (lockErr) {
-            console.log(`⏳ Tentando remover lockfile novamente... (${retries} tentativas restantes)`);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            retries--;
-          }
-        }
-
-        // If lockfile still exists, try to remove the entire session directory
-        if (fs.existsSync(lockfilePath)) {
-          console.log("🔄 Lockfile ainda bloqueado. Removendo diretório de sessão completo...");
-          try {
-            // Remove the entire session directory to force a clean start
-            const sessionDir = path.join(__dirname, WWEBJS_AUTH_PATH);
-            if (fs.existsSync(sessionDir)) {
-              fs.rmSync(sessionDir, { recursive: true, force: true });
-              console.log("🗑️ Diretório de sessão removido completamente");
-            }
-          } catch (dirErr) {
-            console.error("❌ Falha ao remover diretório de sessão:", dirErr);
-          }
-        }
-
-        // Wait a moment for cleanup
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        // Try initialization again immediately after cleanup
-        console.log("🔄 Tentando inicializar novamente após limpeza...");
-        return inicializarWhatsAppComRetry(tentativa);
-      } catch (cleanupErr) {
-        console.error("❌ Falha geral na limpeza:", cleanupErr);
-      }
-    }
-
-    if (tentativa < 5) {
+    if (tentativa < MAX_TENTATIVAS_WHATSAPP) {
       const espera = 10000 * tentativa;
       console.log(`⏳ Tentando novamente em ${espera / 1000}s...`);
       setTimeout(() => inicializarWhatsAppComRetry(tentativa + 1), espera);
     } else {
-      console.error("❌ Limite de tentativas atingido. Reinicie o processo ou verifique o Chrome/Puppeteer.");
+      console.error("❌ Limite de tentativas atingido. Encerrando para o pm2 reiniciar do zero.");
+      process.exit(1);
     }
   }
 }
 
 // Guard rail de deploy: registra o diagnostico antes de iniciar o WhatsApp para evitar falhas silenciosas.
 registrarDiagnosticoBot();
-inicializarWhatsAppComRetry();
+
+// Se o processo anterior morreu, o Chrome dele pode ter ficado aberto segurando a sessão.
+(async () => {
+  encerrarChromesDoBot();
+  await removerLockfileDaSessao();
+  inicializarWhatsAppComRetry();
+})();
 
 // ===============================
 // VIGIA DO NAVEGADOR
 // O Chrome às vezes trava sozinho e o whatsapp-web.js fica esperando para sempre,
-// sem erro. Se o navegador cair, ou se em 3 minutos o bot não ficar pronto nem
+// sem erro. Se o navegador cair, ou se em 15 minutos o bot não ficar pronto nem
 // mostrar QR, encerra o processo para o pm2 subir um novo do zero.
+// O limite é maior que as 5 tentativas (até 2 min cada + esperas), para não cortar uma tentativa no meio.
 // ===============================
 const INICIO_DO_PROCESSO = Date.now();
-const LIMITE_INICIALIZACAO_MS = 3 * 60 * 1000;
+const LIMITE_INICIALIZACAO_MS = 15 * 60 * 1000;
 
 setInterval(() => {
+  if (fechandoNavegadorDoBot) return;
   const navegador = client.pupBrowser;
   const navegadorConectado = navegador
     ? (typeof navegador.isConnected === "function" ? navegador.isConnected() : navegador.connected)
